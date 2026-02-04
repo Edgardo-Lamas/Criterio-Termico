@@ -111,9 +111,13 @@ export function ManualTecnico() {
             <div className={styles.header}>
                 <h1>📖 Manual Técnico</h1>
                 <p className={styles.description}>
-                    Criterios técnicos claros para diseñar, calcular e instalar sistemas de calefacción por radiadores.
-                    No es un curso académico — es una guía de decisiones basada en experiencia real.
+                    <strong>Base técnica viva</strong> para diseñar, calcular e instalar sistemas de calefacción por radiadores.
+                    No es un curso cerrado — es criterio profesional que crece con experiencia real de obra.
                 </p>
+                <div className={styles.versionBadge}>
+                    <span>📋 Índice v1.0</span>
+                    <span className={styles.versionNote}>Se enriquece con aportes validados</span>
+                </div>
             </div>
 
             <div className={styles.chapterList}>
@@ -135,6 +139,37 @@ export function ManualTecnico() {
                     </Link>
                 ))}
             </div>
+
+            {/* Sección de Contribuciones */}
+            <section className={styles.contributeSection}>
+                <h2>🤝 Contribuye al Manual</h2>
+                <p>
+                    Este manual crece con la comunidad. Si tenés experiencia en obra,
+                    podés proponer mejoras, correcciones o casos de uso.
+                </p>
+                <div className={styles.contributeOptions}>
+                    <div className={styles.contributeCard}>
+                        <span className={styles.contributeIcon}>💡</span>
+                        <h4>Sugerir Mejora</h4>
+                        <p>Proponé una corrección o ampliación de contenido existente.</p>
+                    </div>
+                    <div className={styles.contributeCard}>
+                        <span className={styles.contributeIcon}>🔧</span>
+                        <h4>Caso de Obra</h4>
+                        <p>Compartí una situación real que enfrentaste y cómo la resolviste.</p>
+                    </div>
+                    <div className={styles.contributeCard}>
+                        <span className={styles.contributeIcon}>⚠️</span>
+                        <h4>Reportar Error</h4>
+                        <p>Señalá errores técnicos o información desactualizada.</p>
+                    </div>
+                </div>
+                <p className={styles.contributeNote}>
+                    Los aportes son revisados por el equipo técnico antes de publicarse.
+                    Los contribuidores validados reciben reconocimiento en la plataforma.
+                </p>
+            </section>
         </div>
     )
 }
+

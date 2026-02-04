@@ -196,3 +196,86 @@
         align-self: flex-start;
     }
 }
+
+/* Version Badge */
+.versionBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+}
+
+.versionNote {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+}
+
+/* Contribute Section */
+.contributeSection {
+    margin-top: var(--spacing-2xl);
+    padding: var(--spacing-xl);
+    background: linear-gradient(135deg, rgba(0, 210, 106, 0.05) 0%, rgba(0, 150, 199, 0.05) 100%);
+    border: 1px solid rgba(0, 210, 106, 0.2);
+    border-radius: var(--border-radius-lg);
+}
+
+.contributeSection h2 {
+    font-size: var(--font-size-xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.contributeSection>p {
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-lg);
+}
+
+.contributeOptions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.contributeCard {
+    padding: var(--spacing-md);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+}
+
+.contributeCard:hover {
+    border-color: var(--color-success);
+    transform: translateY(-2px);
+}
+
+.contributeIcon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.contributeCard h4 {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.contributeCard p {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+}
+
+.contributeNote {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    text-align: center;
+    padding-top: var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}

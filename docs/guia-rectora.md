@@ -73,6 +73,21 @@ El manual **no compite** con la API: la **acompaña y la explica**.
 
 ---
 
+## 4.1 El Manual como Base Técnica Viva
+
+El Manual Técnico **NO es un contenido educativo cerrado**. Es una **base técnica viva**, orientada a criterio profesional y monetización.
+
+**Características clave:**
+
+* **Índice v1.0 estable** – Estructura inicial definida que sirve como esqueleto permanente
+* **Enriquecimiento continuo** – Se actualiza con experiencia real de obra y aportes validados
+* **Aportes de usuarios validados** – Los profesionales pueden proponer mejoras, correcciones o casos de uso
+* **Evolución monetizable** – El contenido avanzado justifica suscripciones Pro/Premium
+
+El manual crece con la comunidad, pero mantiene rigor técnico y criterio profesional.
+
+---
+
 ## 5. Experiencia Real de Obra (Diferencial)
 
 Criterio Térmico incorpora una sección central de:
