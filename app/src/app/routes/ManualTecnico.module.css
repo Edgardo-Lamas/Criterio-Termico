@@ -17,6 +17,101 @@
     line-height: 1.6;
 }
 
+/* Leyenda de acceso */
+.leyenda {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+}
+
+.leyendaItem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--color-text-muted);
+}
+
+.dotFree,
+.dotMixed,
+.dotPremium {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--border-radius-full);
+}
+
+.dotFree {
+    background: var(--color-success);
+}
+
+.dotMixed {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.dotPremium {
+    background: var(--color-premium-bg);
+}
+
+/* Parte Section */
+.parteSection {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.parteTitulo {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Access Badges */
+.accesoBadge {
+    padding: 2px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.accesoMixed {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #000;
+}
+
+.accesoPremium {
+    background: var(--color-premium-bg);
+    color: #000;
+}
+
+/* Chapter Number colored by access */
+.numFree {
+    background: rgba(0, 210, 106, 0.2);
+    color: var(--color-success);
+}
+
+.numMixed {
+    background: rgba(79, 172, 254, 0.2);
+    color: #4facfe;
+}
+
+.numPremium {
+    background: rgba(255, 215, 0, 0.2);
+    color: var(--color-premium-bg);
+}
+
+/* Chapter Meta */
+.chapterMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
+}
+
 .backLink {
     display: inline-block;
     color: var(--color-text-muted);

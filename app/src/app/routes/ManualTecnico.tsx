@@ -1,58 +1,184 @@
 import { useParams, Link } from 'react-router-dom'
 import styles from './ManualTecnico.module.css'
 
-// Placeholder de capítulos del manual
-const capitulos = [
+// Tipos de acceso por capítulo
+type AccesoTipo = 'free' | 'mixed' | 'premium'
+
+interface Capitulo {
+    id: string
+    numero: number
+    titulo: string
+    descripcion: string
+    acceso: AccesoTipo
+    disponible: boolean
+}
+
+interface Parte {
+    titulo: string
+    capitulos: Capitulo[]
+}
+
+// Índice v1.0 del Manual de Calefacción por Radiadores
+const partes: Parte[] = [
     {
-        id: 'introduccion',
-        numero: 1,
-        titulo: 'Introducción a la Calefacción por Radiadores',
-        descripcion: 'Principios básicos, tipos de sistemas y criterios de selección.',
-        disponible: true
+        titulo: 'Parte I – El Proyecto y el Criterio Profesional',
+        capitulos: [
+            {
+                id: 'relevamiento',
+                numero: 1,
+                titulo: 'El relevamiento técnico de la vivienda',
+                descripcion: 'Qué medir, qué observar y qué errores detectar antes de presupuestar.',
+                acceso: 'free',
+                disponible: true
+            },
+            {
+                id: 'confort',
+                numero: 2,
+                titulo: 'Estrategia de confort térmico',
+                descripcion: 'Por qué calefacción central por radiadores. Confort, inercia térmica y distribución homogénea.',
+                acceso: 'free',
+                disponible: true
+            },
+            {
+                id: 'perdidas',
+                numero: 3,
+                titulo: 'Análisis de pérdidas térmicas reales',
+                descripcion: 'Aislamiento, orientación, aberturas, infiltraciones y errores de lectura habituales.',
+                acceso: 'mixed',
+                disponible: true
+            }
+        ]
     },
     {
-        id: 'radiadores',
-        numero: 2,
-        titulo: 'Radiadores',
-        descripcion: 'Tipos, dimensionamiento, ubicación y selección de radiadores.',
-        disponible: true
+        titulo: 'Parte II – Cálculo y Dimensionamiento',
+        capitulos: [
+            {
+                id: 'potencia',
+                numero: 4,
+                titulo: 'Cálculo de potencia térmica por ambiente',
+                descripcion: 'Criterio práctico en kcal/h – factores reales vs fórmulas de folleto.',
+                acceso: 'mixed',
+                disponible: true
+            },
+            {
+                id: 'radiadores',
+                numero: 5,
+                titulo: 'Selección y dimensionamiento de radiadores',
+                descripcion: 'Potencia útil, alturas, cantidad de elementos y errores frecuentes en obra.',
+                acceso: 'premium',
+                disponible: false
+            },
+            {
+                id: 'hidraulico',
+                numero: 6,
+                titulo: 'Diseño del sistema hidráulico',
+                descripcion: 'Predominio del sistema bitubo. Criterios comparativos con otros esquemas.',
+                acceso: 'premium',
+                disponible: false
+            }
+        ]
     },
     {
-        id: 'tuberias',
-        numero: 3,
-        titulo: 'Tuberías y Accesorios',
-        descripcion: 'Materiales, diámetros, tendidos y pérdidas de carga.',
-        disponible: true
+        titulo: 'Parte III – Materiales y Sistemas de Tuberías',
+        capitulos: [
+            {
+                id: 'tuberias-seleccion',
+                numero: 7,
+                titulo: 'Selección del sistema de tuberías',
+                descripcion: 'Termofusión con barrera antioxígeno vs PEX. Ventajas, limitaciones y criterios.',
+                acceso: 'mixed',
+                disponible: false
+            },
+            {
+                id: 'tuberias-dimension',
+                numero: 8,
+                titulo: 'Dimensionamiento de tuberías',
+                descripcion: 'Diámetros, caudales, velocidades y lectura correcta del circuito.',
+                acceso: 'premium',
+                disponible: false
+            },
+            {
+                id: 'dilatacion',
+                numero: 9,
+                titulo: 'Dilatación térmica y fijaciones',
+                descripcion: 'Puntos fijos, liras, compensaciones y prevención de ruidos y fallas.',
+                acceso: 'premium',
+                disponible: false
+            }
+        ]
     },
     {
-        id: 'calderas',
-        numero: 4,
-        titulo: 'Calderas',
-        descripcion: 'Tipos, dimensionamiento, instalación y mantenimiento.',
-        disponible: false
+        titulo: 'Parte IV – Montaje, Regulación y Puesta en Marcha',
+        capitulos: [
+            {
+                id: 'posicionamiento',
+                numero: 10,
+                titulo: 'Posicionamiento correcto de emisores',
+                descripcion: 'Criterio técnico del "bajo ventana" y consecuencias de una mala ubicación.',
+                acceso: 'free',
+                disponible: false
+            },
+            {
+                id: 'valvulas',
+                numero: 11,
+                titulo: 'Válvulas, detentores y accesorios',
+                descripcion: 'Selección correcta y rol crítico en el equilibrado del sistema.',
+                acceso: 'premium',
+                disponible: false
+            },
+            {
+                id: 'puesta-marcha',
+                numero: 12,
+                titulo: 'Pruebas hidráulicas y puesta en marcha',
+                descripcion: 'Protocolos reales de obra antes del cierre y entrega al cliente.',
+                acceso: 'premium',
+                disponible: false
+            }
+        ]
     },
     {
-        id: 'bombas',
-        numero: 5,
-        titulo: 'Bombas Circuladoras',
-        descripcion: 'Selección, instalación y ajuste de bombas.',
-        disponible: false
-    },
-    {
-        id: 'balanceo',
-        numero: 6,
-        titulo: 'Balanceo Hidráulico',
-        descripcion: 'Diagnóstico y corrección de desbalances.',
-        disponible: false
+        titulo: 'Parte V – Diagnóstico y Mejora Continua',
+        capitulos: [
+            {
+                id: 'errores',
+                numero: 13,
+                titulo: 'Errores frecuentes en instalaciones reales',
+                descripcion: 'Problema → causa → solución. Casos típicos de obra y cómo corregirlos.',
+                acceso: 'mixed',
+                disponible: true
+            },
+            {
+                id: 'comunidad',
+                numero: 14,
+                titulo: 'Experiencias reales y aportes de la comunidad',
+                descripcion: 'Casos reales de usuarios, soluciones prácticas y aprendizajes de obra.',
+                acceso: 'free',
+                disponible: true
+            }
+        ]
     }
 ]
+
+// Helper para obtener todos los capítulos planos
+const todosLosCapitulos = partes.flatMap(p => p.capitulos)
+
+// Componente de badge de acceso
+function AccesoBadge({ acceso }: { acceso: AccesoTipo }) {
+    if (acceso === 'free') return null
+
+    return (
+        <span className={`${styles.accesoBadge} ${styles[`acceso${acceso.charAt(0).toUpperCase() + acceso.slice(1)}`]}`}>
+            {acceso === 'mixed' ? 'Mixto' : 'Premium'}
+        </span>
+    )
+}
 
 export function ManualTecnico() {
     const { capitulo } = useParams()
 
     // Si hay un capítulo específico
     if (capitulo) {
-        const cap = capitulos.find(c => c.id === capitulo)
+        const cap = todosLosCapitulos.find(c => c.id === capitulo)
 
         if (!cap) {
             return (
@@ -69,6 +195,7 @@ export function ManualTecnico() {
                     <Link to="/manual" className={styles.backLink}>← Manual Técnico</Link>
                     <span className={styles.chapterNum}>Capítulo {cap.numero}</span>
                     <h1>{cap.titulo}</h1>
+                    <AccesoBadge acceso={cap.acceso} />
                 </div>
 
                 <article className={styles.content}>
@@ -86,15 +213,15 @@ export function ManualTecnico() {
                 <nav className={styles.chapterNav}>
                     {cap.numero > 1 && (
                         <Link
-                            to={`/manual/${capitulos[cap.numero - 2].id}`}
+                            to={`/manual/${todosLosCapitulos[cap.numero - 2].id}`}
                             className={styles.navPrev}
                         >
                             ← Capítulo {cap.numero - 1}
                         </Link>
                     )}
-                    {cap.numero < capitulos.length && (
+                    {cap.numero < todosLosCapitulos.length && (
                         <Link
-                            to={`/manual/${capitulos[cap.numero].id}`}
+                            to={`/manual/${todosLosCapitulos[cap.numero].id}`}
                             className={styles.navNext}
                         >
                             Capítulo {cap.numero + 1} →
@@ -105,7 +232,7 @@ export function ManualTecnico() {
         )
     }
 
-    // Índice del manual
+    // Índice del manual organizado por partes
     return (
         <div className={styles.page}>
             <div className={styles.header}>
@@ -116,29 +243,53 @@ export function ManualTecnico() {
                 </p>
                 <div className={styles.versionBadge}>
                     <span>📋 Índice v1.0</span>
-                    <span className={styles.versionNote}>Se enriquece con aportes validados</span>
+                    <span className={styles.versionNote}>14 capítulos · 5 partes</span>
                 </div>
             </div>
 
-            <div className={styles.chapterList}>
-                {capitulos.map(cap => (
-                    <Link
-                        key={cap.id}
-                        to={cap.disponible ? `/manual/${cap.id}` : '#'}
-                        className={`${styles.chapterCard} ${!cap.disponible ? styles.chapterLocked : ''}`}
-                        onClick={e => !cap.disponible && e.preventDefault()}
-                    >
-                        <span className={styles.chapterNumber}>{cap.numero}</span>
-                        <div className={styles.chapterInfo}>
-                            <h3 className={styles.chapterTitle}>{cap.titulo}</h3>
-                            <p className={styles.chapterDescription}>{cap.descripcion}</p>
-                        </div>
-                        {!cap.disponible && (
-                            <span className={styles.comingSoon}>Próximamente</span>
-                        )}
-                    </Link>
-                ))}
+            {/* Leyenda de acceso */}
+            <div className={styles.leyenda}>
+                <span className={styles.leyendaItem}>
+                    <span className={styles.dotFree}></span> Gratuito
+                </span>
+                <span className={styles.leyendaItem}>
+                    <span className={styles.dotMixed}></span> Mixto
+                </span>
+                <span className={styles.leyendaItem}>
+                    <span className={styles.dotPremium}></span> Premium
+                </span>
             </div>
+
+            {/* Índice por partes */}
+            {partes.map((parte, parteIndex) => (
+                <section key={parteIndex} className={styles.parteSection}>
+                    <h2 className={styles.parteTitulo}>{parte.titulo}</h2>
+                    <div className={styles.chapterList}>
+                        {parte.capitulos.map(cap => (
+                            <Link
+                                key={cap.id}
+                                to={cap.disponible ? `/manual/${cap.id}` : '#'}
+                                className={`${styles.chapterCard} ${!cap.disponible ? styles.chapterLocked : ''}`}
+                                onClick={e => !cap.disponible && e.preventDefault()}
+                            >
+                                <span className={`${styles.chapterNumber} ${styles[`num${cap.acceso.charAt(0).toUpperCase() + cap.acceso.slice(1)}`]}`}>
+                                    {cap.numero}
+                                </span>
+                                <div className={styles.chapterInfo}>
+                                    <h3 className={styles.chapterTitle}>{cap.titulo}</h3>
+                                    <p className={styles.chapterDescription}>{cap.descripcion}</p>
+                                </div>
+                                <div className={styles.chapterMeta}>
+                                    <AccesoBadge acceso={cap.acceso} />
+                                    {!cap.disponible && (
+                                        <span className={styles.comingSoon}>Próximamente</span>
+                                    )}
+                                </div>
+                            </Link>
+                        ))}
+                    </div>
+                </section>
+            ))}
 
             {/* Sección de Contribuciones */}
             <section className={styles.contributeSection}>
@@ -172,4 +323,3 @@ export function ManualTecnico() {
         </div>
     )
 }
-
