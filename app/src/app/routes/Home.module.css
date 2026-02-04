@@ -1,0 +1,200 @@
+.home {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* Hero */
+.hero {
+    text-align: center;
+    padding: var(--spacing-2xl) var(--spacing-md);
+}
+
+.heroContent {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.heroTitle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    font-size: var(--font-size-4xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.heroIcon {
+    font-size: 3rem;
+}
+
+.heroSubtitle {
+    font-size: var(--font-size-xl);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.heroDescription {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-xl);
+    line-height: 1.8;
+}
+
+.heroDescription strong {
+    color: var(--color-primary);
+}
+
+.heroCTA {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.primaryButton,
+.secondaryButton {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-radius: var(--border-radius-md);
+    font-weight: 600;
+    font-size: var(--font-size-lg);
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+
+.primaryButton {
+    background: var(--color-primary);
+    color: var(--color-text-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.primaryButton:hover {
+    background: var(--color-primary-light);
+    color: var(--color-text-primary);
+    transform: translateY(-2px);
+}
+
+.secondaryButton {
+    background: transparent;
+    color: var(--color-text-primary);
+    border: 2px solid var(--color-text-muted);
+}
+
+.secondaryButton:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+/* Features */
+.features {
+    padding: var(--spacing-2xl) 0;
+}
+
+.featuresGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.featureCard {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-xl);
+    background: var(--color-bg-card);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-decoration: none;
+    transition: all var(--transition-normal);
+}
+
+.featureCard:hover {
+    transform: translateY(-4px);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-lg);
+}
+
+.featureIcon {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.featureTitle {
+    font-size: var(--font-size-xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.featureDescription {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    flex: 1;
+}
+
+.featureLink {
+    color: var(--color-primary);
+    font-weight: 500;
+    margin-top: var(--spacing-md);
+}
+
+/* Differentiator */
+.differentiator {
+    padding: var(--spacing-2xl) 0;
+    text-align: center;
+}
+
+.sectionTitle {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.differentiatorGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.diffItem {
+    padding: var(--spacing-lg);
+}
+
+.diffIcon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: var(--spacing-sm);
+}
+
+.diffItem h4 {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.diffItem p {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+@media (max-width: 640px) {
+    .heroTitle {
+        font-size: var(--font-size-3xl);
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+
+    .heroIcon {
+        font-size: 2.5rem;
+    }
+
+    .heroSubtitle {
+        font-size: var(--font-size-lg);
+    }
+
+    .primaryButton,
+    .secondaryButton {
+        width: 100%;
+        justify-content: center;
+    }
+}
