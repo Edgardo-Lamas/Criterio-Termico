@@ -10,7 +10,7 @@ import './styles/global.css'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/Criterio-Termico">
       <Routes>
         <Route path="/" element={<MainLayout />}>
           <Route index element={<Home />} />
