@@ -36,7 +36,7 @@
 }
 
 .dotFree,
-.dotMixed,
+.dotPro,
 .dotPremium {
     width: 10px;
     height: 10px;
@@ -47,7 +47,7 @@
     background: var(--color-success);
 }
 
-.dotMixed {
+.dotPro {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
@@ -77,7 +77,7 @@
     text-transform: uppercase;
 }
 
-.accesoMixed {
+.accesoPro {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
     color: #000;
 }
@@ -93,7 +93,7 @@
     color: var(--color-success);
 }
 
-.numMixed {
+.numPro {
     background: rgba(79, 172, 254, 0.2);
     color: #4facfe;
 }
@@ -373,4 +373,12 @@
     text-align: center;
     padding-top: var(--spacing-md);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.contributeCredits {
+    display: block;
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-success);
 }

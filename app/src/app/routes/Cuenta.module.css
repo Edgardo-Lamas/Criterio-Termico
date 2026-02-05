@@ -273,3 +273,59 @@
         text-align: center;
     }
 }
+
+/* Tier Badge Labels */
+.tierBadgeLabel {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: var(--spacing-md);
+}
+
+.badgePro {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #000;
+}
+
+.badgePremium {
+    background: var(--color-premium-bg);
+    color: #000;
+}
+
+/* Popular Tier Highlight */
+.tierPopular {
+    border-color: #4facfe;
+    box-shadow: 0 0 20px rgba(79, 172, 254, 0.3);
+    transform: scale(1.02);
+}
+
+/* Annual Price */
+.tierPriceAnual {
+    font-size: var(--font-size-sm);
+    color: var(--color-success);
+    margin-top: calc(-1 * var(--spacing-sm));
+    margin-bottom: var(--spacing-lg);
+    font-weight: 500;
+}
+
+/* Button Variants */
+.buttonPro {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    color: #000;
+}
+
+.buttonPro:hover {
+    background: linear-gradient(135deg, #5fb5ff 0%, #10ffff 100%);
+}
+
+.buttonPremium {
+    background: var(--color-premium-bg);
+    color: #000;
+}
+
+.buttonPremium:hover {
+    background: #ffd54f;
+}

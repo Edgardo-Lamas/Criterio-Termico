@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { ContribucionForm } from '../../components/contributions/ContribucionForm/ContribucionForm'
+import type { TipoContribucion } from '../../stores/useContribucionesStore'
 import styles from './ManualTecnico.module.css'
 
 // Tipos de acceso por capítulo
-type AccesoTipo = 'free' | 'mixed' | 'premium'
+type AccesoTipo = 'free' | 'pro' | 'premium'
 
 interface Capitulo {
     id: string
@@ -44,7 +47,7 @@ const partes: Parte[] = [
                 numero: 3,
                 titulo: 'Análisis de pérdidas térmicas reales',
                 descripcion: 'Aislamiento, orientación, aberturas, infiltraciones y errores de lectura habituales.',
-                acceso: 'mixed',
+                acceso: 'pro',
                 disponible: true
             }
         ]
@@ -57,7 +60,7 @@ const partes: Parte[] = [
                 numero: 4,
                 titulo: 'Cálculo de potencia térmica por ambiente',
                 descripcion: 'Criterio práctico en kcal/h – factores reales vs fórmulas de folleto.',
-                acceso: 'mixed',
+                acceso: 'pro',
                 disponible: true
             },
             {
@@ -86,7 +89,7 @@ const partes: Parte[] = [
                 numero: 7,
                 titulo: 'Selección del sistema de tuberías',
                 descripcion: 'Termofusión con barrera antioxígeno vs PEX. Ventajas, limitaciones y criterios.',
-                acceso: 'mixed',
+                acceso: 'pro',
                 disponible: false
             },
             {
@@ -144,7 +147,7 @@ const partes: Parte[] = [
                 numero: 13,
                 titulo: 'Errores frecuentes en instalaciones reales',
                 descripcion: 'Problema → causa → solución. Casos típicos de obra y cómo corregirlos.',
-                acceso: 'mixed',
+                acceso: 'pro',
                 disponible: true
             },
             {
@@ -168,7 +171,7 @@ function AccesoBadge({ acceso }: { acceso: AccesoTipo }) {
 
     return (
         <span className={`${styles.accesoBadge} ${styles[`acceso${acceso.charAt(0).toUpperCase() + acceso.slice(1)}`]}`}>
-            {acceso === 'mixed' ? 'Mixto' : 'Premium'}
+            {acceso === 'pro' ? 'PRO' : 'Premium'}
         </span>
     )
 }
@@ -253,7 +256,7 @@ export function ManualTecnico() {
                     <span className={styles.dotFree}></span> Gratuito
                 </span>
                 <span className={styles.leyendaItem}>
-                    <span className={styles.dotMixed}></span> Mixto
+                    <span className={styles.dotPro}></span> PRO
                 </span>
                 <span className={styles.leyendaItem}>
                     <span className={styles.dotPremium}></span> Premium
@@ -292,6 +295,23 @@ export function ManualTecnico() {
             ))}
 
             {/* Sección de Contribuciones */}
+            <ContributeSection />
+        </div>
+    )
+}
+
+// Componente separado para la sección de contribuciones (maneja su propio estado del modal)
+function ContributeSection() {
+    const [modalOpen, setModalOpen] = useState(false)
+    const [tipoInicial, setTipoInicial] = useState<TipoContribucion | undefined>(undefined)
+
+    const abrirModal = (tipo: TipoContribucion) => {
+        setTipoInicial(tipo)
+        setModalOpen(true)
+    }
+
+    return (
+        <>
             <section className={styles.contributeSection}>
                 <h2>🤝 Contribuye al Manual</h2>
                 <p>
@@ -299,27 +319,45 @@ export function ManualTecnico() {
                     podés proponer mejoras, correcciones o casos de uso.
                 </p>
                 <div className={styles.contributeOptions}>
-                    <div className={styles.contributeCard}>
+                    <button
+                        className={styles.contributeCard}
+                        onClick={() => abrirModal('mejora')}
+                    >
                         <span className={styles.contributeIcon}>💡</span>
                         <h4>Sugerir Mejora</h4>
                         <p>Proponé una corrección o ampliación de contenido existente.</p>
-                    </div>
-                    <div className={styles.contributeCard}>
+                        <span className={styles.contributeCredits}>+50 créditos</span>
+                    </button>
+                    <button
+                        className={styles.contributeCard}
+                        onClick={() => abrirModal('caso-obra')}
+                    >
                         <span className={styles.contributeIcon}>🔧</span>
                         <h4>Caso de Obra</h4>
                         <p>Compartí una situación real que enfrentaste y cómo la resolviste.</p>
-                    </div>
-                    <div className={styles.contributeCard}>
+                        <span className={styles.contributeCredits}>+100 créditos</span>
+                    </button>
+                    <button
+                        className={styles.contributeCard}
+                        onClick={() => abrirModal('error')}
+                    >
                         <span className={styles.contributeIcon}>⚠️</span>
                         <h4>Reportar Error</h4>
                         <p>Señalá errores técnicos o información desactualizada.</p>
-                    </div>
+                        <span className={styles.contributeCredits}>+25 créditos</span>
+                    </button>
                 </div>
                 <p className={styles.contributeNote}>
                     Los aportes son revisados por el equipo técnico antes de publicarse.
-                    Los contribuidores validados reciben reconocimiento en la plataforma.
+                    Los contribuidores validados reciben <strong>descuentos en su suscripción</strong>.
                 </p>
             </section>
-        </div>
+
+            <ContribucionForm
+                isOpen={modalOpen}
+                onClose={() => setModalOpen(false)}
+                tipoInicial={tipoInicial}
+            />
+        </>
     )
 }
