@@ -64,6 +64,11 @@ export function MainLayout() {
                     <p className={styles.footerMuted}>
                         No afiliada a ningún fabricante. Contenido basado en experiencia real de obra.
                     </p>
+                    <div className={styles.footerLinks}>
+                        <NavLink to="/terminos" className={styles.footerLink}>
+                            Términos de Uso
+                        </NavLink>
+                    </div>
                 </div>
             </footer>
         </div>

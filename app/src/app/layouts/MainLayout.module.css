@@ -163,3 +163,21 @@
     color: var(--color-text-muted);
     margin-top: var(--spacing-xs);
 }
+
+.footerLinks {
+    display: flex;
+    justify-content: center;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-md);
+}
+
+.footerLink {
+    color: var(--color-text-muted);
+    text-decoration: none;
+    font-size: var(--font-size-sm);
+    transition: color var(--transition-fast);
+}
+
+.footerLink:hover {
+    color: var(--color-primary);
+}

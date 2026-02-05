@@ -5,6 +5,7 @@ import { Herramientas } from './app/routes/Herramientas'
 import { ManualTecnico } from './app/routes/ManualTecnico'
 import { ErroresFrecuentes } from './app/routes/ErroresFrecuentes'
 import { Cuenta } from './app/routes/Cuenta'
+import { TerminosDeUso } from './app/routes/TerminosDeUso'
 import './styles/global.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
           <Route path="manual/:capitulo" element={<ManualTecnico />} />
           <Route path="errores" element={<ErroresFrecuentes />} />
           <Route path="cuenta" element={<Cuenta />} />
+          <Route path="terminos" element={<TerminosDeUso />} />
         </Route>
       </Routes>
     </BrowserRouter>
