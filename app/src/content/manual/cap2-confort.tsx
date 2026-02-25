@@ -1,6 +1,11 @@
 // Capítulo 2 — Estrategia de confort térmico
 // Acceso: free
 
+import { DiagramaRadiador } from './diagrams/DiagramaRadiador'
+import { DiagramaConfort } from './diagrams/DiagramaConfort'
+import { DiagramaInercia } from './diagrams/DiagramaInercia'
+import { FotoManual } from './diagrams/FotoManual'
+
 export function Cap2Confort() {
     return (
         <div className="prose">
@@ -38,6 +43,8 @@ export function Cap2Confort() {
                 </p>
             </div>
 
+            <DiagramaConfort />
+
             <h2>Cómo transfieren calor los radiadores</h2>
             <p>
                 Un radiador de agua caliente transfiere calor por <strong>dos vías simultáneas</strong>:
@@ -60,6 +67,8 @@ export function Cap2Confort() {
                 corriente forzada.
             </p>
 
+            <DiagramaRadiador />
+
             <div className="callout callout-tip">
                 <div className="callout-label">Por qué importa la proporción</div>
                 <p>
@@ -68,6 +77,11 @@ export function Cap2Confort() {
                     radiación). Es un punto intermedio muy eficiente para uso residencial.
                 </p>
             </div>
+
+            <FotoManual
+                alt="Radiador de panel de acero instalado bajo ventana"
+                caption="Radiador de panel instalado en su posición ideal: bajo la ventana, para contrarrestar el frío que ingresa por el vidrio y crear una cortina de aire caliente."
+            />
 
             <h2>Inercia térmica: calor que dura</h2>
             <p>
@@ -116,6 +130,8 @@ export function Cap2Confort() {
                     </tr>
                 </tbody>
             </table>
+
+            <DiagramaInercia />
 
             <h2>Distribución homogénea: el indicador de un buen diseño</h2>
             <p>
