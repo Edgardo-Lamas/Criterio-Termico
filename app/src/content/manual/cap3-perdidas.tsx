@@ -1,7 +1,13 @@
+// Capítulo 3 — Análisis de pérdidas térmicas reales
+// Acceso: pro
+
+import { DiagramaPerdidasCasa } from './diagrams/DiagramaPerdidasCasa'
+import { DiagramaValoresU } from './diagrams/DiagramaValoresU'
+import { FotoManual } from './diagrams/FotoManual'
+
 export function Cap3Perdidas() {
     return (
-        <article className="prose">
-            <h1>Capítulo 3 — Análisis de pérdidas térmicas reales</h1>
+        <div className="prose">
             <p className="lead">
                 Un cálculo de potencia correcto empieza por entender cuánto calor pierde cada
                 ambiente. No todos los locales pierden igual: la misma superficie en un edificio
@@ -21,12 +27,17 @@ export function Cap3Perdidas() {
                 que la pérdida, el sistema nunca alcanza temperatura en los días más fríos.
             </p>
 
-            <div className="callout-tip">
-                <strong>Temperatura de diseño en Argentina (zona IIIA — Buenos Aires):</strong>
-                se calcula con exterior a <strong>2°C</strong> e interior a <strong>20°C</strong>,
-                es decir una diferencia de 18°C. En zona IV (Patagonia) la diferencia llega a 30°C
-                o más — el mismo local necesita el doble de potencia.
+            <div className="callout callout-tip">
+                <div className="callout-label">Temperatura de diseño en Argentina</div>
+                <p>
+                    Zona IIIA (Buenos Aires): se calcula con exterior a <strong>2°C</strong> e
+                    interior a <strong>20°C</strong>, es decir una diferencia de 18°C.
+                    En zona IV (Patagonia) la diferencia llega a 30°C o más — el mismo local
+                    necesita el doble de potencia.
+                </p>
             </div>
+
+            <DiagramaPerdidasCasa />
 
             <h2>Los factores que determinan la pérdida</h2>
 
@@ -92,12 +103,21 @@ export function Cap3Perdidas() {
                 </tbody>
             </table>
 
-            <div className="callout-warning">
-                <strong>El error más frecuente:</strong> dimensionar para una casa que va a
-                tener DVH cuando todavía tiene vidrio simple. El instalador que no pregunta
-                termina con un sistema subdimensionado. Verificar siempre qué hay instalado
-                o qué está presupuestado al momento de la obra.
+            <DiagramaValoresU />
+
+            <div className="callout callout-warning">
+                <div className="callout-label">Error frecuente</div>
+                <p>
+                    Dimensionar para una casa que va a tener DVH cuando todavía tiene vidrio simple.
+                    El instalador que no pregunta termina con un sistema subdimensionado.
+                    Verificar siempre qué hay instalado o qué está presupuestado al momento de la obra.
+                </p>
             </div>
+
+            <FotoManual
+                alt="Ventana con vidrio simple vs DVH — comparativa de condensación"
+                caption="Las ventanas con vidrio simple concentran la condensación en invierno, evidenciando la alta transferencia de calor. Con DVH la temperatura interior del vidrio sube y la condensación desaparece."
+            />
 
             <h3>3. Techo y losa</h3>
             <p>
@@ -137,10 +157,13 @@ export function Cap3Perdidas() {
                 <li>Aberturas al patio interior sin burletes</li>
             </ul>
 
-            <div className="callout-tip">
-                Un living con cuatro ventanas sin burletes en invierno puede necesitar un
-                30–40% más de potencia que lo que indica el cálculo volumétrico estándar.
-                En esos casos usar el factor 60 Kcal/h·m³ aunque la construcción sea nueva.
+            <div className="callout callout-tip">
+                <div className="callout-label">Regla práctica</div>
+                <p>
+                    Un living con cuatro ventanas sin burletes en invierno puede necesitar un
+                    30–40% más de potencia que lo que indica el cálculo volumétrico estándar.
+                    En esos casos usar el factor 60 Kcal/h·m³ aunque la construcción sea nueva.
+                </p>
             </div>
 
             <h2>La orientación en Argentina</h2>
@@ -163,7 +186,7 @@ export function Cap3Perdidas() {
             <p>
                 El método volumétrico (Capítulo 4) incorpora estas variables de manera
                 simplificada a través del <strong>factor térmico</strong> y los
-                <strong>ajustes por pared exterior y ventanas</strong>. No es un cálculo
+                <strong> ajustes por pared exterior y ventanas</strong>. No es un cálculo
                 de ingeniería exacto, pero para el 90% de las obras residenciales da
                 resultados suficientemente precisos si se eligen bien los parámetros.
             </p>
@@ -198,13 +221,15 @@ export function Cap3Perdidas() {
                 </tbody>
             </table>
 
-            <div className="callout-info">
-                <strong>Resumen práctico:</strong> si durante el relevamiento detectás
-                infiltraciones evidentes, losa al exterior sin aislación, o la vivienda está
-                en una zona con inviernos severos, usá siempre el factor más alto. El costo
-                de una caldera algo mayor es insignificante frente al costo de un sistema
-                que no alcanza temperatura en pleno invierno.
+            <div className="callout callout-info">
+                <div className="callout-label">Resumen práctico</div>
+                <p>
+                    Si durante el relevamiento detectás infiltraciones evidentes, losa al exterior
+                    sin aislación, o la vivienda está en una zona con inviernos severos, usá siempre
+                    el factor más alto. El costo de una caldera algo mayor es insignificante frente
+                    al costo de un sistema que no alcanza temperatura en pleno invierno.
+                </p>
             </div>
-        </article>
+        </div>
     )
 }
