@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { ContribucionForm } from '../../components/contributions/ContribucionForm/ContribucionForm'
+import { getCapituloContent } from '../../content/manual'
 import type { TipoContribucion } from '../../stores/useContribucionesStore'
 import styles from './ManualTecnico.module.css'
 
@@ -208,14 +209,19 @@ export function ManualTecnico() {
                 </div>
 
                 <article className={styles.content}>
-                    {/* Placeholder de contenido */}
-                    <div className={styles.placeholder}>
-                        <p>📝 Contenido en desarrollo</p>
-                        <p className={styles.placeholderSub}>
-                            El contenido de este capítulo se cargará aquí utilizando MDX
-                            para una integración perfecta entre texto y herramientas interactivas.
-                        </p>
-                    </div>
+                    {(() => {
+                        const Contenido = getCapituloContent(cap.id)
+                        return Contenido
+                            ? <Contenido />
+                            : (
+                                <div className={styles.placeholder}>
+                                    <p>📝 Contenido en desarrollo</p>
+                                    <p className={styles.placeholderSub}>
+                                        Este capítulo estará disponible próximamente.
+                                    </p>
+                                </div>
+                            )
+                    })()}
                 </article>
 
                 {/* Navegación entre capítulos */}

@@ -1,10 +1,12 @@
+import type { ComponentType } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
+import { CalculadoraPisoRadiante } from '../../components/calculadoras/CalculadoraPisoRadiante/CalculadoraPisoRadiante'
+import { CalculadoraPotencia } from '../../components/calculadoras/CalculadoraPotencia/CalculadoraPotencia'
 import styles from './Herramientas.module.css'
 
-// Placeholder para las herramientas disponibles
 const herramientas = [
     {
         id: 'potencia',
@@ -31,6 +33,14 @@ const herramientas = [
         available: true
     },
     {
+        id: 'piso-radiante',
+        name: 'Calculadora de Piso Radiante',
+        description: 'Calcula tubería, circuitos y materiales para instalaciones de piso radiante.',
+        icon: '🌡️',
+        tier: 'pro' as const,
+        available: true
+    },
+    {
         id: 'simulador',
         name: 'Simulador 2D',
         description: 'Diseña instalaciones completas en canvas 2D. Solo desktop.',
@@ -45,9 +55,15 @@ const herramientas = [
         description: 'Crea presupuestos automáticos con materiales y mano de obra.',
         icon: '💰',
         tier: 'premium' as const,
-        available: false // Próximamente
+        available: false
     }
 ]
+
+// Componentes reales por tool ID
+const TOOL_COMPONENTS: Record<string, ComponentType> = {
+    'potencia': CalculadoraPotencia,
+    'piso-radiante': CalculadoraPisoRadiante,
+}
 
 export function Herramientas() {
     const { toolId } = useParams()
@@ -58,7 +74,6 @@ export function Herramientas() {
         description: 'Calculadoras de potencia térmica, diámetros de tuberías, caudales y simulador 2D para diseño de instalaciones de calefacción.'
     })
 
-    // Si hay un toolId, mostrar la herramienta específica
     if (toolId) {
         const tool = herramientas.find(h => h.id === toolId)
 
@@ -86,7 +101,8 @@ export function Herramientas() {
             )
         }
 
-        // TODO: Renderizar la herramienta específica
+        const ToolComponent = TOOL_COMPONENTS[tool.id]
+
         return (
             <div className={styles.page}>
                 <div className={styles.header}>
@@ -96,13 +112,16 @@ export function Herramientas() {
                 </div>
 
                 <div className={styles.toolContainer}>
-                    {/* Placeholder - aquí irá la calculadora real */}
-                    <div className={styles.placeholder}>
-                        <p>🚧 Herramienta en desarrollo</p>
-                        <p className={styles.placeholderSub}>
-                            Esta herramienta estará disponible próximamente.
-                        </p>
-                    </div>
+                    {ToolComponent ? (
+                        <ToolComponent />
+                    ) : (
+                        <div className={styles.placeholder}>
+                            <p>🚧 Herramienta en desarrollo</p>
+                            <p className={styles.placeholderSub}>
+                                Esta herramienta estará disponible próximamente.
+                            </p>
+                        </div>
+                    )}
                 </div>
             </div>
         )
@@ -137,7 +156,7 @@ export function Herramientas() {
                                         {tool.tier === 'pro' ? 'PRO' : 'PREMIUM'}
                                     </span>
                                 )}
-                                {tool.desktopOnly && (
+                                {'desktopOnly' in tool && tool.desktopOnly && (
                                     <span className={styles.badgeDesktop}>Desktop</span>
                                 )}
                             </div>

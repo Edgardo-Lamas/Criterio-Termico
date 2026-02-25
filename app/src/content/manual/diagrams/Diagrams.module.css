@@ -1,0 +1,100 @@
+/* Variables de color para los diagramas SVG */
+/* Se definen aquí y se consumen como custom properties dentro del SVG via fill/stroke */
+
+.figure {
+    margin: 2rem 0;
+    padding: 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+}
+
+.svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 360px;
+    /* Inyectar variables para los colores del diagrama */
+    --ct-ext-bg: color-mix(in srgb, var(--color-bg) 60%, #1e293b);
+    --ct-int-bg: var(--color-bg);
+    --ct-wall-ext: color-mix(in srgb, var(--color-surface) 80%, #374151);
+    --ct-wall-stroke: var(--color-border);
+    --ct-int-text: var(--color-text-secondary);
+    --ct-int-text-dim: var(--color-text-muted);
+    --ct-ext-text: var(--color-text-muted);
+    --ct-window: #60a5fa;
+    --ct-window-dim: #3b82f6;
+    --ct-door: #f59e0b;
+    --ct-north: #ef4444;
+    --ct-sun: #fbbf24;
+    --ct-sun-dim: #d97706;
+    --ct-cold: #93c5fd;
+    color: var(--color-text-secondary);
+}
+
+.caption {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-style: italic;
+}
+
+/* ── Slot para foto real ─────────────────────────────────────────── */
+
+.photoSlot {
+    margin: 2rem 0;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.photoSlot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: cover;
+}
+
+.photoSlot figcaption {
+    padding: 0.75rem 1rem;
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+    font-style: italic;
+}
+
+/* Placeholder cuando no hay foto todavía */
+.photoPlaceholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 200px;
+    background: var(--color-surface);
+    color: var(--color-text-muted);
+    font-size: 0.85rem;
+    border-radius: 10px;
+    border: 2px dashed var(--color-border);
+    margin: 2rem 0;
+    text-align: center;
+    padding: 1rem;
+}
+
+.photoPlaceholder span:first-child {
+    font-size: 2rem;
+    opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+    .svg {
+        max-height: 240px;
+    }
+}

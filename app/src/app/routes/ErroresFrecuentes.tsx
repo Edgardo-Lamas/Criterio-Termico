@@ -2,46 +2,10 @@ import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
+import { erroresList } from '../../content/errores'
 import styles from './ErroresFrecuentes.module.css'
 
-// Placeholder de casos de errores
-const errores = [
-    {
-        id: 'radiadores-frios',
-        titulo: 'Algunos radiadores no calientan',
-        categoria: 'Desbalance hidráulico',
-        preview: 'Los radiadores más alejados de la caldera no alcanzan temperatura.',
-        tier: 'free' as const
-    },
-    {
-        id: 'ruidos-tuberia',
-        titulo: 'Ruidos en las tuberías',
-        categoria: 'Velocidad excesiva',
-        preview: 'Silbidos o golpes de ariete en el sistema.',
-        tier: 'free' as const
-    },
-    {
-        id: 'factura-alta',
-        titulo: 'Factura de gas muy alta',
-        categoria: 'Eficiencia',
-        preview: 'Consumo excesivo sin mejora de confort.',
-        tier: 'pro' as const
-    },
-    {
-        id: 'caldera-corta-ciclado',
-        titulo: 'La caldera arranca y para constantemente',
-        categoria: 'Dimensionamiento',
-        preview: 'Ciclos cortos que reducen la vida útil del equipo.',
-        tier: 'pro' as const
-    },
-    {
-        id: 'radiador-frio-abajo',
-        titulo: 'Radiador frío en la parte inferior',
-        categoria: 'Acumulación de lodos',
-        preview: 'La mitad inferior del radiador no calienta.',
-        tier: 'premium' as const
-    }
-]
+const errores = erroresList
 
 export function ErroresFrecuentes() {
     const { canAccess } = useAuthStore()
