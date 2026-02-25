@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
 import styles from './Herramientas.module.css'
 
@@ -51,6 +52,11 @@ const herramientas = [
 export function Herramientas() {
     const { toolId } = useParams()
     const { canAccess } = useAuthStore()
+
+    usePageMeta({
+        title: 'Herramientas del Instalador',
+        description: 'Calculadoras de potencia térmica, diámetros de tuberías, caudales y simulador 2D para diseño de instalaciones de calefacción.'
+    })
 
     // Si hay un toolId, mostrar la herramienta específica
     if (toolId) {

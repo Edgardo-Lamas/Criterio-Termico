@@ -17,7 +17,7 @@ export default defineConfig({
         theme_color: '#e94560',
         background_color: '#0f0f23',
         display: 'standalone',
-        start_url: '/',
+        start_url: '/Criterio-Termico/',
         icons: [
           {
             src: 'pwa-192x192.png',

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
 import styles from './ErroresFrecuentes.module.css'
 
@@ -44,6 +45,11 @@ const errores = [
 
 export function ErroresFrecuentes() {
     const { canAccess } = useAuthStore()
+
+    usePageMeta({
+        title: 'Errores Frecuentes en Instalaciones',
+        description: 'Casos reales de problemas en instalaciones de calefacción por radiadores. Problema, causa y solución basados en experiencia de +200 obras.'
+    })
 
     // Obtener stats
     const casosGratis = errores.filter(e => e.tier === 'free').length

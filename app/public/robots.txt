@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://edgardo-lamas.github.io/Criterio-Termico/sitemap.xml

@@ -1,9 +1,34 @@
 import { Link } from 'react-router-dom'
+import { usePageMeta } from '../../lib/usePageMeta'
 import styles from './Home.module.css'
 
 export function Home() {
+    usePageMeta({
+        title: 'Plataforma Técnica para Instaladores de Calefacción',
+        description: 'Plataforma técnica independiente para instaladores de calefacción por radiadores. Herramientas de cálculo, manual técnico y errores frecuentes de obra.'
+    })
+
     return (
         <div className={styles.home}>
+            {/* JSON-LD Schema Markup */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "WebSite",
+                        "name": "Criterio Térmico",
+                        "url": "https://edgardo-lamas.github.io/Criterio-Termico/",
+                        "description": "Plataforma técnica independiente para instaladores de calefacción por radiadores",
+                        "inLanguage": "es",
+                        "publisher": {
+                            "@type": "Organization",
+                            "name": "Criterio Térmico",
+                            "url": "https://edgardo-lamas.github.io/Criterio-Termico/"
+                        }
+                    })
+                }}
+            />
             {/* Hero Section */}
             <section className={styles.hero}>
                 <div className={styles.heroContent}>
@@ -31,6 +56,7 @@ export function Home() {
 
             {/* Features Grid */}
             <section className={styles.features}>
+                <h2 className="sr-only">Escuela del Instalador</h2>
                 <div className={styles.featuresGrid}>
                     {/* Herramientas */}
                     <Link to="/herramientas" className={styles.featureCard}>
@@ -70,22 +96,22 @@ export function Home() {
                 <div className={styles.differentiatorGrid}>
                     <div className={styles.diffItem}>
                         <span className={styles.diffIcon}>🏗️</span>
-                        <h4>Desde el oficio</h4>
+                        <h3>Desde el oficio</h3>
                         <p>Nace de la experiencia real de obra, no de la academia ni del marketing.</p>
                     </div>
                     <div className={styles.diffItem}>
                         <span className={styles.diffIcon}>🚫</span>
-                        <h4>Sin marcas</h4>
+                        <h3>Sin marcas</h3>
                         <p>Independiente de fabricantes. Valoramos el criterio por sobre la marca.</p>
                     </div>
                     <div className={styles.diffItem}>
                         <span className={styles.diffIcon}>⚡</span>
-                        <h4>Decisiones rápidas</h4>
+                        <h3>Decisiones rápidas</h3>
                         <p>Herramientas que resuelven problemas reales, cuando los necesitás.</p>
                     </div>
                     <div className={styles.diffItem}>
                         <span className={styles.diffIcon}>📱</span>
-                        <h4>Donde estés</h4>
+                        <h3>Donde estés</h3>
                         <p>Accesible desde cualquier dispositivo. Instalable como aplicación.</p>
                     </div>
                 </div>

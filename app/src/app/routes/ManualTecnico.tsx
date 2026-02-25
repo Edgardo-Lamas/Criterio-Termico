@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
+import { usePageMeta } from '../../lib/usePageMeta'
 import { ContribucionForm } from '../../components/contributions/ContribucionForm/ContribucionForm'
 import type { TipoContribucion } from '../../stores/useContribucionesStore'
 import styles from './ManualTecnico.module.css'
@@ -178,6 +179,11 @@ function AccesoBadge({ acceso }: { acceso: AccesoTipo }) {
 
 export function ManualTecnico() {
     const { capitulo } = useParams()
+
+    usePageMeta({
+        title: 'Manual Técnico de Calefacción por Radiadores',
+        description: 'Base técnica viva para diseñar, calcular e instalar sistemas de calefacción por radiadores. 14 capítulos con criterio profesional.'
+    })
 
     // Si hay un capítulo específico
     if (capitulo) {

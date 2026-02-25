@@ -60,7 +60,7 @@ export function MainLayout() {
             {/* Footer */}
             <footer className={styles.footer}>
                 <div className={styles.footerContent}>
-                    <p>© 2025 Criterio Térmico — Plataforma técnica independiente</p>
+                    <p>© {new Date().getFullYear()} Criterio Térmico — Plataforma técnica independiente</p>
                     <p className={styles.footerMuted}>
                         No afiliada a ningún fabricante. Contenido basado en experiencia real de obra.
                     </p>

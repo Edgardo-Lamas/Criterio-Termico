@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { usePageMeta } from '../../lib/usePageMeta'
 import type { SubscriptionTier } from '../../stores/useAuthStore'
 import styles from './Cuenta.module.css'
 
@@ -52,6 +53,11 @@ export function Cuenta() {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
+
+    usePageMeta({
+        title: 'Mi Cuenta',
+        description: 'Accede a tu cuenta de Criterio Térmico. Gestiona tu suscripción y accede a herramientas profesionales.'
+    })
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()

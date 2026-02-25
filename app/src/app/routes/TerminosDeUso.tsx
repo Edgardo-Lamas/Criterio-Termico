@@ -1,6 +1,12 @@
+import { usePageMeta } from '../../lib/usePageMeta'
 import styles from './Legal.module.css'
 
 export function TerminosDeUso() {
+    usePageMeta({
+        title: 'Términos de Uso',
+        description: 'Términos y condiciones de uso de la plataforma Criterio Térmico.'
+    })
+
     return (
         <div className={styles.page}>
             <div className={styles.header}>
