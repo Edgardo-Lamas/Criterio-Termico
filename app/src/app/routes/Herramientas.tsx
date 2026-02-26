@@ -5,6 +5,7 @@ import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
 import { CalculadoraPisoRadiante } from '../../components/calculadoras/CalculadoraPisoRadiante/CalculadoraPisoRadiante'
 import { CalculadoraPotencia } from '../../components/calculadoras/CalculadoraPotencia/CalculadoraPotencia'
+import { CalculadoraBombas } from '../../components/calculadoras/CalculadoraBombas/CalculadoraBombas'
 import styles from './Herramientas.module.css'
 
 const herramientas = [
@@ -41,6 +42,14 @@ const herramientas = [
         available: true
     },
     {
+        id: 'bombas',
+        name: 'Calculadora de Bombas',
+        description: 'Dimensiona la bomba circuladora y verifica si necesitás presurizadora para llenar el circuito.',
+        icon: '⚙️',
+        tier: 'pro' as const,
+        available: true
+    },
+    {
         id: 'simulador',
         name: 'Simulador 2D',
         description: 'Diseña instalaciones completas en canvas 2D. Solo desktop.',
@@ -63,6 +72,7 @@ const herramientas = [
 const TOOL_COMPONENTS: Record<string, ComponentType> = {
     'potencia': CalculadoraPotencia,
     'piso-radiante': CalculadoraPisoRadiante,
+    'bombas': CalculadoraBombas,
 }
 
 export function Herramientas() {
