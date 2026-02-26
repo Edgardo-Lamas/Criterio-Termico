@@ -7,6 +7,7 @@ import { errorCalderaCortaCiclado, ErrorCalderaCortaCicladoDetalle } from './cal
 import { errorRadiadorFrioAbajo, ErrorRadiadorFrioAbajoDetalle } from './radiador-frio-abajo'
 import { errorSelladoresRosca, ErrorSelladoresRoscaDetalle } from './selladores-rosca'
 import { errorPruebaHidraulica, ErrorPruebaHidraulicaDetalle } from './prueba-hidraulica'
+import { errorPresionPasivador, ErrorPresionPasivadorDetalle } from './presion-pasivador'
 
 export type ErrorTier = 'free' | 'pro' | 'premium'
 
@@ -28,6 +29,7 @@ export const erroresList: ErrorMeta[] = [
     errorRadiadorFrioAbajo,
     errorSelladoresRosca,
     errorPruebaHidraulica,
+    errorPresionPasivador,
 ]
 
 // Componentes de detalle mapeados por ID
@@ -39,6 +41,7 @@ const erroresContent: Record<string, ComponentType> = {
     'radiador-frio-abajo': ErrorRadiadorFrioAbajoDetalle,
     'selladores-rosca': ErrorSelladoresRoscaDetalle,
     'prueba-hidraulica': ErrorPruebaHidraulicaDetalle,
+    'presion-pasivador': ErrorPresionPasivadorDetalle,
 }
 
 export function getErrorMeta(id: string): ErrorMeta | null {
