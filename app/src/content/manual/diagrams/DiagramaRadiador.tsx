@@ -5,18 +5,6 @@ import styles from './Diagrams.module.css'
  * muestra radiación (~40%) y convección (~60%) simultáneas.
  */
 export function DiagramaRadiador() {
-    // Posiciones de las ondas de radiación
-    const radiationWaves = [
-        // Izquierda
-        { cx: 155, waves: [{ x: 148, y: 140 }, { x: 130, y: 140 }, { x: 112, y: 140 }, { x: 94, y: 140 }] },
-        { cx: 155, waves: [{ x: 148, y: 165 }, { x: 130, y: 165 }, { x: 112, y: 165 }, { x: 94, y: 165 }] },
-        { cx: 155, waves: [{ x: 148, y: 190 }, { x: 130, y: 190 }, { x: 112, y: 190 }, { x: 94, y: 190 }] },
-        // Derecha
-        { cx: 345, waves: [{ x: 352, y: 140 }, { x: 370, y: 140 }, { x: 388, y: 140 }, { x: 406, y: 140 }] },
-        { cx: 345, waves: [{ x: 352, y: 165 }, { x: 370, y: 165 }, { x: 388, y: 165 }, { x: 406, y: 165 }] },
-        { cx: 345, waves: [{ x: 352, y: 190 }, { x: 370, y: 190 }, { x: 388, y: 190 }, { x: 406, y: 190 }] },
-    ]
-
     return (
         <figure className={styles.figure}>
             <svg

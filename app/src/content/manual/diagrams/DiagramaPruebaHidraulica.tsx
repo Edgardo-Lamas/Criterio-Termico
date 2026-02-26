@@ -112,7 +112,7 @@ export function DiagramaPruebaHidraulica() {
                 <circle cx="150" cy="175" r="30" fill="none"
                     stroke="var(--ct-wall-stroke, #4b5563)" strokeWidth="0.5" />
                 {/* Escala */}
-                {[0, 1, 2, 3, 4, 6].map((val, i) => {
+                {[0, 1, 2, 3, 4, 6].map((val) => {
                     const totalMarks = 6
                     const angle = -220 + (val / totalMarks) * 260
                     const rad = (angle * Math.PI) / 180
@@ -159,7 +159,7 @@ export function DiagramaPruebaHidraulica() {
                     stroke="#ef4444" strokeWidth="2" fillOpacity="0.8" />
                 <circle cx="370" cy="175" r="30" fill="none"
                     stroke="var(--ct-wall-stroke, #4b5563)" strokeWidth="0.5" />
-                {[0, 1, 2, 3, 4, 6].map((val, i) => {
+                {[0, 1, 2, 3, 4, 6].map((val) => {
                     const totalMarks = 6
                     const angle = -220 + (val / totalMarks) * 260
                     const rad = (angle * Math.PI) / 180

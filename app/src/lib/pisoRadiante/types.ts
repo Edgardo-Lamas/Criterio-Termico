@@ -1,17 +1,19 @@
 // Tipos para el motor de cálculo de piso radiante
 
-export enum TipoDeSuelo {
-    PETREO = 'PETREO',
-    MADERA_MACIZA = 'MADERA_MACIZA',
-    MADERA_FLOTANTE = 'MADERA_FLOTANTE',
-    MOQUETA = 'MOQUETA'
-}
+export const TipoDeSuelo = {
+    PETREO: 'PETREO',
+    MADERA_MACIZA: 'MADERA_MACIZA',
+    MADERA_FLOTANTE: 'MADERA_FLOTANTE',
+    MOQUETA: 'MOQUETA',
+} as const
+export type TipoDeSuelo = typeof TipoDeSuelo[keyof typeof TipoDeSuelo]
 
-export enum AdvisoryLevel {
-    INFO = 'INFO',
-    WARNING = 'WARNING',
-    CRITICAL = 'CRITICAL'
-}
+export const AdvisoryLevel = {
+    INFO: 'INFO',
+    WARNING: 'WARNING',
+    CRITICAL: 'CRITICAL',
+} as const
+export type AdvisoryLevel = typeof AdvisoryLevel[keyof typeof AdvisoryLevel]
 
 export interface UnderfloorCalculationInput {
     area: number                    // m² (1–1000)

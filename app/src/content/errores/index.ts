@@ -9,6 +9,7 @@ import { errorSelladoresRosca, ErrorSelladoresRoscaDetalle } from './selladores-
 import { errorPruebaHidraulica, ErrorPruebaHidraulicaDetalle } from './prueba-hidraulica'
 import { errorPresionPasivador, ErrorPresionPasivadorDetalle } from './presion-pasivador'
 import { errorAnticongelante, ErrorAnticongelanteDetalle } from './anticongelante'
+import { errorCalidadAgua, ErrorCalidadAguaDetalle } from './calidad-agua'
 
 export type ErrorTier = 'free' | 'pro' | 'premium'
 
@@ -32,6 +33,7 @@ export const erroresList: ErrorMeta[] = [
     errorPruebaHidraulica,
     errorPresionPasivador,
     errorAnticongelante,
+    errorCalidadAgua,
 ]
 
 // Componentes de detalle mapeados por ID
@@ -45,6 +47,7 @@ const erroresContent: Record<string, ComponentType> = {
     'prueba-hidraulica': ErrorPruebaHidraulicaDetalle,
     'presion-pasivador': ErrorPresionPasivadorDetalle,
     'anticongelante': ErrorAnticongelanteDetalle,
+    'calidad-agua': ErrorCalidadAguaDetalle,
 }
 
 export function getErrorMeta(id: string): ErrorMeta | null {

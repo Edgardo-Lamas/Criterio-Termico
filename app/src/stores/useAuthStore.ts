@@ -117,10 +117,10 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true, authError: null })
 
                 if (!isSupabaseConfigured) {
-                    // Modo demo
+                    // Modo demo — pro para acceder a todo el contenido en desarrollo
                     await new Promise(resolve => setTimeout(resolve, 800))
                     set({
-                        user: { id: 'demo-1', email, name: email.split('@')[0], tier: 'free', createdAt: new Date() },
+                        user: { id: 'demo-1', email, name: email.split('@')[0], tier: 'pro', createdAt: new Date() },
                         isAuthenticated: true,
                         isLoading: false,
                     })
@@ -141,7 +141,7 @@ export const useAuthStore = create<AuthState>()(
                 if (!isSupabaseConfigured) {
                     await new Promise(resolve => setTimeout(resolve, 800))
                     set({
-                        user: { id: 'demo-1', email, name: email.split('@')[0], tier: 'free', createdAt: new Date() },
+                        user: { id: 'demo-1', email, name: email.split('@')[0], tier: 'pro', createdAt: new Date() },
                         isAuthenticated: true,
                         isLoading: false,
                     })

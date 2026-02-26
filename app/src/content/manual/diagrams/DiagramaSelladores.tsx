@@ -148,7 +148,7 @@ export function DiagramaSelladores() {
 
                             {/* Nota al pie */}
                             <foreignObject x={cx + 6} y={cy + cardH - 42} width={cardW - 12} height={40}>
-                                <div xmlns="http://www.w3.org/1999/xhtml"
+                                <div
                                     style={{
                                         fontSize: '7px',
                                         color: 'rgba(255,255,255,0.45)',
