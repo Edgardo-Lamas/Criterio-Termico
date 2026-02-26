@@ -1,7 +1,12 @@
+// Capítulo 4 — Cálculo de potencia térmica por ambiente
+// Acceso: pro
+
+import { DiagramaFormulaPotencia } from './diagrams/DiagramaFormulaPotencia'
+import { DiagramaCaldera } from './diagrams/DiagramaCaldera'
+
 export function Cap4Potencia() {
     return (
-        <article className="prose">
-            <h1>Capítulo 4 — Cálculo de potencia térmica por ambiente</h1>
+        <div className="prose">
             <p className="lead">
                 Dimensionar bien la potencia es la diferencia entre un sistema que calienta
                 en media hora y uno que trabaja al límite sin alcanzar temperatura. Este
@@ -15,9 +20,11 @@ export function Cap4Potencia() {
                 que hay que calentar, más potencia necesaria. La fórmula base es:
             </p>
 
-            <div className="callout-info">
-                <strong>Fórmula:</strong><br />
-                Potencia (Kcal/h) = Superficie (m²) × Altura (m) × Factor térmico (Kcal/h·m³)
+            <div className="callout callout-info">
+                <div className="callout-label">Fórmula base</div>
+                <p>
+                    <strong>Potencia (Kcal/h) = Superficie (m²) × Altura (m) × Factor térmico (Kcal/h·m³)</strong>
+                </p>
             </div>
 
             <p>
@@ -47,6 +54,8 @@ export function Cap4Potencia() {
                     </tr>
                 </tbody>
             </table>
+
+            <DiagramaFormulaPotencia />
 
             <h2>Los ajustes por condición real</h2>
             <p>
@@ -79,7 +88,7 @@ export function Cap4Potencia() {
                         <td>Pérdida leve por vidrio</td>
                     </tr>
                     <tr>
-                        <td>Ventanas normales (1-2 ventanas medianas)</td>
+                        <td>Ventanas normales (1–2 ventanas medianas)</td>
                         <td>+10%</td>
                         <td>Pérdida moderada</td>
                     </tr>
@@ -91,10 +100,12 @@ export function Cap4Potencia() {
                 </tbody>
             </table>
 
-            <div className="callout-tip">
-                <strong>Los ajustes se suman, no se multiplican.</strong> Un ambiente con
-                pared exterior (+15%) y ventanas normales (+10%) tiene un ajuste total
-                de +25%, no de +26.5%. Esta es la forma correcta de aplicarlos.
+            <div className="callout callout-tip">
+                <div className="callout-label">Los ajustes se suman, no se multiplican</div>
+                <p>
+                    Un ambiente con pared exterior (+15%) y ventanas normales (+10%) tiene un ajuste
+                    total de +25%, no de +26.5%. Esta es la forma correcta de aplicarlos.
+                </p>
             </div>
 
             <h2>Ejemplo completo: cálculo de un living</h2>
@@ -126,22 +137,25 @@ export function Cap4Potencia() {
                 límite permanente; si está sobredimensionada cicla constantemente.
             </p>
 
-            <div className="callout-info">
-                <strong>Regla de la caldera:</strong><br />
-                Potencia de caldera = Potencia total radiadores ÷ 0.80
+            <div className="callout callout-info">
+                <div className="callout-label">Regla de la caldera</div>
+                <p>
+                    <strong>Potencia de caldera = Potencia total radiadores ÷ 0.80</strong><br />
+                    Siguiendo el ejemplo: si la suma de todos los ambientes da 18.000 Kcal/h,
+                    la caldera recomendada es de 18.000 ÷ 0.80 = <strong>22.500 Kcal/h</strong>.
+                </p>
             </div>
 
-            <p>
-                Siguiendo el ejemplo: si la suma de todos los ambientes da 18.000 Kcal/h,
-                la caldera recomendada es de 18.000 ÷ 0.80 = <strong>22.500 Kcal/h</strong>.
-            </p>
+            <DiagramaCaldera />
 
-            <div className="callout-warning">
-                <strong>No sobredimensionar la caldera.</strong> Una caldera demasiado
-                grande para el sistema arranca, alcanza temperatura rápido y se apaga:
-                el famoso "corto ciclado". Cada arranque genera condensación en el
-                intercambiador y acorta la vida útil. El exceso razonable es del
-                20–25% sobre la potencia de radiadores — no más.
+            <div className="callout callout-warning">
+                <div className="callout-label">No sobredimensionar la caldera</div>
+                <p>
+                    Una caldera demasiado grande para el sistema arranca, alcanza temperatura rápido
+                    y se apaga: el famoso "corto ciclado". Cada arranque genera condensación en el
+                    intercambiador y acorta la vida útil. El exceso razonable es del 20–25% sobre
+                    la potencia de radiadores — no más.
+                </p>
             </div>
 
             <h2>Las unidades: Kcal/h y kW</h2>
@@ -151,15 +165,15 @@ export function Cap4Potencia() {
                 europeos usan <strong>kW</strong>. La conversión es simple:
             </p>
 
-            <div className="callout-info">
-                <strong>1 kW = 860 Kcal/h</strong><br />
-                Para pasar de Kcal/h a kW: dividir por 860<br />
-                Para pasar de kW a Kcal/h: multiplicar por 860
+            <div className="callout callout-info">
+                <div className="callout-label">Conversión de unidades</div>
+                <p>
+                    <strong>1 kW = 860 Kcal/h</strong><br />
+                    Para pasar de Kcal/h a kW: dividir por 860<br />
+                    Para pasar de kW a Kcal/h: multiplicar por 860<br /><br />
+                    Ejemplo: 18.000 Kcal/h ÷ 860 = <strong>20.9 kW</strong>
+                </p>
             </div>
-
-            <p>
-                Ejemplo: 18.000 Kcal/h ÷ 860 = <strong>20.9 kW</strong>
-            </p>
 
             <h2>Casos típicos de referencia</h2>
 
@@ -214,12 +228,14 @@ export function Cap4Potencia() {
                 exactamente el método descripto en este capítulo.
             </p>
 
-            <div className="callout-tip">
-                <strong>Tip profesional:</strong> cuando le presentés el presupuesto al
-                cliente, mostrá el detalle ambiente por ambiente. Eso diferencia tu trabajo
-                de quien tira un número al aire. Un cliente que ve el desglose confía más
-                y cuestiona menos el precio.
+            <div className="callout callout-tip">
+                <div className="callout-label">Tip profesional</div>
+                <p>
+                    Cuando le presentés el presupuesto al cliente, mostrá el detalle ambiente
+                    por ambiente. Eso diferencia tu trabajo de quien tira un número al aire.
+                    Un cliente que ve el desglose confía más y cuestiona menos el precio.
+                </p>
             </div>
-        </article>
+        </div>
     )
 }
