@@ -71,7 +71,7 @@ const partes: Parte[] = [
                 titulo: 'Selección y dimensionamiento de radiadores',
                 descripcion: 'Potencia útil, alturas, cantidad de elementos y errores frecuentes en obra.',
                 acceso: 'premium',
-                disponible: false
+                disponible: true
             },
             {
                 id: 'hidraulico',

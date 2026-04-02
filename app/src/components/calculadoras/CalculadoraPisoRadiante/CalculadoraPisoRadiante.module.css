@@ -120,12 +120,11 @@
     font-size: var(--font-size-base);
     font-weight: 600;
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .btnPrimary:hover {
     background: var(--color-primary-light);
-    transform: translateY(-1px);
 }
 
 .btnSecondary {
@@ -136,7 +135,7 @@
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-base);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .btnSecondary:hover {
@@ -254,7 +253,7 @@
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
     cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
     text-align: left;
 }
 
@@ -332,6 +331,30 @@
     padding: var(--spacing-sm) var(--spacing-md);
     border-top: 1px solid rgba(255, 255, 255, 0.04);
     font-style: italic;
+}
+
+.presupuestoCerrar {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: flex;
+    justify-content: center;
+}
+
+.btnCerrar {
+    padding: var(--spacing-xs) var(--spacing-lg);
+    background: transparent;
+    color: var(--color-text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.btnCerrar:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-primary);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* Responsive */

@@ -150,12 +150,11 @@
     border-radius: var(--border-radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
     text-decoration: none;
-    transition: all var(--transition-normal);
+    transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
 }
 
 .chapterCard:hover:not(.chapterLocked) {
     border-color: var(--color-primary);
-    transform: translateX(4px);
 }
 
 .chapterLocked {
@@ -249,7 +248,7 @@
     color: var(--color-text-secondary);
     text-decoration: none;
     font-size: var(--font-size-sm);
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .navPrev:hover,
@@ -341,13 +340,12 @@
     border-radius: var(--border-radius-md);
     border: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
     cursor: pointer;
 }
 
 .contributeCard:hover {
     border-color: var(--color-success);
-    transform: translateY(-2px);
 }
 
 .contributeIcon {

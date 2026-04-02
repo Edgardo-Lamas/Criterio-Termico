@@ -50,12 +50,11 @@
     background: var(--color-bg-card);
     border-radius: var(--border-radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all var(--transition-normal);
+    transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
 }
 
 .card:not(.cardLocked):hover {
     border-color: var(--color-warning);
-    transform: translateY(-2px);
 }
 
 .cardLocked {

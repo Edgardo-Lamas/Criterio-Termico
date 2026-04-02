@@ -1,0 +1,198 @@
+/* ── Mobile Block ── */
+.mobileBlock {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.mobileBlockContent {
+    text-align: center;
+    max-width: 420px;
+}
+
+.mobileIcon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.mobileBlockContent h2 {
+    color: var(--color-text);
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.mobileBlockContent p {
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.mobileHint {
+    font-size: 0.875rem;
+    opacity: 0.7;
+    margin-top: 1rem !important;
+}
+
+/* ── Splash / Presentation ── */
+.backLink {
+    display: inline-block;
+    color: var(--color-text-secondary, #a0a8c0);
+    text-decoration: none;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+    transition: color 0.15s;
+}
+
+.backLink:hover {
+    color: var(--color-accent, #e74c5e);
+}
+
+.splash {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    padding: 2rem;
+}
+
+.splashContent {
+    text-align: center;
+    max-width: 800px;
+}
+
+.splashIcon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.splashTitle {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--color-text);
+    margin-bottom: 0.75rem;
+}
+
+.splashSubtitle {
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 2.5rem;
+}
+
+/* ── Feature Grid ── */
+.featureGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2.5rem;
+}
+
+.featureCard {
+    background: var(--color-surface, #1a1f2e);
+    border: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: left;
+    transition: border-color 0.2s;
+}
+
+.featureCard:hover {
+    border-color: var(--color-accent, #e74c5e);
+}
+
+.featureIcon {
+    font-size: 1.75rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.featureCard h3 {
+    color: var(--color-text);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+}
+
+.featureCard p {
+    color: var(--color-text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* ── Enter Button ── */
+.enterButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #e74c5e, #d63a4b);
+    color: white;
+    border: none;
+    padding: 1rem 2.5rem;
+    border-radius: 12px;
+    font-size: 1.125rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.enterButton:hover {
+    opacity: 0.9;
+}
+
+.enterButton:active {
+    box-shadow: 0 4px 12px rgba(231, 76, 94, 0.3);
+    filter: brightness(0.97);
+}
+
+/* ── Fullscreen Simulator ── */
+.simulatorFullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #1a1f2e;
+    display: flex;
+    flex-direction: column;
+}
+
+.simulatorHeader {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    background: #141825;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.exitButton {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--color-text-secondary, #a0a8c0);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.375rem 0.875rem;
+    border-radius: 8px;
+    font-size: 0.813rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.exitButton:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-text, #e8ecf4);
+}
+
+.simulatorTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text, #e8ecf4);
+}
+
+/* The .app-container and .main-content from SimuladorApp.css
+   handle the internal layout of the simulator */
+.simulatorFullscreen .app-container {
+    flex: 1;
+    overflow: hidden;
+}

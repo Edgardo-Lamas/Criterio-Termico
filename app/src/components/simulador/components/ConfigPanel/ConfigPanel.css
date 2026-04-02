@@ -1,0 +1,446 @@
+.config-toggle-button {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 99;
+  transition: opacity 0.2s;
+}
+
+.config-toggle-button:hover {
+  opacity: 0.9;
+}
+
+.config-panel {
+  position: fixed;
+  top: 100px;
+  right: 20px;
+  width: 350px;
+  max-height: calc(100vh - 120px);
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.config-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.config-header button {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+}
+
+.config-header button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.config-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.config-section {
+  margin-bottom: 20px;
+}
+
+.config-section label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+  font-size: 14px;
+}
+
+.config-section input[type="text"],
+.config-section input[type="email"],
+.config-section input[type="number"] {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.config-section input[type="file"] {
+  width: 100%;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.logo-preview {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-preview img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+  background: white;
+}
+
+.logo-preview button {
+  padding: 6px 12px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.logo-preview button:hover {
+  background: #c82333;
+}
+
+.config-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: #555;
+}
+
+.promo-add {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.promo-add input[type="text"] {
+  flex: 1;
+}
+
+.promo-add input[type="number"] {
+  width: 60px;
+  text-align: center;
+}
+
+.promo-add span {
+  font-weight: bold;
+  color: #666;
+}
+
+.promo-add button {
+  padding: 8px 12px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.promo-add button:hover {
+  background: #218838;
+}
+
+.promo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.promo-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.promo-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  cursor: pointer;
+  flex: 1;
+}
+
+.promo-item input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.promo-item span {
+  font-size: 13px;
+  color: #333;
+}
+
+.promo-item button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px 8px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.promo-item button:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .config-panel {
+    width: calc(100vw - 40px);
+    max-width: 350px;
+  }
+
+  .config-toggle-button {
+    top: 10px;
+    right: 10px;
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+}
+
+.config-description {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.privacy-note {
+  margin-top: 10px;
+  color: #999;
+  text-align: center;
+}
+
+.save-button {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.save-button:hover {
+  opacity: 0.9;
+}
+
+.save-button.saved {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 4px 15px rgba(56, 239, 125, 0.3);
+}
+
+/* Tabs */
+.config-tabs {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+}
+
+.config-tab {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: #666;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  border-bottom: 3px solid transparent;
+}
+
+.config-tab:hover {
+  background: #eee;
+}
+
+.config-tab.active {
+  color: #667eea;
+  border-bottom-color: #667eea;
+  background: white;
+  font-weight: 600;
+}
+
+/* Logo Section */
+.logo-section {
+  text-align: center;
+}
+
+.logo-preview-container {
+  margin: 12px 0;
+}
+
+.logo-placeholder {
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  background: #fafafa;
+}
+
+.logo-placeholder:hover {
+  border-color: #667eea;
+  background: #f0f0ff;
+}
+
+.logo-placeholder span {
+  font-size: 28px;
+  margin-bottom: 4px;
+}
+
+.logo-placeholder small {
+  font-size: 11px;
+  color: #888;
+}
+
+.logo-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.logo-preview img {
+  max-width: 120px;
+  max-height: 80px;
+  object-fit: contain;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 8px;
+  background: white;
+}
+
+.remove-logo-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e74c3c;
+  color: white;
+  border: 2px solid white;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.remove-logo-btn:hover {
+  background: #c0392b;
+}
+
+.upload-btn {
+  padding: 8px 16px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #555;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.upload-btn:hover {
+  background: #e0e0e0;
+}
+
+/* Config Actions */
+.config-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.reset-btn {
+  width: 100%;
+  padding: 10px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.reset-btn:hover {
+  background: #fff0f0;
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+/* Save Section */
+.save-section {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+/* Close Button */
+.config-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.config-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}

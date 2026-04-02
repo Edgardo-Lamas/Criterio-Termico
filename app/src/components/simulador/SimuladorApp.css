@@ -1,0 +1,64 @@
+/* App Container - Mobile First */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+.main-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Autosave indicator */
+.autosave-indicator {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(76, 175, 80, 0.9);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: opacity 0.3s;
+}
+
+.autosave-indicator.saving {
+  background: rgba(33, 150, 243, 0.9);
+}
+
+/* Mobile Styles (< 768px) */
+@media (max-width: 768px) {
+  .app-container {
+    height: 100dvh; /* Dynamic viewport height - ajusta cuando aparece teclado */
+  }
+
+  .main-content {
+    flex-direction: column;
+    overflow-y: auto; /* Permite scroll cuando teclado cubre contenido */
+    -webkit-overflow-scrolling: touch; /* Smooth scroll en iOS */
+  }
+  
+  .autosave-indicator {
+    bottom: 10px;
+    right: 10px;
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+}
+
+/* Tablet Styles (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  /* Mantener layout de PC pero con ajustes menores */
+}
+
+/* Desktop Styles (> 1024px) */
+@media (min-width: 1024px) {
+  /* Layout óptimo para pantallas grandes */
+}

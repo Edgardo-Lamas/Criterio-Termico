@@ -1,0 +1,157 @@
+{
+    "radiadores": [
+        {
+            "id": "rad_alum_500",
+            "modelo": "Aluminio 500mm",
+            "marca": "TermoPlace",
+            "potencia_watts_elemento": 140,
+            "precio_usd": 18.50,
+            "descripcion": "Elemento de radiador de aluminio inyectado, altura 500mm."
+        },
+        {
+            "id": "rad_alum_600",
+            "modelo": "Aluminio 600mm",
+            "marca": "TermoPlace",
+            "potencia_watts_elemento": 180,
+            "precio_usd": 22.00,
+            "descripcion": "Elemento de radiador de aluminio inyectado, altura 600mm."
+        },
+        {
+            "id": "rad_alum_350",
+            "modelo": "Aluminio 350mm",
+            "marca": "TermoPlace",
+            "potencia_watts_elemento": 110,
+            "precio_usd": 15.00,
+            "descripcion": "Elemento de radiador de aluminio, ideal para bajo ventanas."
+        },
+        {
+            "id": "rad_bimetal_500",
+            "modelo": "Bimetal 500mm",
+            "marca": "SteelHeat",
+            "potencia_watts_elemento": 135,
+            "precio_usd": 20.00,
+            "descripcion": "Núcleo de acero y cuerpo de aluminio."
+        },
+        {
+            "id": "rad_panel_22_600",
+            "modelo": "Panel Acero Tipo 22",
+            "marca": "SteelHeat",
+            "potencia_watts_elemento": 1500,
+            "precio_usd": 120.00,
+            "descripcion": "Radiador panel de acero, 600x1000mm. Potencia total por unidad (no por elemento)."
+        },
+        {
+            "id": "rad_toallero_800",
+            "modelo": "Toallero Baño 800mm",
+            "marca": "BathWarm",
+            "potencia_watts_elemento": 400,
+            "precio_usd": 85.00,
+            "descripcion": "Radiador toallero para baño, blanco."
+        }
+    ],
+    "calderas": [
+        {
+            "id": "caldera_cond_24",
+            "modelo": "EcoCondens 24kW",
+            "marca": "EcoHeat",
+            "potencia_min_watts": 4000,
+            "potencia_max_watts": 24000,
+            "precio_usd": 1200.00,
+            "eficiencia": "93%",
+            "tipo": "Condensación"
+        },
+        {
+            "id": "caldera_cond_30",
+            "modelo": "EcoCondens 30kW",
+            "marca": "EcoHeat",
+            "potencia_min_watts": 5000,
+            "potencia_max_watts": 30000,
+            "precio_usd": 1450.00,
+            "eficiencia": "93%",
+            "tipo": "Condensación"
+        },
+        {
+            "id": "caldera_conv_24",
+            "modelo": "Classic 24kW",
+            "marca": "OldFlame",
+            "potencia_min_watts": 8000,
+            "potencia_max_watts": 24000,
+            "precio_usd": 850.00,
+            "eficiencia": "85%",
+            "tipo": "Convencional"
+        },
+        {
+            "id": "caldera_elec_12",
+            "modelo": "ElecPro 12kW",
+            "marca": "VoltHeat",
+            "potencia_min_watts": 2000,
+            "potencia_max_watts": 12000,
+            "precio_usd": 600.00,
+            "eficiencia": "99%",
+            "tipo": "Eléctrica"
+        },
+        {
+            "id": "caldera_elec_18",
+            "modelo": "ElecPro 18kW",
+            "marca": "VoltHeat",
+            "potencia_min_watts": 3000,
+            "potencia_max_watts": 18000,
+            "precio_usd": 750.00,
+            "eficiencia": "99%",
+            "tipo": "Eléctrica"
+        },
+        {
+            "id": "caldera_ind_50",
+            "modelo": "Industrial 50kW",
+            "marca": "BigHeat",
+            "potencia_min_watts": 15000,
+            "potencia_max_watts": 50000,
+            "precio_usd": 2500.00,
+            "eficiencia": "92%",
+            "tipo": "Industrial"
+        }
+    ],
+    "tuberias": [
+        {
+            "id": "pex_16_rollo",
+            "modelo": "Rollo PEX-A 16mm (100m)",
+            "marca": "FlexPipe",
+            "diametro_mm": 16,
+            "metros_por_unidad": 100,
+            "precio_usd": 80.00,
+            "descripcion": "Rollo de tubería PEX-A con barrera de oxígeno."
+        },
+        {
+            "id": "pex_20_rollo",
+            "modelo": "Rollo PEX-A 20mm (100m)",
+            "marca": "FlexPipe",
+            "diametro_mm": 20,
+            "metros_por_unidad": 100,
+            "precio_usd": 110.00,
+            "descripcion": "Rollo de tubería PEX-A con barrera de oxígeno."
+        }
+    ],
+    "accesorios": [
+        {
+            "id": "kit_inst_radiador",
+            "modelo": "Kit Instalación Radiador (Válvula + Detentor + Purgador)",
+            "marca": "TermoPlace",
+            "precio_usd": 15.00,
+            "descripcion": "Kit completo de conexión para radiador 1/2 pulgada."
+        },
+        {
+            "id": "termostato_ambiente",
+            "modelo": "Termostato Digital Programable",
+            "marca": "SmartTemp",
+            "precio_usd": 40.00,
+            "descripcion": "Termostato de ambiente digital semanal."
+        },
+        {
+            "id": "kit_conexiones_caldera",
+            "modelo": "Kit Conexiones Hidráulicas Caldera",
+            "marca": "EcoHeat",
+            "precio_usd": 60.00,
+            "descripcion": "Válvulas de corte ida/retorno y entrada agua fría."
+        }
+    ]
+}

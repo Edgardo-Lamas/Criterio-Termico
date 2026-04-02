@@ -1,0 +1,47 @@
+.budget-counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(39, 174, 96, 0.1);
+    /* Light green tint */
+    border: 1px solid rgba(39, 174, 96, 0.3);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-family: 'Inter', sans-serif;
+    animation: budgetFadeIn 0.5s ease-out forwards;
+}
+
+.counter-icon {
+    font-size: 1.1rem;
+}
+
+.counter-value {
+    font-weight: 700;
+    color: #27ae60;
+    font-size: 0.95rem;
+}
+
+.counter-label {
+    font-size: 0.8rem;
+    color: #555;
+    font-weight: 500;
+}
+
+@keyframes budgetFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .budget-counter {
+        display: none;
+        /* Hide on mobile to save space */
+    }
+}

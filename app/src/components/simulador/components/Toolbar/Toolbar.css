@@ -1,0 +1,82 @@
+.toolbar-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background-color: var(--color-panel-bg);
+  height: var(--header-height);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  position: relative;
+}
+
+.toolbar-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.toolbar-btn:hover {
+  background-color: rgba(44, 62, 80, 0.05);
+  /* Light primary tint */
+  color: var(--color-primary);
+}
+
+.toolbar-btn.active {
+  background-color: rgba(74, 144, 226, 0.1);
+  /* Light blue tint */
+  color: var(--color-interaction);
+  border-color: rgba(74, 144, 226, 0.3);
+}
+
+.toolbar-btn.primary {
+  background-color: var(--color-primary);
+  color: white;
+  border: 1px solid var(--color-primary);
+}
+
+.toolbar-btn.primary:hover {
+  background-color: var(--color-secondary);
+}
+
+.toolbar-btn.accent {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+.toolbar-btn.accent:hover {
+  background-color: var(--color-accent-hover);
+}
+
+.toolbar-btn span {
+  font-size: 1.1rem;
+  pointer-events: none;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-border);
+  margin: 0 5px;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 5px;
+}
+
+/* Save Indicator style update */
+.autosave-indicator {
+  font-weight: 600;
+  border: 1px solid transparent;
+}

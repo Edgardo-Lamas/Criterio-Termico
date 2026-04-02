@@ -11,7 +11,6 @@
     z-index: var(--z-dropdown);
     background: var(--color-bg-secondary);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
 }
 
 .headerContent {
@@ -66,7 +65,7 @@
     font-weight: 500;
     color: var(--color-text-secondary);
     text-decoration: none;
-    transition: all var(--transition-fast);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .navLink:hover {
@@ -110,11 +109,11 @@
     color: var(--color-text-primary);
     font-weight: 600;
     text-decoration: none;
-    transition: transform var(--transition-fast);
+    transition: background-color var(--transition-fast);
 }
 
 .userButton:hover {
-    transform: scale(1.05);
+    background: var(--color-primary-light);
 }
 
 .userAvatar {
@@ -129,7 +128,7 @@
     font-weight: 600;
     font-size: var(--font-size-sm);
     text-decoration: none;
-    transition: all var(--transition-fast);
+    transition: background-color var(--transition-fast);
 }
 
 .loginButton:hover {

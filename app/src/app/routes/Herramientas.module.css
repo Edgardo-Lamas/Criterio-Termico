@@ -48,14 +48,13 @@
     border-radius: var(--border-radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.1);
     text-decoration: none;
-    transition: all var(--transition-normal);
+    transition: background-color var(--transition-normal), border-color var(--transition-normal), color var(--transition-normal);
     position: relative;
 }
 
 .card:hover:not(.cardLocked) {
-    transform: translateY(-4px);
     border-color: var(--color-primary);
-    box-shadow: var(--shadow-lg);
+    background: var(--color-bg-tertiary);
 }
 
 .cardLocked {

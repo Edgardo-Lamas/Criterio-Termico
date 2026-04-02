@@ -6,6 +6,9 @@ import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/Subsc
 import { CalculadoraPisoRadiante } from '../../components/calculadoras/CalculadoraPisoRadiante/CalculadoraPisoRadiante'
 import { CalculadoraPotencia } from '../../components/calculadoras/CalculadoraPotencia/CalculadoraPotencia'
 import { CalculadoraBombas } from '../../components/calculadoras/CalculadoraBombas/CalculadoraBombas'
+import { CalculadoraDiametros } from '../../components/calculadoras/CalculadoraDiametros/CalculadoraDiametros'
+import { CalculadoraCaudal } from '../../components/calculadoras/CalculadoraCaudal/CalculadoraCaudal'
+import { Simulador2D } from '../../components/simulador/Simulador2D'
 import styles from './Herramientas.module.css'
 
 const herramientas = [
@@ -71,8 +74,11 @@ const herramientas = [
 // Componentes reales por tool ID
 const TOOL_COMPONENTS: Record<string, ComponentType> = {
     'potencia': CalculadoraPotencia,
+    'diametro': CalculadoraDiametros,
+    'caudal': CalculadoraCaudal,
     'piso-radiante': CalculadoraPisoRadiante,
     'bombas': CalculadoraBombas,
+    'simulador': Simulador2D,
 }
 
 export function Herramientas() {
@@ -112,6 +118,11 @@ export function Herramientas() {
         }
 
         const ToolComponent = TOOL_COMPONENTS[tool.id]
+
+        // Simulador2D manages its own full-screen layout — render without wrapper
+        if (tool.id === 'simulador' && ToolComponent) {
+            return <ToolComponent />
+        }
 
         return (
             <div className={styles.page}>

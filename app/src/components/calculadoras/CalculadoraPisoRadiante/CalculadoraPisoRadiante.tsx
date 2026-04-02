@@ -297,6 +297,14 @@ export function CalculadoraPisoRadiante() {
                                         * Precios de referencia en USD. No incluye mano de obra, impresión ni fletes.
                                         Actualizar precios en catálogo según mercado local.
                                     </p>
+                                    <div className={styles.presupuestoCerrar}>
+                                        <button
+                                            className={styles.btnCerrar}
+                                            onClick={() => setMostrarPresupuesto(false)}
+                                        >
+                                            ▲ Cerrar lista de materiales
+                                        </button>
+                                    </div>
                                 </div>
                             )}
                         </div>
