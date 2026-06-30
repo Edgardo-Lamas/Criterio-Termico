@@ -1,0 +1,400 @@
+/* ── Asistente Técnico Flotante — Criterio ────────────────────────────────── */
+/* Dark theme consistente con el design system de Criterio Térmico.           */
+/* Tokens: --color-primary, --color-bg-card, --color-text-primary, etc.       */
+
+/* ── Contenedor raíz (posición fija) ─────────────────────────────────────── */
+
+.root {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: var(--z-modal);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    /* No interfiere con el layout */
+    pointer-events: none;
+}
+
+.root > * {
+    pointer-events: auto;
+}
+
+/* ── FAB — Botón flotante ─────────────────────────────────────────────────── */
+
+.fab {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--border-radius-full);
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
+    flex-shrink: 0;
+}
+
+.fab:hover {
+    background: var(--color-primary-light);
+}
+
+.fab:active {
+    transform: scale(0.94);
+}
+
+.fabOpen {
+    background: var(--color-bg-tertiary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.fabOpen:hover {
+    background: var(--color-bg-secondary);
+}
+
+.fabIcon {
+    font-size: 1.4rem;
+    line-height: 1;
+}
+
+/* ── Panel wrapper — controla apertura con animación ─────────────────────── */
+
+.panelWrapper {
+    width: 380px;
+    height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+    transition:
+        height var(--transition-normal),
+        opacity var(--transition-normal),
+        transform var(--transition-normal);
+    transform-origin: bottom right;
+}
+
+.panelOpen {
+    height: 520px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+/* ── Panel de chat ────────────────────────────────────────────────────────── */
+
+.panel {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--border-radius-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+/* ── Header ───────────────────────────────────────────────────────────────── */
+
+.panelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--color-bg-secondary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+}
+
+.panelTitle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.panelIcon {
+    font-size: 1.3rem;
+}
+
+.panelName {
+    display: block;
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.2;
+}
+
+.panelSub {
+    display: block;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-muted);
+    line-height: 1.2;
+}
+
+.panelControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btnClear {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: var(--font-size-xs);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.btnClear:hover:not(:disabled) {
+    color: var(--color-text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.btnClear:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btnClose {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: var(--border-radius-sm);
+    line-height: 1;
+    transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.btnClose:hover {
+    color: var(--color-text-primary);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Banner offline ───────────────────────────────────────────────────────── */
+
+.offlineBanner {
+    background: rgba(255, 193, 7, 0.12);
+    border-bottom: 1px solid rgba(255, 193, 7, 0.3);
+    color: var(--color-warning);
+    font-size: var(--font-size-xs);
+    text-align: center;
+    padding: 6px 16px;
+    flex-shrink: 0;
+}
+
+/* ── Área de mensajes ─────────────────────────────────────────────────────── */
+
+.messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    scroll-behavior: smooth;
+}
+
+.messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+}
+
+/* ── Pantalla de bienvenida ───────────────────────────────────────────────── */
+
+.welcome {
+    margin: auto;
+    text-align: center;
+    padding: 8px 0;
+}
+
+.welcomeTitle {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+}
+
+.welcomeText {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.welcomeSuggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.suggestion {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    padding: 8px 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.suggestion:hover {
+    background: rgba(233, 69, 96, 0.1);
+    border-color: rgba(233, 69, 96, 0.3);
+    color: var(--color-text-primary);
+}
+
+/* ── Burbujas de mensajes ─────────────────────────────────────────────────── */
+
+.bubble {
+    max-width: 85%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.bubbleUser {
+    align-self: flex-end;
+    background: rgba(233, 69, 96, 0.2);
+    border: 1px solid rgba(233, 69, 96, 0.3);
+    color: var(--color-text-primary);
+    border-bottom-right-radius: 4px;
+}
+
+.bubbleAssistant {
+    align-self: flex-start;
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-secondary);
+    border-bottom-left-radius: 4px;
+}
+
+/* ── Cursor parpadeante durante streaming ─────────────────────────────────── */
+
+.cursor {
+    display: inline-block;
+    margin-left: 2px;
+    color: var(--color-primary);
+    animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+}
+
+/* ── Área de input ────────────────────────────────────────────────────────── */
+
+.inputArea {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background: var(--color-bg-secondary);
+    flex-shrink: 0;
+    align-items: flex-end;
+}
+
+.textarea {
+    flex: 1;
+    background: var(--color-bg-primary);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+    padding: 8px 12px;
+    resize: none;
+    transition: border-color var(--transition-fast);
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.textarea:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+.textarea::placeholder {
+    color: var(--color-text-muted);
+}
+
+.textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Botón enviar ─────────────────────────────────────────────────────────── */
+
+.btnSend {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--border-radius-md);
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+.btnSend:hover:not(:disabled) {
+    background: var(--color-primary-light);
+}
+
+.btnSend:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sendingDots {
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    animation: blink 1s step-end infinite;
+}
+
+/* ── Responsive — mobile ──────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    .root {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+        align-items: stretch;
+    }
+
+    .panelWrapper {
+        width: 100%;
+    }
+
+    .panelOpen {
+        height: calc(100svh - 100px);
+    }
+
+    .fab {
+        align-self: flex-end;
+    }
+}

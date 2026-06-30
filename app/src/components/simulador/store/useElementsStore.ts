@@ -17,8 +17,7 @@ interface ElementsStore {
   tempPipe: PipeSegment | null;
   selectedElementId: string | null;
   projectName: string;
-  currentFloor: 'ground' | 'first'; // Planta actual
-  backgroundImage: string | null; // DEPRECATED - usar floorPlans
+  currentFloor: 'ground' | 'first';
   backgroundImageOffset: { x: number; y: number };
   backgroundImageDimensions: { width: number; height: number } | null;
   floorPlans: {
@@ -50,7 +49,6 @@ interface ElementsStore {
   removeElement: (id: string) => void;
   moveElement: (id: string, x: number, y: number) => void;
   setPipes: (pipes: PipeSegment[]) => void;
-  setBackgroundImage: (imageDataUrl: string | null) => void;
   setBackgroundImageOffset: (offset: { x: number; y: number }) => void;
   setBackgroundImageDimensions: (dimensions: { width: number; height: number } | null) => void;
   setCurrentFloor: (floor: 'ground' | 'first') => void;
@@ -74,7 +72,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
   selectedElementId: null,
   projectName: 'Proyecto sin nombre',
   currentFloor: 'ground',
-  backgroundImage: null,
   backgroundImageOffset: { x: 0, y: 0 },
   backgroundImageDimensions: null,
   floorPlans: {
@@ -248,15 +245,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         toElementId: toElementId || null,
         length: lengthMeters,
       };
-
-      console.log('✅ Tubería finalizada:', {
-        id: finishedPipe.id,
-        fromElementId: finishedPipe.fromElementId,
-        toElementId: finishedPipe.toElementId,
-        points: finishedPipe.points.length,
-        lengthMeters: lengthMeters.toFixed(1) + ' m'
-      });
-
       // Trigger evento onPipeCreated para cálculos adicionales
       // TODO: Implementar callback para actualizar cálculos (pérdidas de carga, etc.)
       if (typeof window !== 'undefined') {
@@ -294,7 +282,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       const toElement = toRadiator || toBoiler;
 
       if (!fromElement || !toElement) {
-        console.error('❌ No se encontraron los elementos para conectar');
         return state;
       }
 
@@ -337,14 +324,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         toElementId: toId,
         floor: pipeFloor,
       };
-
-      console.log(`✅ Tubería ${isVertical ? 'VERTICAL' : 'manual'} creada:`, {
-        from: fromId,
-        to: toId,
-        floor: pipeFloor,
-        length: `${totalLength.toFixed(1)} m`,
-      });
-
       return {
         pipes: [...state.pipes, newPipe],
       };
@@ -353,7 +332,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
 
   addElement: (element) => {
     // TODO: Implement generically if needed
-    console.log('addElement called:', element);
   },
 
   updateElement: (id, updates) => {
@@ -390,8 +368,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
 
       return state;
     });
-
-    console.log('Elemento actualizado:', { id, updates });
   },
 
   removeElement: (id) => {
@@ -402,7 +378,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       // Limpiar selección si era el elemento eliminado
       selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
     }));
-    console.log('🗑️ Elemento eliminado (genérico):', id);
   },
 
   moveElement: (_id, _x, _y) => {
@@ -411,12 +386,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
 
   setPipes: (pipes) => {
     set({ pipes });
-    console.log(`✅ ${pipes.length} tuberías actualizadas en el store`);
-  },
-
-  setBackgroundImage: (imageDataUrl) => {
-    set({ backgroundImage: imageDataUrl });
-    console.log(imageDataUrl ? '✅ Imagen de plano cargada' : '🧼 Imagen de plano eliminada');
   },
 
   setBackgroundImageOffset: (offset) => {
@@ -429,7 +398,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
 
   setCurrentFloor: (floor) => {
     set({ currentFloor: floor });
-    console.log(`🏢 Cambiado a ${floor === 'ground' ? 'Planta Baja' : 'Planta Alta'}`);
   },
 
   setFloorPlan: (floor, imageDataUrl) => {
@@ -442,7 +410,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         },
       },
     }));
-    console.log(`✅ Plano de ${floor === 'ground' ? 'Planta Baja' : 'Planta Alta'} ${imageDataUrl ? 'cargado' : 'eliminado'}`);
   },
 
   setFloorPlanOffset: (floor, offset) => {
@@ -471,7 +438,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
 
   setFloorHeight: (height) => {
     set({ floorHeight: height });
-    console.log(`📏 Altura entre plantas: ${height}m`);
   },
 
   // Limpiar solo elementos (radiadores, calderas, tuberías, habitaciones, piso radiante)
@@ -485,7 +451,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       tempPipe: null,
       selectedElementId: null,
     });
-    console.log('🧹 Elementos limpiados (planos mantenidos)');
   },
 
   // Limpiar TODO: elementos + planos + configuración
@@ -498,7 +463,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       tempPipe: null,
       selectedElementId: null,
       currentFloor: 'ground',
-      backgroundImage: null,
       backgroundImageOffset: { x: 0, y: 0 },
       backgroundImageDimensions: null,
       floorPlans: {
@@ -517,7 +481,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       tempPipe: null,
       selectedElementId: null,
     });
-    console.log('✅ Proyecto cargado en store:', project.projectName);
   },
 
   setProjectName: (name: string) => {

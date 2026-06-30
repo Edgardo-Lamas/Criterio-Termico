@@ -86,20 +86,13 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
 
     if (currentFloorRadiators.length === 0) {
-      console.warn(`⚠️ No hay radiadores en ${floorName}. Crea radiadores primero.`);
       return;
     }
     if (currentFloorBoilers.length === 0) {
-      console.warn(`⚠️ No hay caldera en ${floorName}. Coloca una caldera primero.`);
       return;
     }
 
     // Execute directly without confirmation dialog
-    console.log(`🚀 Generando tuberías automáticas en ${floorName}...`, {
-      radiators: currentFloorRadiators.length,
-      boilers: currentFloorBoilers.length,
-    });
-
     const result = generateAutoPipes(currentFloorRadiators, currentFloorBoilers);
 
     const otherFloorPipes = pipes.filter(p => p.floor !== currentFloor && p.floor !== 'vertical');
@@ -123,14 +116,10 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         try {
           const dimensionedPipes = dimensionPipes(newPipes, radiators, boilers);
           setPipes(dimensionedPipes);
-          console.log(`✅ ${result.pipes.length} tuberías generadas y dimensionadas | Caldera: ${recommendedBoilerPower.toLocaleString()} Kcal/h`);
         } catch (error) {
-          console.error('Error al dimensionar:', error);
-          console.log(`✅ ${result.pipes.length} tuberías generadas (sin dimensionar)`);
         }
       }, 100);
     } else {
-      console.log(`✅ ${result.pipes.length} tuberías generadas | Asigna potencia vía habitaciones para dimensionar.`);
     }
   };
 
@@ -141,15 +130,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     const firstPower = firstRadiators.reduce((sum, r) => sum + r.power, 0);
 
     // Execute directly without confirmation
-    console.log('🏠 Sistema Multi-Planta detectado:', {
-      caldera: boilerFloor,
-      plantaBaja: `${groundRadiators.length} radiadores (${groundPower} Kcal/h)`,
-      plantaAlta: `${firstRadiators.length} radiadores (${firstPower} Kcal/h)`
-    });
-
     const result = generateMultiFloorPipes(radiators, boilers);
-    console.log('📊 Resultado multi-planta:', result.summary);
-
     setPipes(result.pipes);
 
     // Auto-dimensionar
@@ -171,15 +152,10 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           // Buscar diámetro del montante
           const riserPipe = dimensionedPipes.find(p => p.floor === 'vertical' && p.pipeType === 'supply');
           const riserDiameter = riserPipe?.diameter || 16;
-
-          console.log(`✅ Sistema Multi-Planta generado | PB: ${result.summary.groundPipes} tuberías | PA: ${result.summary.firstPipes} tuberías | Montante: Ø${riserDiameter}mm | Caldera: ${recommendedBoilerPower.toLocaleString()} Kcal/h`);
         } catch (error) {
-          console.error('Error al dimensionar:', error);
-          console.log(`✅ ${result.pipes.length} tuberías generadas (sin dimensionar)`);
         }
       }, 100);
     } else {
-      console.log(`✅ Sistema Multi-Planta generado | PB: ${result.summary.groundPipes} tuberías | PA: ${result.summary.firstPipes} tuberías | Asigna potencia para dimensionar.`);
     }
   };
 
@@ -202,16 +178,12 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
     if (confirm(`¿Eliminar el plano de ${floorName}?`)) {
       setFloorPlan(currentFloor, null);
-      console.log(`🗑️ Plano de ${floorName} eliminado`);
     }
   };
 
   const handleFloorPlanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    console.log('📂 Archivo seleccionado:', file.name, 'Tipo:', file.type, 'Tamaño:', file.size);
-
     // Validar que sea imagen
     if (!file.type.startsWith('image/')) {
       alert(`⚠️ Solo se permiten imágenes (PNG, JPG, JPEG).\n\nEl archivo seleccionado es de tipo: "${file.type || 'desconocido'}"`);
@@ -224,10 +196,8 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
       const imageDataUrl = event.target?.result as string;
       const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
       setFloorPlan(currentFloor, imageDataUrl);
-      console.log(`✅ Plano de ${floorName} cargado correctamente`);
     };
     reader.onerror = (error) => {
-      console.error('Error FileReader:', error);
       alert('❌ Error al cargar la imagen. Revisa la consola para más detalles.');
     };
     reader.readAsDataURL(file);

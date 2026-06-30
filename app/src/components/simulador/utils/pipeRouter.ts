@@ -67,10 +67,7 @@ export function groupRadiatorsIntoZones(radiators: Radiator[], maxDistance: numb
 
     zones.push({ radiators: zone, centroid, totalPower });
   });
-
-  console.log(`📍 Zonas detectadas: ${zones.length}`);
   zones.forEach((z, i) => {
-    console.log(`   Zona ${i + 1}: ${z.radiators.length} radiadores, ${z.totalPower} Kcal/h`);
   });
 
   return zones;
@@ -230,9 +227,6 @@ function divideIntoCircuits(radiators: Radiator[], boilerCenter: Point): Radiato
   // Dividir por el eje con mayor dispersión
   const divideByX = spreadX >= spreadY;
   const divisionPoint = divideByX ? avgX : avgY;
-
-  console.log(`📐 División de circuitos: ${divideByX ? 'Vertical (X)' : 'Horizontal (Y)'} en ${divisionPoint.toFixed(0)}`);
-
   const circuit1: Radiator[] = [];
   const circuit2: Radiator[] = [];
 
@@ -264,10 +258,6 @@ function divideIntoCircuits(radiators: Radiator[], boilerCenter: Point): Radiato
   // Calcular potencias
   const power1 = sorted1.reduce((sum, r) => sum + r.power, 0);
   const power2 = sorted2.reduce((sum, r) => sum + r.power, 0);
-
-  console.log(`   Circuito 1: ${sorted1.length} radiadores, ${power1} Kcal/h`);
-  console.log(`   Circuito 2: ${sorted2.length} radiadores, ${power2} Kcal/h`);
-
   return [sorted1, sorted2];
 }
 
@@ -296,12 +286,8 @@ function generateCircuitPipes(
   const totalPower = radiators.reduce((sum, r) => sum + r.power, 0);
 
   // DEBUG: Mostrar potencia de cada radiador
-  console.log(`   📋 Radiadores del circuito ${circuitId}:`);
   radiators.forEach((r, i) => {
-    console.log(`      ${i + 1}. ${r.id.substring(0, 15)}... → ${r.power} Kcal/h`);
   });
-  console.log(`   📊 Potencia total: ${totalPower} Kcal/h`);
-
   // Calcular diámetro según potencia
   const calculateDiameter = (power: number): number => {
     const flowRate = power / 10; // ΔT = 10°C
@@ -314,8 +300,6 @@ function generateCircuitPipes(
 
   // Calcular diámetro inicial del troncal
   const initialTrunkDiameter = calculateDiameter(totalPower);
-  console.log(`   🔧 Diámetro inicial troncal: Ø${initialTrunkDiameter}mm (para ${totalPower} Kcal/h)`);
-
   // Ordenar radiadores por distancia al origen
   const sortedRadiators = [...radiators].sort((a, b) => {
     const distA = Math.sqrt(Math.pow(a.x + a.width / 2 - originPoint.x, 2) + Math.pow(a.y + a.height / 2 - originPoint.y, 2));
@@ -432,8 +416,6 @@ function generateCircuitPipes(
 
     // Restar potencia de este radiador
     remainingPower -= radiator.power;
-
-    console.log(`     Rad ${index + 1}: ${radiator.power} Kcal/h → troncal Ø${trunkDiameter}mm, ramal Ø${branchDiameter}mm`);
   });
 
   return pipes;
@@ -451,7 +433,6 @@ export function generateAutoPipes(
   repositionedRadiators: Array<{ id: string; x: number; y: number; width?: number; height?: number }>;
 } {
   if (boilers.length === 0 || radiators.length === 0) {
-    console.warn('⚠️ Se necesitan calderas y radiadores');
     return { pipes: [], repositionedRadiators: [] };
   }
 
@@ -461,22 +442,14 @@ export function generateAutoPipes(
     y: boiler.y + boiler.height / 2
   };
   const floor = boiler.floor as 'ground' | 'first';
-
-  console.log('🔀 Generando sistema con circuitos balanceados...');
   console.log(`   Caldera en (${boilerCenter.x.toFixed(0)}, ${boilerCenter.y.toFixed(0)})`);
-  console.log(`   Total radiadores: ${radiators.length}`);
-
   // Dividir en circuitos
   const circuits = divideIntoCircuits(radiators, boilerCenter);
-  console.log(`   Circuitos creados: ${circuits.length}`);
-
   const allPipes: PipeSegment[] = [];
 
   // Generar tuberías para cada circuito
   circuits.forEach((circuitRadiators, circuitIndex) => {
     const circuitId = `circuit-${circuitIndex + 1}`;
-    console.log(`\n📦 Generando ${circuitId}:`);
-
     const circuitPipes = generateCircuitPipes(
       circuitRadiators,
       boilerCenter,
@@ -487,9 +460,6 @@ export function generateAutoPipes(
 
     allPipes.push(...circuitPipes);
   });
-
-  console.log(`\n✅ Sistema generado: ${allPipes.length} tuberías en ${circuits.length} circuito(s)`);
-
   return { pipes: allPipes, repositionedRadiators: [] };
 }
 
@@ -523,23 +493,15 @@ export function generateMultiFloorPipes(
   // Calcular potencias por planta
   const groundPower = groundRadiators.reduce((sum, r) => sum + r.power, 0);
   const firstPower = firstRadiators.reduce((sum, r) => sum + r.power, 0);
-
-  console.log('🏠 Generando sistema multi-planta...');
-  console.log(`   PB: ${groundRadiators.length} radiadores (${groundPower} Kcal/h), ${groundBoilers.length} calderas`);
-  console.log(`   PA: ${firstRadiators.length} radiadores (${firstPower} Kcal/h), ${firstBoilers.length} calderas`);
-
   // DEBUG: Mostrar potencia de cada radiador de PA
   if (firstRadiators.length > 0) {
-    console.log('   📋 Detalle radiadores PA:');
     firstRadiators.forEach((r, i) => {
-      console.log(`      ${i + 1}. ${r.id.substring(0, 12)}... floor=${r.floor}, power=${r.power}`);
     });
   }
 
   // Determinar la caldera principal
   const mainBoiler = groundBoilers[0] || firstBoilers[0];
   if (!mainBoiler) {
-    console.warn('⚠️ No hay calderas');
     return {
       pipes: [],
       riserPoint: null,
@@ -570,8 +532,6 @@ export function generateMultiFloorPipes(
     riserId = `riser-${Date.now()}`;
 
     console.log(`🔼 Creando montante vertical en (${riserPoint.x.toFixed(0)}, ${riserPoint.y.toFixed(0)})`);
-    console.log(`   Potencia del montante: ${boilerFloor === 'ground' ? firstPower : groundPower} Kcal/h`);
-
     // TRAMO CALDERA → MONTANTE (conexión horizontal en la planta de la caldera)
     const boilerToRiserPath = findShortestPath(boilerCenter, riserPoint, allRadiators.filter(r => r.floor === boilerFloor));
     const boilerToRiserId = `${riserId}-boiler-connection`;
@@ -688,9 +648,6 @@ export function generateMultiFloorPipes(
         x: riserPoint.x + 50, // Pequeño tramo horizontal desde el montante
         y: riserPoint.y
       };
-
-      console.log(`🔀 Creando troncal de distribución PA: ${firstPower} Kcal/h → Ø${paTotalDiameter}mm`);
-
       pipes.push({
         id: distributionTrunkId,
         type: 'pipe',
@@ -760,9 +717,6 @@ export function generateMultiFloorPipes(
         x: riserPoint.x + 50,
         y: riserPoint.y
       };
-
-      console.log(`🔀 Creando troncal de distribución PB: ${groundPower} Kcal/h → Ø${pbTotalDiameter}mm`);
-
       pipes.push({
         id: distributionTrunkId,
         type: 'pipe',
@@ -817,12 +771,6 @@ export function generateMultiFloorPipes(
   const groundPipesCount = pipes.filter(p => p.floor === 'ground').length;
   const firstPipesCount = pipes.filter(p => p.floor === 'first').length;
   const verticalPipesCount = pipes.filter(p => p.floor === 'vertical').length;
-
-  console.log(`✅ Sistema multi-planta generado:`);
-  console.log(`   📊 PB: ${groundPipesCount} tuberías`);
-  console.log(`   📊 PA: ${firstPipesCount} tuberías`);
-  console.log(`   📊 Verticales: ${verticalPipesCount} tuberías`);
-
   return {
     pipes,
     riserPoint,

@@ -2,14 +2,12 @@
 export const loadLogoAsBase64 = async (logoPath: string): Promise<string | null> => {
     // Skip if path is empty or invalid
     if (!logoPath || logoPath.trim() === '') {
-        console.log('Logo path is empty, skipping logo loading');
         return null;
     }
 
     // Create a timeout promise to prevent hanging
     const timeoutPromise = new Promise<null>((resolve) => {
         setTimeout(() => {
-            console.warn('Logo loading timed out after 3 seconds');
             resolve(null);
         }, 3000);
     });
@@ -20,13 +18,11 @@ export const loadLogoAsBase64 = async (logoPath: string): Promise<string | null>
 
             // Check if response is OK and is actually an image
             if (!response.ok) {
-                console.warn(`Logo fetch failed with status: ${response.status}`);
                 return null;
             }
 
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.startsWith('image/')) {
-                console.warn(`Logo path returned non-image content-type: ${contentType}`);
                 return null;
             }
 
@@ -39,7 +35,6 @@ export const loadLogoAsBase64 = async (logoPath: string): Promise<string | null>
                 reader.readAsDataURL(blob);
             });
         } catch (error) {
-            console.error('Error loading logo:', error);
             return null;
         }
     })();

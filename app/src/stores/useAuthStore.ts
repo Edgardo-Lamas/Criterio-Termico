@@ -174,7 +174,12 @@ export const useAuthStore = create<AuthState>()(
         }),
         {
             name: 'criterio-auth-storage',
-            partialize: (state) => ({ user: state.user }),
+            // No persistir tier — siempre se obtiene fresco de Supabase en initAuth.
+            // Si se persiste y el webhook de MP cambia el tier, el usuario
+            // vería el tier viejo hasta que cierre y vuelva a abrir el browser.
+            partialize: (state) => ({
+                user: state.user ? { id: state.user.id, email: state.user.email, name: state.user.name, createdAt: state.user.createdAt } : null,
+            }),
         }
     )
 )

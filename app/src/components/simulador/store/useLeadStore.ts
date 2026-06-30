@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { SelectedBudget } from '../services/budgetService';
-import type { ClientInfo } from '../stores/companyStore';
+import type { ClientInfo } from './companyStore';
 
 export interface Lead {
     id: string;
@@ -52,8 +52,6 @@ export const useLeadStore = create<LeadStore>()(
                     leads: [...state.leads, newLead],
                     globalBudgetCount: state.globalBudgetCount + 1,
                 }));
-
-                console.log('Lead Captured:', newLead);
             },
 
             incrementGlobalCount: () => {

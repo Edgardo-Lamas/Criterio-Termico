@@ -782,6 +782,4 @@ export function downloadIFCFile(
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-
-  console.log('✅ Archivo IFC generado:', finalFilename);
 }

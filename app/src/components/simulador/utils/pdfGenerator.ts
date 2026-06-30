@@ -3,7 +3,7 @@ import type { Room } from '../models/Room';
 import type { Radiator } from '../models/Radiator';
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
-import type { CompanyInfo, Promotion, ClientInfo } from '../stores/companyStore';
+import type { CompanyInfo, Promotion, ClientInfo } from '../store/companyStore';
 import { calculateBoilerPower } from './thermalCalculator';
 import type { SelectedBudget } from '../services/budgetService';
 
@@ -31,8 +31,6 @@ export const generateQuotePDF = (
   selectedBudget?: SelectedBudget | null,
   preloadedLogo?: string | null
 ): void => {
-  console.log('📄 [PDF] Starting PDF generation (SYNC)...');
-
   try {
     const doc = new jsPDF();
 
@@ -45,11 +43,8 @@ export const generateQuotePDF = (
 
     if (logoBase64) {
       try {
-        console.log('📄 [PDF] Adding logo image to PDF...');
         doc.addImage(logoBase64, 'JPEG', 15, yPosition, 40, 25);
-        console.log('📄 [PDF] Logo added successfully');
       } catch (e) {
-        console.error('📄 [PDF] Error al agregar logo:', e);
       }
     }
 
@@ -305,8 +300,6 @@ export const generateQuotePDF = (
     const fileName = `Presupuesto_${safeProjectName}_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`;
 
     const pdfBlob = doc.output('blob');
-    console.log('📄 [PDF] Blob size:', pdfBlob.size, 'bytes');
-
     // Direct synchronous download — NO setTimeout, NO dispatchEvent
     const url = URL.createObjectURL(pdfBlob);
     const link = document.createElement('a');
@@ -317,10 +310,7 @@ export const generateQuotePDF = (
     document.body.removeChild(link); // ← cleanup immediately after click
     // Revoke URL later so browser has time to complete download
     setTimeout(() => URL.revokeObjectURL(url), 60000);
-
-    console.log('📄 [PDF] ✅ Download triggered:', fileName);
   } catch (error) {
-    console.error('📄 [PDF] Error:', error);
     throw error;
   }
 };

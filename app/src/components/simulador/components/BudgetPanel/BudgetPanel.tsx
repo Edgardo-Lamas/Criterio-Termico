@@ -4,7 +4,7 @@ import { usePriceStore } from '../../store/usePriceStore';
 import { generateBudgetOptions, calculateTotalBudget } from '../../services/budgetService';
 import type { BudgetOptions, SelectedBudget, PipeQuantities } from '../../services/budgetService';
 import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator';
-import { useCompanyStore } from '../../stores/companyStore';
+import { useCompanyStore } from '../../store/companyStore';
 import { useLeadStore } from '../../store/useLeadStore';
 import { loadLogoAsBase64 } from '../../utils/logoHelper';
 import './BudgetPanel.css';
@@ -111,7 +111,6 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 currentFloor
             );
         } catch (error) {
-            console.error('Error generando plano PDF:', error);
             alert('Hubo un error al generar el plano. Por favor intenta nuevamente.');
         }
     };
@@ -144,7 +143,6 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 preloadedLogo
             );
         } catch (error) {
-            console.error('Error generating PDF:', error);
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');
         }
     };

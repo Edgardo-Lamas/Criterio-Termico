@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { useCompanyStore } from '../../stores/companyStore';
+import { useCompanyStore } from '../../store/companyStore';
 import './ConfigPanel.css';
 
 export const ConfigPanel: React.FC = () => {

@@ -25,6 +25,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+.page-loading {
+    min-height: 100vh;
+    background-color: var(--color-bg-primary);
+}
+
 #root {
     min-height: 100vh;
     display: flex;

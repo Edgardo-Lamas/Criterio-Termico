@@ -79,11 +79,9 @@ function calculatePipePowers(
   });
 
   // DEBUG: Mostrar grafo de conexiones
-  console.log('📊 Grafo de conexiones (padre → hijos):');
   childrenMap.forEach((children, parentId) => {
     if (children.length > 0) {
       const shortParent = parentId.length > 30 ? parentId.substring(0, 30) + '...' : parentId;
-      console.log(`   ${shortParent} → [${children.length} hijos]`);
     }
   });
 
@@ -139,39 +137,27 @@ export function dimensionPipes(
   boilers: Boiler[]
 ): PipeSegment[] {
   if (boilers.length === 0 || radiators.length === 0) {
-    console.warn('⚠️ Se necesitan calderas y radiadores para dimensionar');
     return pipes;
   }
 
   const supplyPipes = pipes.filter(p => p.pipeType === 'supply');
-  console.log(`📏 Dimensionando ${supplyPipes.length} tuberías de suministro...`);
-  console.log(`   Radiadores: ${radiators.length}`);
-
   // Calcular potencias por planta
   const groundRadiators = radiators.filter(r => r.floor === 'ground');
   const firstRadiators = radiators.filter(r => r.floor === 'first');
   const groundPower = groundRadiators.reduce((sum, r) => sum + r.power, 0);
   const firstPower = firstRadiators.reduce((sum, r) => sum + r.power, 0);
   const totalPower = groundPower + firstPower;
-
-  console.log(`🏠 Potencias: PB=${groundPower} Kcal/h (${groundRadiators.length} rads), PA=${firstPower} Kcal/h (${firstRadiators.length} rads)`);
-  console.log(`   Total: ${totalPower} Kcal/h`);
-
   // NUEVO: Calcular potencia de cada tubería usando DFS
   const pipePowers = calculatePipePowers(pipes, radiators);
 
   // Debug: mostrar potencias calculadas
-  console.log('📊 Potencias por tubería:');
   let pipesWithPower = 0;
   pipePowers.forEach((power, pipeId) => {
     if (power > 0) {
       pipesWithPower++;
       const shortId = pipeId.length > 40 ? pipeId.substring(0, 40) + '...' : pipeId;
-      console.log(`   ${shortId}: ${power} Kcal/h`);
     }
   });
-  console.log(`   Total con potencia: ${pipesWithPower}/${supplyPipes.length}`);
-
   // Dimensionar cada tubería
   const dimensionedPipes = pipes.map(pipe => {
     if (pipe.pipeType !== 'supply') {
@@ -186,7 +172,6 @@ export function dimensionPipes(
       power = firstPower > 0 ? firstPower : groundPower;
       const flowRate = calculateFlowRate(power);
       const diameter = calculatePipeDiameter(flowRate);
-      console.log(`🔼 MONTANTE: ${power} Kcal/h → Ø${diameter}mm`);
       return { ...pipe, diameter };
     }
 
@@ -199,7 +184,6 @@ export function dimensionPipes(
 
     // Si no tiene potencia, mantener el diámetro actual
     if (power === 0) {
-      console.log(`⚠️ ${pipe.id.substring(0, 35)}: sin potencia, mantener Ø${pipe.diameter}mm`);
       return pipe;
     }
 
@@ -209,8 +193,6 @@ export function dimensionPipes(
 
     const tipo = pipe.id.includes('branch') ? 'RAMAL' :
       pipe.id.includes('trunk') ? 'TRONCAL' : 'TUBERÍA';
-    console.log(`🔧 ${tipo}: ${power} Kcal/h → ${flowRate} L/h → Ø${diameter}mm`);
-
     return { ...pipe, diameter };
   });
 
@@ -239,10 +221,6 @@ export function dimensionPipes(
     25: finalPipes.filter(p => p.diameter === 25).length,
     32: finalPipes.filter(p => p.diameter && p.diameter >= 32).length,
   };
-
-  console.log(`✅ Dimensionamiento completado:`);
-  console.log(`   Ø16mm: ${stats[16]} | Ø20mm: ${stats[20]} | Ø25mm: ${stats[25]} | Ø32mm+: ${stats[32]}`);
-
   return finalPipes;
 }
 

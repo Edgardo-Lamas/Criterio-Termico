@@ -37,7 +37,6 @@ export const saveToLocalStorage = (
   };
 
   localStorage.setItem(CURRENT_PROJECT_KEY, JSON.stringify(project));
-  console.log('✅ Proyecto guardado en localStorage:', projectName);
 };
 
 /**
@@ -49,10 +48,8 @@ export const loadFromLocalStorage = (): Project | null => {
     if (!saved) return null;
 
     const project: Project = JSON.parse(saved);
-    console.log('✅ Proyecto cargado desde localStorage:', project.projectName);
     return project;
   } catch (error) {
-    console.error('❌ Error al cargar proyecto:', error);
     return null;
   }
 };
@@ -88,8 +85,6 @@ export const downloadProjectAsJSON = (
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-
-  console.log('✅ Proyecto descargado:', link.download);
 };
 
 /**
@@ -108,11 +103,8 @@ export const loadProjectFromFile = (file: File): Promise<Project> => {
         if (!project.radiators || !project.boilers || !project.pipes) {
           throw new Error('Archivo de proyecto inválido');
         }
-
-        console.log('✅ Proyecto cargado desde archivo:', project.projectName);
         resolve(project);
       } catch (error) {
-        console.error('❌ Error al leer archivo:', error);
         reject(error);
       }
     };
@@ -145,7 +137,6 @@ export const autoSave = (
   };
 
   localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(project));
-  console.log('💾 Autoguardado completado');
 };
 
 /**
@@ -157,10 +148,8 @@ export const loadAutoSave = (): Project | null => {
     if (!saved) return null;
 
     const project: Project = JSON.parse(saved);
-    console.log('✅ Autoguardado recuperado');
     return project;
   } catch (error) {
-    console.error('❌ Error al recuperar autoguardado:', error);
     return null;
   }
 };
@@ -171,5 +160,4 @@ export const loadAutoSave = (): Project | null => {
 export const clearStorage = (): void => {
   localStorage.removeItem(CURRENT_PROJECT_KEY);
   localStorage.removeItem(AUTOSAVE_KEY);
-  console.log('🗑️ Storage limpiado');
 };

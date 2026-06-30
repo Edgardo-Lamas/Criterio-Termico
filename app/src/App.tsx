@@ -1,19 +1,22 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useAuthStore } from './stores/useAuthStore'
 import { ErrorBoundary } from './components/ui/ErrorBoundary/ErrorBoundary'
+import { AsistenteTérmico } from './components/AsistenteTérmico/AsistenteTérmico'
 import { MainLayout } from './app/layouts/MainLayout'
-import { Home } from './app/routes/Home'
-import { Herramientas } from './app/routes/Herramientas'
-import { ManualTecnico } from './app/routes/ManualTecnico'
-import { ErroresFrecuentes } from './app/routes/ErroresFrecuentes'
-import { ErrorDetalle } from './app/routes/ErrorDetalle'
-import { Cuenta } from './app/routes/Cuenta'
-import { TerminosDeUso } from './app/routes/TerminosDeUso'
 import './styles/global.css'
+
+const Home             = lazy(() => import('./app/routes/Home').then(m => ({ default: m.Home })))
+const Herramientas     = lazy(() => import('./app/routes/Herramientas').then(m => ({ default: m.Herramientas })))
+const ManualTecnico    = lazy(() => import('./app/routes/ManualTecnico').then(m => ({ default: m.ManualTecnico })))
+const ErroresFrecuentes = lazy(() => import('./app/routes/ErroresFrecuentes').then(m => ({ default: m.ErroresFrecuentes })))
+const ErrorDetalle     = lazy(() => import('./app/routes/ErrorDetalle').then(m => ({ default: m.ErrorDetalle })))
+const Cuenta           = lazy(() => import('./app/routes/Cuenta').then(m => ({ default: m.Cuenta })))
+const TerminosDeUso    = lazy(() => import('./app/routes/TerminosDeUso').then(m => ({ default: m.TerminosDeUso })))
 
 function App() {
   const initAuth = useAuthStore(state => state.initAuth)
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
 
   useEffect(() => {
     const unsubscribe = initAuth()
@@ -23,20 +26,23 @@ function App() {
   return (
     <BrowserRouter basename="/Criterio-Termico">
       <ErrorBoundary>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Home />} />
-            <Route path="herramientas" element={<Herramientas />} />
-            <Route path="herramientas/:toolId" element={<Herramientas />} />
-            <Route path="manual" element={<ManualTecnico />} />
-            <Route path="manual/:capitulo" element={<ManualTecnico />} />
-            <Route path="errores" element={<ErroresFrecuentes />} />
-            <Route path="errores/:errorId" element={<ErrorDetalle />} />
-            <Route path="cuenta" element={<Cuenta />} />
-            <Route path="terminos" element={<TerminosDeUso />} />
-          </Route>
-        </Routes>
+        <Suspense fallback={<div className="page-loading" />}>
+          <Routes>
+            <Route path="/" element={<MainLayout />}>
+              <Route index element={<Home />} />
+              <Route path="herramientas" element={<Herramientas />} />
+              <Route path="herramientas/:toolId" element={<Herramientas />} />
+              <Route path="manual" element={<ManualTecnico />} />
+              <Route path="manual/:capitulo" element={<ManualTecnico />} />
+              <Route path="errores" element={<ErroresFrecuentes />} />
+              <Route path="errores/:errorId" element={<ErrorDetalle />} />
+              <Route path="cuenta" element={<Cuenta />} />
+              <Route path="terminos" element={<TerminosDeUso />} />
+            </Route>
+          </Routes>
+        </Suspense>
       </ErrorBoundary>
+      {isAuthenticated && <AsistenteTérmico />}
     </BrowserRouter>
   )
 }

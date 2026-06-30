@@ -587,7 +587,6 @@ export const Canvas = () => {
 
         // Otros elementos (radiadores, calderas, tuberías)
         removeElement(selectedElementId);
-        console.log('Elemento eliminado:', selectedElementId);
       }
     };
 
@@ -639,7 +638,6 @@ export const Canvas = () => {
       for (const rad of nearbyRadiators) {
         if (Math.abs(rad.y - coords.y) < SNAP_DISTANCE) {
           finalY = rad.y; // Alinear a la misma Y
-          console.log(`📐 Snap horizontal a Y=${finalY}`);
           break;
         }
       }
@@ -648,7 +646,6 @@ export const Canvas = () => {
       for (const rad of nearbyRadiators) {
         if (Math.abs(rad.x - coords.x) < SNAP_DISTANCE) {
           finalX = rad.x; // Alinear a la misma X
-          console.log(`📐 Snap vertical a X=${finalX}`);
           break;
         }
       }
@@ -664,7 +661,6 @@ export const Canvas = () => {
       };
 
       addRadiator(newRadiator);
-      console.log('Radiador creado en', currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta', ':', newRadiator);
     }
 
     // Si la herramienta es "boiler", crear una caldera
@@ -698,7 +694,6 @@ export const Canvas = () => {
       };
 
       addBoiler(newBoiler);
-      console.log('Caldera creada en', currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta', ':', newBoiler);
     }
 
     // Si la herramienta es "select", intentar seleccionar o arrastrar
@@ -789,8 +784,6 @@ export const Canvas = () => {
           x: coords.x - foundRadiator.x,
           y: coords.y - foundRadiator.y,
         });
-
-        console.log('Radiador seleccionado:', foundRadiator.id);
       } else if (foundBoiler) {
         // Seleccionar la caldera
         setSelectedElement(foundBoiler.id);
@@ -801,19 +794,14 @@ export const Canvas = () => {
           x: coords.x - foundBoiler.x,
           y: coords.y - foundBoiler.y,
         });
-
-        console.log('Caldera seleccionada:', foundBoiler.id);
       } else if (foundPipeId) {
         // Seleccionar la tubería
         setSelectedElement(foundPipeId);
         setIsDragging(false);
-        console.log('Tubería seleccionada:', foundPipeId);
-
       } else {
         // No se encontró ningún elemento
         setSelectedElement(null);
         setIsDragging(false);
-        console.log('Deseleccionado');
       }
     } else if (tool === 'vertical-pipe') {
       // Modo de marcado de tubería vertical
@@ -833,17 +821,9 @@ export const Canvas = () => {
             id: clickedElement.id,
             type: foundRadiator ? 'radiator' : 'boiler'
           });
-          console.log(`⇅ Inicio de tubería VERTICAL desde:`, clickedElement.id);
         } else {
           // Segundo click: crear tubería vertical
           createManualPipe(pipeStartElement.id, clickedElement.id, 'vertical');
-
-          console.log(`✅ Tubería VERTICAL creada:`, {
-            from: pipeStartElement.id,
-            to: clickedElement.id,
-            floor: 'vertical'
-          });
-
           // Resetear y volver a modo select
           setPipeStartElement(null);
           setTool('select');
@@ -851,18 +831,10 @@ export const Canvas = () => {
       } else {
         // Click en vacío: cancelar
         if (pipeStartElement) {
-          console.log('❌ Marcado de tubería vertical cancelado');
           setPipeStartElement(null);
         } else {
-          console.log('⚠️ Click en tubería vertical: selecciona un elemento primero');
         }
       }
-
-
-      console.log('MouseDown:', {
-        tool,
-        action: 'down',
-      });
     }
   };
 
