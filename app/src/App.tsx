@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useAuthStore } from './stores/useAuthStore'
 import { ErrorBoundary } from './components/ui/ErrorBoundary/ErrorBoundary'
-import { AsistenteTérmico } from './components/AsistenteTérmico/AsistenteTérmico'
+import { AsistenteTermico } from './components/AsistenteTermico/AsistenteTermico'
 import { MainLayout } from './app/layouts/MainLayout'
 import './styles/global.css'
 
@@ -42,7 +42,7 @@ function App() {
           </Routes>
         </Suspense>
       </ErrorBoundary>
-      {isAuthenticated && <AsistenteTérmico />}
+      {isAuthenticated && <AsistenteTermico />}
     </BrowserRouter>
   )
 }

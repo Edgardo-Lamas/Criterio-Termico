@@ -4,7 +4,7 @@
 
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
-import styles from './AsistenteTérmico.module.css'
+import styles from './AsistenteTermico.module.css'
 
 // ── Burbuja de mensaje ────────────────────────────────────────────────────────
 
@@ -181,7 +181,7 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
 
 // ── Componente raíz — única instancia del hook ────────────────────────────────
 
-export function AsistenteTérmico() {
+export function AsistenteTermico() {
     const asistente = useAsistente()
     const { open, setOpen } = asistente
 

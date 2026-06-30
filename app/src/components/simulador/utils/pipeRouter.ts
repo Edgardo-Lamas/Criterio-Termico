@@ -67,8 +67,6 @@ export function groupRadiatorsIntoZones(radiators: Radiator[], maxDistance: numb
 
     zones.push({ radiators: zone, centroid, totalPower });
   });
-  zones.forEach((z, i) => {
-  });
 
   return zones;
 }
@@ -255,9 +253,6 @@ function divideIntoCircuits(radiators: Radiator[], boilerCenter: Point): Radiato
   const sorted1 = sortByDistance(circuit1);
   const sorted2 = sortByDistance(circuit2);
 
-  // Calcular potencias
-  const power1 = sorted1.reduce((sum, r) => sum + r.power, 0);
-  const power2 = sorted2.reduce((sum, r) => sum + r.power, 0);
   return [sorted1, sorted2];
 }
 
@@ -285,9 +280,6 @@ function generateCircuitPipes(
   // Calcular potencia total del circuito
   const totalPower = radiators.reduce((sum, r) => sum + r.power, 0);
 
-  // DEBUG: Mostrar potencia de cada radiador
-  radiators.forEach((r, i) => {
-  });
   // Calcular diámetro según potencia
   const calculateDiameter = (power: number): number => {
     const flowRate = power / 10; // ΔT = 10°C
@@ -298,8 +290,6 @@ function generateCircuitPipes(
     return 40;
   };
 
-  // Calcular diámetro inicial del troncal
-  const initialTrunkDiameter = calculateDiameter(totalPower);
   // Ordenar radiadores por distancia al origen
   const sortedRadiators = [...radiators].sort((a, b) => {
     const distA = Math.sqrt(Math.pow(a.x + a.width / 2 - originPoint.x, 2) + Math.pow(a.y + a.height / 2 - originPoint.y, 2));
@@ -311,7 +301,7 @@ function generateCircuitPipes(
   let currentTrunkId = originElementId;
   let remainingPower = totalPower;
 
-  sortedRadiators.forEach((radiator, index) => {
+  sortedRadiators.forEach((radiator) => {
     const isVertical = radiator.height > radiator.width;
 
     // Punto de conexión en el radiador
@@ -493,12 +483,6 @@ export function generateMultiFloorPipes(
   // Calcular potencias por planta
   const groundPower = groundRadiators.reduce((sum, r) => sum + r.power, 0);
   const firstPower = firstRadiators.reduce((sum, r) => sum + r.power, 0);
-  // DEBUG: Mostrar potencia de cada radiador de PA
-  if (firstRadiators.length > 0) {
-    firstRadiators.forEach((r, i) => {
-    });
-  }
-
   // Determinar la caldera principal
   const mainBoiler = groundBoilers[0] || firstBoilers[0];
   if (!mainBoiler) {

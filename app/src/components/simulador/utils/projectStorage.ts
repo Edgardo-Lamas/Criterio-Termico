@@ -49,7 +49,7 @@ export const loadFromLocalStorage = (): Project | null => {
 
     const project: Project = JSON.parse(saved);
     return project;
-  } catch (error) {
+  } catch {
     return null;
   }
 };
@@ -149,7 +149,7 @@ export const loadAutoSave = (): Project | null => {
 
     const project: Project = JSON.parse(saved);
     return project;
-  } catch (error) {
+  } catch {
     return null;
   }
 };

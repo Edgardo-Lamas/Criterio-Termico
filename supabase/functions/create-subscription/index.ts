@@ -24,13 +24,19 @@ const MP_PLAN_IDS: Record<string, string> = {
 // URL de retorno después del pago
 const APP_URL = Deno.env.get('APP_URL') ?? 'https://edgardolamas.github.io/Criterio-Termico'
 
+// ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
+// Centraliza el dominio permitido para no hardcodear el host del frontend
+// (facilita migrar de GitHub Pages a otro hosting sin tocar código).
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://edgardolamas.github.io'
+
 Deno.serve(async (req) => {
     // CORS preflight
     if (req.method === 'OPTIONS') {
         return new Response(null, {
             headers: {
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
                 'Access-Control-Allow-Headers': 'authorization, content-type',
+                'Vary': 'Origin',
             },
         })
     }
@@ -95,7 +101,8 @@ function json(data: unknown, status: number) {
         status,
         headers: {
             'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+            'Vary': 'Origin',
         },
     })
 }

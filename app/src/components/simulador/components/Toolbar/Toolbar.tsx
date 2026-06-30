@@ -83,7 +83,6 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     // Modo planta única (original)
     const currentFloorRadiators = radiators.filter(r => r.floor === currentFloor);
     const currentFloorBoilers = boilers.filter(b => b.floor === currentFloor);
-    const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
 
     if (currentFloorRadiators.length === 0) {
       return;
@@ -116,19 +115,15 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         try {
           const dimensionedPipes = dimensionPipes(newPipes, radiators, boilers);
           setPipes(dimensionedPipes);
-        } catch (error) {
+        } catch {
+          // Dimensionamiento falló — las tuberías quedan sin diámetro asignado
         }
       }, 100);
-    } else {
     }
   };
 
   // NUEVO: Conexión automática multi-planta
   const handleMultiFloorConnect = () => {
-    const boilerFloor = groundBoilers.length > 0 ? 'Planta Baja' : 'Planta Alta';
-    const groundPower = groundRadiators.reduce((sum, r) => sum + r.power, 0);
-    const firstPower = firstRadiators.reduce((sum, r) => sum + r.power, 0);
-
     // Execute directly without confirmation
     const result = generateMultiFloorPipes(radiators, boilers);
     setPipes(result.pipes);
@@ -148,14 +143,10 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         try {
           const dimensionedPipes = dimensionPipes(result.pipes, radiators, boilers);
           setPipes(dimensionedPipes);
-
-          // Buscar diámetro del montante
-          const riserPipe = dimensionedPipes.find(p => p.floor === 'vertical' && p.pipeType === 'supply');
-          const riserDiameter = riserPipe?.diameter || 16;
-        } catch (error) {
+        } catch {
+          // Dimensionamiento falló — las tuberías quedan sin diámetro asignado
         }
       }, 100);
-    } else {
     }
   };
 
@@ -194,10 +185,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       const imageDataUrl = event.target?.result as string;
-      const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
       setFloorPlan(currentFloor, imageDataUrl);
     };
-    reader.onerror = (error) => {
+    reader.onerror = () => {
       alert('❌ Error al cargar la imagen. Revisa la consola para más detalles.');
     };
     reader.readAsDataURL(file);

@@ -118,15 +118,3 @@ export const isPointNearPipe = (
 
   return false;
 };
-
-/**
- * Calcula el punto más cercano en una línea
- */
-export const closestPointOnLine = (
-  _point: Point,
-  _lineStart: Point,
-  _lineEnd: Point
-): Point => {
-  // TODO: Implement
-  return { x: 0, y: 0 };
-};

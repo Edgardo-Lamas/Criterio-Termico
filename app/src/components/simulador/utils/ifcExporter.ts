@@ -586,7 +586,7 @@ export class IFCExporter {
    * Exporta una caldera
    */
   exportBoiler(boiler: Boiler): number {
-    const floor = (boiler as any).floor as 'ground' | 'first' || 'ground';
+    const floor = boiler.floor || 'ground';
     const storeyId = this.getStoreyId(floor);
 
     // Posición en metros

@@ -44,10 +44,8 @@ interface ElementsStore {
   finishPipe: (tempPipeId: string, endPoint: Point, toElementId?: string) => void;
   cancelPipe: (tempPipeId: string) => void;
   createManualPipe: (fromId: string, toId: string, floor?: 'ground' | 'first' | 'vertical') => void;
-  addElement: (element: Radiator | Boiler | PipeSegment) => void;
   updateElement: (id: string, updates: ElementUpdates) => void;
   removeElement: (id: string) => void;
-  moveElement: (id: string, x: number, y: number) => void;
   setPipes: (pipes: PipeSegment[]) => void;
   setBackgroundImageOffset: (offset: { x: number; y: number }) => void;
   setBackgroundImageDimensions: (dimensions: { width: number; height: number } | null) => void;
@@ -215,7 +213,7 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       if (!state.tempPipe || state.tempPipe.id !== tempPipeId) return state;
 
       // Agregar punto final si no es duplicado
-      let finalPoints = [...state.tempPipe.points];
+      const finalPoints = [...state.tempPipe.points];
       const lastPoint = finalPoints[finalPoints.length - 1];
       if (lastPoint.x !== endPoint.x || lastPoint.y !== endPoint.y) {
         finalPoints.push(endPoint);
@@ -330,10 +328,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
     });
   },
 
-  addElement: (element) => {
-    // TODO: Implement generically if needed
-  },
-
   updateElement: (id, updates) => {
     set((state) => {
       // Verificar si es radiador
@@ -378,10 +372,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       // Limpiar selección si era el elemento eliminado
       selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
     }));
-  },
-
-  moveElement: (_id, _x, _y) => {
-    // TODO: Implement
   },
 
   setPipes: (pipes) => {

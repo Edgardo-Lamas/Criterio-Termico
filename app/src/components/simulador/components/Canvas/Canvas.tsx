@@ -832,7 +832,6 @@ export const Canvas = () => {
         // Click en vacío: cancelar
         if (pipeStartElement) {
           setPipeStartElement(null);
-        } else {
         }
       }
     }
@@ -872,7 +871,7 @@ export const Canvas = () => {
     }
   };
 
-  const handleMouseUp = (_e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseUp = () => {
     // Desactivar dragging y panning
     setIsDragging(false);
     setIsPanning(false);

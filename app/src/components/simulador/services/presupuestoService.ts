@@ -26,7 +26,7 @@ export interface TuberiaCatalogo extends ItemCatalogo {
     metros_por_unidad: number;
 }
 
-export interface AccesorioCatalogo extends ItemCatalogo { }
+export type AccesorioCatalogo = ItemCatalogo;
 
 export interface DetallePresupuesto {
     caldera: {
@@ -124,7 +124,7 @@ export const generarPresupuesto = (
     const tuberias = catalogoData.tuberias as TuberiaCatalogo[];
     const tuberiaEstandar = tuberias.find(t => t.diametro_mm === 16) || tuberias[0];
 
-    let detalleTuberias = [];
+    const detalleTuberias = [];
     if (tuberiaEstandar) {
         const rollosNecesarios = Math.ceil(metrosEstimados / tuberiaEstandar.metros_por_unidad);
         const cantidadRollos = rollosNecesarios > 0 ? rollosNecesarios : 1;

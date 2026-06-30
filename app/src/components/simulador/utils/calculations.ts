@@ -1,5 +1,4 @@
 import type { Radiator } from '../models/Radiator';
-import type { Boiler } from '../models/Boiler';
 import type { PipeSegment, Point } from '../models/PipeSegment';
 import { distance } from './geometry';
 
@@ -36,26 +35,4 @@ export const calculatePointsLength = (points: Point[]): number => {
   }
 
   return length;
-};
-
-/**
- * Calcula la pérdida de carga en una tubería
- */
-export const calculatePressureLoss = (
-  _pipe: PipeSegment,
-  _flowRate: number
-): number => {
-  // TODO: Implement
-  return 0;
-};
-
-/**
- * Verifica si la potencia de la caldera es suficiente
- */
-export const isBoilerPowerSufficient = (
-  _boiler: Boiler,
-  _radiators: Radiator[]
-): boolean => {
-  // TODO: Implement
-  return false;
 };

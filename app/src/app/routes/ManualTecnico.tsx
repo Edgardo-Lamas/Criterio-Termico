@@ -1,9 +1,6 @@
-import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { usePageMeta } from '../../lib/usePageMeta'
-import { ContribucionForm } from '../../components/contributions/ContribucionForm/ContribucionForm'
 import { getCapituloContent } from '../../content/manual'
-import type { TipoContribucion } from '../../stores/useContribucionesStore'
 import styles from './ManualTecnico.module.css'
 
 // Tipos de acceso por capítulo
@@ -210,8 +207,12 @@ export function ManualTecnico() {
 
                 <article className={styles.content}>
                     {(() => {
+                        // getCapituloContent devuelve una referencia estática del registro
+                        // en content/manual/index.ts (mismo componente para el mismo id),
+                        // no un componente nuevo en cada render — falso positivo de la regla.
                         const Contenido = getCapituloContent(cap.id)
                         return Contenido
+                            // eslint-disable-next-line react-hooks/static-components
                             ? <Contenido />
                             : (
                                 <div className={styles.placeholder}>
@@ -305,71 +306,6 @@ export function ManualTecnico() {
                     </div>
                 </section>
             ))}
-
-            {/* Sección de Contribuciones */}
-            <ContributeSection />
         </div>
-    )
-}
-
-// Componente separado para la sección de contribuciones (maneja su propio estado del modal)
-function ContributeSection() {
-    const [modalOpen, setModalOpen] = useState(false)
-    const [tipoInicial, setTipoInicial] = useState<TipoContribucion | undefined>(undefined)
-
-    const abrirModal = (tipo: TipoContribucion) => {
-        setTipoInicial(tipo)
-        setModalOpen(true)
-    }
-
-    return (
-        <>
-            <section className={styles.contributeSection}>
-                <h2>🤝 Contribuye al Manual</h2>
-                <p>
-                    Este manual crece con la comunidad. Si tenés experiencia en obra,
-                    podés proponer mejoras, correcciones o casos de uso.
-                </p>
-                <div className={styles.contributeOptions}>
-                    <button
-                        className={styles.contributeCard}
-                        onClick={() => abrirModal('mejora')}
-                    >
-                        <span className={styles.contributeIcon}>💡</span>
-                        <h4>Sugerir Mejora</h4>
-                        <p>Proponé una corrección o ampliación de contenido existente.</p>
-                        <span className={styles.contributeCredits}>+50 créditos</span>
-                    </button>
-                    <button
-                        className={styles.contributeCard}
-                        onClick={() => abrirModal('caso-obra')}
-                    >
-                        <span className={styles.contributeIcon}>🔧</span>
-                        <h4>Caso de Obra</h4>
-                        <p>Compartí una situación real que enfrentaste y cómo la resolviste.</p>
-                        <span className={styles.contributeCredits}>+100 créditos</span>
-                    </button>
-                    <button
-                        className={styles.contributeCard}
-                        onClick={() => abrirModal('error')}
-                    >
-                        <span className={styles.contributeIcon}>⚠️</span>
-                        <h4>Reportar Error</h4>
-                        <p>Señalá errores técnicos o información desactualizada.</p>
-                        <span className={styles.contributeCredits}>+25 créditos</span>
-                    </button>
-                </div>
-                <p className={styles.contributeNote}>
-                    Los aportes son revisados por el equipo técnico antes de publicarse.
-                    Los contribuidores validados reciben <strong>descuentos en su suscripción</strong>.
-                </p>
-            </section>
-
-            <ContribucionForm
-                isOpen={modalOpen}
-                onClose={() => setModalOpen(false)}
-                tipoInicial={tipoInicial}
-            />
-        </>
     )
 }

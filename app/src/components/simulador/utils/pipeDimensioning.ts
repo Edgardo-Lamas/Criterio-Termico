@@ -78,13 +78,6 @@ function calculatePipePowers(
     }
   });
 
-  // DEBUG: Mostrar grafo de conexiones
-  childrenMap.forEach((children, parentId) => {
-    if (children.length > 0) {
-      const shortParent = parentId.length > 30 ? parentId.substring(0, 30) + '...' : parentId;
-    }
-  });
-
   // Función recursiva para calcular potencia de una tubería
   function calculatePowerForPipe(pipeId: string, visited: Set<string>): number {
     if (visited.has(pipeId)) return 0; // Evitar ciclos
@@ -140,7 +133,6 @@ export function dimensionPipes(
     return pipes;
   }
 
-  const supplyPipes = pipes.filter(p => p.pipeType === 'supply');
   // Calcular potencias por planta
   const groundRadiators = radiators.filter(r => r.floor === 'ground');
   const firstRadiators = radiators.filter(r => r.floor === 'first');
@@ -150,14 +142,6 @@ export function dimensionPipes(
   // NUEVO: Calcular potencia de cada tubería usando DFS
   const pipePowers = calculatePipePowers(pipes, radiators);
 
-  // Debug: mostrar potencias calculadas
-  let pipesWithPower = 0;
-  pipePowers.forEach((power, pipeId) => {
-    if (power > 0) {
-      pipesWithPower++;
-      const shortId = pipeId.length > 40 ? pipeId.substring(0, 40) + '...' : pipeId;
-    }
-  });
   // Dimensionar cada tubería
   const dimensionedPipes = pipes.map(pipe => {
     if (pipe.pipeType !== 'supply') {
@@ -191,8 +175,6 @@ export function dimensionPipes(
     const flowRate = calculateFlowRate(power);
     const diameter = calculatePipeDiameter(flowRate);
 
-    const tipo = pipe.id.includes('branch') ? 'RAMAL' :
-      pipe.id.includes('trunk') ? 'TRONCAL' : 'TUBERÍA';
     return { ...pipe, diameter };
   });
 
@@ -214,13 +196,6 @@ export function dimensionPipes(
     return pipe;
   });
 
-  // Estadísticas
-  const stats = {
-    16: finalPipes.filter(p => p.diameter === 16).length,
-    20: finalPipes.filter(p => p.diameter === 20).length,
-    25: finalPipes.filter(p => p.diameter === 25).length,
-    32: finalPipes.filter(p => p.diameter && p.diameter >= 32).length,
-  };
   return finalPipes;
 }
 

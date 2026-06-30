@@ -70,10 +70,17 @@ export const PropertiesPanel = () => {
   // Estado local para edición - usa EditedValues que incluye todas las propiedades posibles
   const [editedValues, setEditedValues] = useState<EditedValues>({});
 
-  // Actualizar valores locales cuando cambia la selección O cuando cambian las tuberías
+  // Actualizar valores locales cuando cambia la selección O cuando cambian las tuberías.
+  // editedValues diverge de selectedElement por edición del usuario (setEditedValues se
+  // llama también desde los inputs del form), así que no puede ser un useMemo puro — el
+  // reset necesita el efecto. Sincroniza con dos fuentes externas (selección y
+  // dimensionamiento de pipes), no solo un cambio de id, así que el patrón de "setState
+  // durante el render" de React tampoco aplica limpio. Riesgo de refactor sin poder
+  // probar en el simulador > silenciar puntualmente.
   useEffect(() => {
     if (selectedElement) {
       // Crear un nuevo objeto para forzar actualización completa
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setEditedValues({ ...selectedElement });
     }
   }, [selectedElement, selectedElementId, pipes]); // Agregar pipes para actualizar cuando se dimensionan

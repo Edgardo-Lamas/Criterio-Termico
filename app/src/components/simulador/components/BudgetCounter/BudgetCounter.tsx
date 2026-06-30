@@ -8,7 +8,7 @@ export const BudgetCounter: React.FC = () => {
 
     useEffect(() => {
         // Animate up to the global count
-        let start = displayCount;
+        const start = displayCount;
         const end = globalBudgetCount;
         if (start === end) return;
 

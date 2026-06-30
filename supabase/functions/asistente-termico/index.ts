@@ -28,11 +28,17 @@ const TIER_CONFIG: Record<Tier, TierConfig> = {
 }
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+// ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
+// Centraliza el dominio permitido para no hardcodear el host del frontend
+// (facilita migrar de GitHub Pages a otro hosting sin tocar código).
+
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://edgardolamas.github.io'
 
 const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Vary': 'Origin',
 }
 
 // ── System prompt de Criterio ─────────────────────────────────────────────────

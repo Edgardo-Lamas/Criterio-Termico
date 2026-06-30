@@ -20,11 +20,9 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     const { companyDetails, clientDetails, getActivePromotions } = useCompanyStore();
     const { saveLead } = useLeadStore();
 
-    const [options, setOptions] = useState<BudgetOptions | null>(null);
     const [selectedBoilerId, setSelectedBoilerId] = useState<string>('');
     const [selectedRadiatorId, setSelectedRadiatorId] = useState<string>('');
-    const [budgetResult, setBudgetResult] = useState<SelectedBudget | null>(null);
-    const [preloadedLogo, setPreloadedLogo] = useState<string | null>(null);
+    const [asyncLoadedLogo, setAsyncLoadedLogo] = useState<string | null>(null);
 
     // Total Power Calculation
     const totalPowerKcal = radiators.reduce((sum, r) => sum + r.power, 0);
@@ -44,51 +42,59 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         return quantities;
     }, [pipes]);
 
-    // Pre-load logo when panel opens (so download can stay synchronous)
+    // Pre-load logo when panel opens (so download can stay synchronous).
+    // Solo el caso async (URL remota) necesita el efecto; el caso data: URL
+    // ya está disponible sincrónicamente y se deriva más abajo con useMemo.
     useEffect(() => {
         if (isOpen && companyDetails.logo && !companyDetails.logo.startsWith('data:')) {
             loadLogoAsBase64(companyDetails.logo).then(result => {
-                setPreloadedLogo(result);
+                setAsyncLoadedLogo(result);
             });
-        } else if (isOpen && companyDetails.logo?.startsWith('data:')) {
-            setPreloadedLogo(companyDetails.logo);
         }
     }, [isOpen, companyDetails.logo]);
 
-    useEffect(() => {
-        if (isOpen) {
-            const opts = generateBudgetOptions(totalPowerKcal);
-            setOptions(opts);
+    const preloadedLogo = useMemo(() => {
+        if (companyDetails.logo?.startsWith('data:')) return companyDetails.logo;
+        return asyncLoadedLogo;
+    }, [companyDetails.logo, asyncLoadedLogo]);
 
-            // Set defaults if not set
-            if (!selectedBoilerId && opts.suggestedBoilers.length > 0) {
-                setSelectedBoilerId(opts.suggestedBoilers[0].id);
-            }
-            if (!selectedRadiatorId && opts.allRadiators.length > 0) {
-                setSelectedRadiatorId(opts.allRadiators[0].id);
-            }
+    const options = useMemo<BudgetOptions | null>(() => {
+        if (!isOpen) return null;
+        return generateBudgetOptions(totalPowerKcal);
+    }, [isOpen, totalPowerKcal]);
+
+    // Set defaults solo la primera vez que hay opciones y todavía no hay selección.
+    // Depende de selectedBoilerId/selectedRadiatorId pero a propósito no están en las
+    // deps — son "set once if unset", no una sincronización continua.
+    useEffect(() => {
+        if (!options) return;
+        if (!selectedBoilerId && options.suggestedBoilers.length > 0) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setSelectedBoilerId(options.suggestedBoilers[0].id);
+        }
+        if (!selectedRadiatorId && options.allRadiators.length > 0) {
+            setSelectedRadiatorId(options.allRadiators[0].id);
         }
     }, [isOpen, totalPowerKcal]);
 
-    useEffect(() => {
-        if (options && selectedBoilerId && selectedRadiatorId) {
-            // Calculate Total Elements needed for this specific radiator model to meet power
-            const radModel = options.allRadiators.find(r => r.id === selectedRadiatorId);
-            let totalElems = 0;
-            if (radModel && radModel.powerKcal > 0) {
-                totalElems = Math.ceil(totalPowerKcal / radModel.powerKcal);
-            }
+    const budgetResult = useMemo<SelectedBudget | null>(() => {
+        if (!(options && selectedBoilerId && selectedRadiatorId)) return null;
 
-            const result = calculateTotalBudget(
-                selectedBoilerId,
-                selectedRadiatorId,
-                totalElems,
-                radiators.length,
-                prices,
-                pipeQuantities
-            );
-            setBudgetResult(result);
+        // Calculate Total Elements needed for this specific radiator model to meet power
+        const radModel = options.allRadiators.find(r => r.id === selectedRadiatorId);
+        let totalElems = 0;
+        if (radModel && radModel.powerKcal > 0) {
+            totalElems = Math.ceil(totalPowerKcal / radModel.powerKcal);
         }
+
+        return calculateTotalBudget(
+            selectedBoilerId,
+            selectedRadiatorId,
+            totalElems,
+            radiators.length,
+            prices,
+            pipeQuantities
+        );
     }, [selectedBoilerId, selectedRadiatorId, totalPowerKcal, radiators.length, options, prices, pipeQuantities]);
 
     const handleDownloadFloorPlan = () => {
@@ -110,7 +116,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 clientDetails,
                 currentFloor
             );
-        } catch (error) {
+        } catch {
             alert('Hubo un error al generar el plano. Por favor intenta nuevamente.');
         }
     };
@@ -142,7 +148,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 budgetResult,
                 preloadedLogo
             );
-        } catch (error) {
+        } catch {
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');
         }
     };

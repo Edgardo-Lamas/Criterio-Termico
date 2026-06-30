@@ -89,6 +89,7 @@ MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
 MAX_REQUESTS_PER_USER_FREE=10
 MAX_REQUESTS_PER_USER_PRO=50
 MAX_REQUESTS_PER_USER_PREMIUM=200
+ALLOWED_ORIGIN=https://edgardolamas.github.io   # origen permitido para CORS — actualizar al migrar de host
 ```
 
 ### MCP Server — `.env` en `/mcp-server`
@@ -276,11 +277,11 @@ chore:    tareas de mantenimiento (deps, config)
   - MP envía cabecera `x-signature` con HMAC-SHA256. Debe verificarse antes de procesar.
   - Agregar env var `MP_WEBHOOK_SECRET` en Supabase Dashboard > Edge Functions.
 
-- [ ] **[C-4] Contribuciones solo en localStorage — nunca llegan a la BD**
-  - Archivos: `src/stores/useContribucionesStore.ts`, `ContribucionForm.tsx:122`
-  - Los aportes se pierden al limpiar el navegador. Las imágenes son blob: URLs efímeras.
-  - Opción A: Implementar tabla `contributions` en Supabase + Storage para imágenes.
-  - Opción B (MVP): Ocultar el formulario de contribuciones hasta que esté implementado.
+- [x] **[C-4] Contribuciones solo en localStorage — nunca llegan a la BD**
+  - Resuelto con Opción B (MVP): se sacó el punto de entrada (`ContributeSection` en
+    `ManualTecnico.tsx`). El store y `ContribucionForm.tsx` quedan sin uso, listos para
+    retomar con Opción A (tabla `contributions` + Storage) cuando haya un flujo real de
+    revisión/aprobación — hoy no hay panel de admin para procesarlas.
 
 ### Día 1 — Calidad mínima de SaaS
 
@@ -306,7 +307,7 @@ chore:    tareas de mantenimiento (deps, config)
 
 ### Semana 1 — Antes de aceptar pagos reales
 
-- [ ] **[A-2] CORS wildcard `*` en Edge Functions con autenticación**
+- [x] **[A-2] CORS wildcard `*` en Edge Functions con autenticación**
   - Archivos: `asistente-termico/index.ts`, `create-subscription/index.ts`
   - Cambiar `'Access-Control-Allow-Origin': '*'` por el dominio real de GitHub Pages.
 
@@ -328,11 +329,11 @@ chore:    tareas de mantenimiento (deps, config)
   - Si se cancela una suscripción via webhook, el frontend sigue mostrando el tier viejo.
   - No persistir `tier` en localStorage o refrescarlo al navegar.
 
-- [ ] **[A-3] Funciones de cálculo con TODO en el Simulador 2D**
-  - Archivo: `src/components/simulador/utils/calculations.ts:44-61`
-  - `calculatePressureLoss()` → siempre retorna 0
-  - `isBoilerPowerSufficient()` → siempre retorna false
-  - Verificar si están en uso. Si sí, son críticas. Si no, documentar explícitamente.
+- [x] **[A-3] Funciones de cálculo con TODO en el Simulador 2D**
+  - Verificado: `calculatePressureLoss()` e `isBoilerPowerSufficient()` no se usaban en
+    ningún lado del código. Se eliminaron (eran stubs muertos, no funcionalidad crítica).
+    Mismo hallazgo y mismo tratamiento en `closestPointOnLine()` (geometry.ts),
+    `addElement()` y `moveElement()` (useElementsStore.ts) — todos stubs TODO sin uso real.
 
 - [x] **[M-3] Campo `backgroundImage` deprecado sigue en el store**
   - Archivo: `src/components/simulador/store/useElementsStore.ts:22`

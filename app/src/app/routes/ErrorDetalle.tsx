@@ -52,6 +52,9 @@ export function ErrorDetalle() {
             {hasAccess ? (
                 <article className={styles.content}>
                     {Contenido
+                        // getErrorContent devuelve una referencia estática del registro en
+                        // content/errores/index.ts, no un componente nuevo en cada render.
+                        // eslint-disable-next-line react-hooks/static-components
                         ? <Contenido />
                         : <p className={styles.noContent}>Contenido en preparación.</p>
                     }

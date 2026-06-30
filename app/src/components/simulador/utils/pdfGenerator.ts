@@ -31,288 +31,285 @@ export const generateQuotePDF = (
   selectedBudget?: SelectedBudget | null,
   preloadedLogo?: string | null
 ): void => {
-  try {
-    const doc = new jsPDF();
+  const doc = new jsPDF();
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    let yPosition = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  let yPosition = 20;
 
-    // === HEADER CON LOGO Y DATOS DE EMPRESA ===
-    const logoBase64 = preloadedLogo || companyDetails.logo || '';
+  // === HEADER CON LOGO Y DATOS DE EMPRESA ===
+  const logoBase64 = preloadedLogo || companyDetails.logo || '';
 
-    if (logoBase64) {
-      try {
-        doc.addImage(logoBase64, 'JPEG', 15, yPosition, 40, 25);
-      } catch (e) {
-      }
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, 'JPEG', 15, yPosition, 40, 25);
+    } catch {
+      // Logo inválido o corrupto — continuar sin logo en el PDF
     }
+  }
 
-    if (companyDetails.companyName) {
-      doc.setFontSize(16);
-      doc.setFont('helvetica', 'bold');
-      doc.text(companyDetails.companyName, companyDetails.logo ? 60 : 15, yPosition + 5);
-      yPosition += 8;
-    }
-
-    if (companyDetails.address || companyDetails.phone || companyDetails.email) {
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      if (companyDetails.address) {
-        doc.text(companyDetails.address, companyDetails.logo ? 60 : 15, yPosition);
-        yPosition += 4;
-      }
-      if (companyDetails.phone) {
-        doc.text(`Tel: ${companyDetails.phone}`, companyDetails.logo ? 60 : 15, yPosition);
-        yPosition += 4;
-      }
-      if (companyDetails.email) {
-        doc.text(`Email: ${companyDetails.email}`, companyDetails.logo ? 60 : 15, yPosition);
-        yPosition += 4;
-      }
-      if (companyDetails.website) {
-        doc.text(companyDetails.website, companyDetails.logo ? 60 : 15, yPosition);
-      }
-    }
-
-    yPosition += 15;
-
-    // === DATOS DEL CLIENTE (NUEVO) ===
-    doc.setDrawColor(200);
-    doc.line(15, yPosition, pageWidth - 15, yPosition);
-    yPosition += 10;
-
-    doc.setFontSize(11);
+  if (companyDetails.companyName) {
+    doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text('SOLICITADO POR:', 15, yPosition);
+    doc.text(companyDetails.companyName, companyDetails.logo ? 60 : 15, yPosition + 5);
+    yPosition += 8;
+  }
 
+  if (companyDetails.address || companyDetails.phone || companyDetails.email) {
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
+    if (companyDetails.address) {
+      doc.text(companyDetails.address, companyDetails.logo ? 60 : 15, yPosition);
+      yPosition += 4;
+    }
+    if (companyDetails.phone) {
+      doc.text(`Tel: ${companyDetails.phone}`, companyDetails.logo ? 60 : 15, yPosition);
+      yPosition += 4;
+    }
+    if (companyDetails.email) {
+      doc.text(`Email: ${companyDetails.email}`, companyDetails.logo ? 60 : 15, yPosition);
+      yPosition += 4;
+    }
+    if (companyDetails.website) {
+      doc.text(companyDetails.website, companyDetails.logo ? 60 : 15, yPosition);
+    }
+  }
 
-    const clientText = clientDetails.name || 'Cliente Particular';
-    const projectText = clientDetails.projectName ? `Proyecto: ${clientDetails.projectName}` : 'Proyecto Residencial';
+  yPosition += 15;
 
-    doc.text(clientText, 60, yPosition);
+  // === DATOS DEL CLIENTE (NUEVO) ===
+  doc.setDrawColor(200);
+  doc.line(15, yPosition, pageWidth - 15, yPosition);
+  yPosition += 10;
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SOLICITADO POR:', 15, yPosition);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  const clientText = clientDetails.name || 'Cliente Particular';
+  const projectText = clientDetails.projectName ? `Proyecto: ${clientDetails.projectName}` : 'Proyecto Residencial';
+
+  doc.text(clientText, 60, yPosition);
+  yPosition += 5;
+
+  doc.text(projectText, 60, yPosition);
+  if (clientDetails.email || clientDetails.phone) {
     yPosition += 5;
+    const contactInfo = [clientDetails.phone, clientDetails.email].filter(Boolean).join(' | ');
+    doc.text(contactInfo, 60, yPosition);
+  }
 
-    doc.text(projectText, 60, yPosition);
-    if (clientDetails.email || clientDetails.phone) {
-      yPosition += 5;
-      const contactInfo = [clientDetails.phone, clientDetails.email].filter(Boolean).join(' | ');
-      doc.text(contactInfo, 60, yPosition);
-    }
+  yPosition += 15;
 
-    yPosition += 15;
+  // === TÍTULO DEL PRESUPUESTO ===
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PRESUPUESTO', pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 10;
 
-    // === TÍTULO DEL PRESUPUESTO ===
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('PRESUPUESTO', pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 10;
+  doc.setFontSize(9);
+  const today = new Date().toLocaleDateString('es-AR');
+  doc.text(`Fecha: ${today}`, pageWidth / 2, yPosition, { align: 'center' });
+  yPosition += 12;
 
-    doc.setFontSize(9);
-    const today = new Date().toLocaleDateString('es-AR');
-    doc.text(`Fecha: ${today}`, pageWidth / 2, yPosition, { align: 'center' });
-    yPosition += 12;
+  // === IMAGEN DEL PLANO ===
+  const canvasImage = canvasElement.toDataURL('image/png');
+  const imgWidth = pageWidth - 30;
+  const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
 
-    // === IMAGEN DEL PLANO ===
-    const canvasImage = canvasElement.toDataURL('image/png');
-    const imgWidth = pageWidth - 30;
-    const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
+  if (yPosition + imgHeight > pageHeight - 20) {
+    doc.addPage();
+    yPosition = 20;
+  }
 
-    if (yPosition + imgHeight > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    }
+  doc.addImage(canvasImage, 'PNG', 15, yPosition, imgWidth, imgHeight);
+  yPosition += imgHeight + 10;
 
-    doc.addImage(canvasImage, 'PNG', 15, yPosition, imgWidth, imgHeight);
-    yPosition += imgHeight + 10;
+  // === RESUMEN DE HABITACIONES ===
+  if (yPosition + 40 > pageHeight - 20) {
+    doc.addPage();
+    yPosition = 20;
+  }
 
-    // === RESUMEN DE HABITACIONES ===
-    if (yPosition + 40 > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    }
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RESUMEN DE HABITACIONES', 15, yPosition);
+  yPosition += 8;
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RESUMEN DE HABITACIONES', 15, yPosition);
-    yPosition += 8;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
 
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-
-    rooms.forEach((room) => {
-      if (yPosition > pageHeight - 20) {
-        doc.addPage();
-        yPosition = 20;
-      }
-
-      const volume = room.area * room.height;
-      const radiatorCount = room.radiatorIds.length;
-      const installedPower = radiatorCount > 0
-        ? room.radiatorIds.reduce((sum, id) => {
-          const rad = radiators.find((r) => r.id === id);
-          return sum + (rad?.power || 0);
-        }, 0)
-        : 0;
-
-      doc.text(`• ${room.name}`, 20, yPosition);
-      yPosition += 5;
-      doc.text(`  Área: ${room.area} m² × ${room.height} m = ${volume.toFixed(1)} m³`, 25, yPosition);
-      yPosition += 4;
-      doc.text(`  Factor térmico: ${room.thermalFactor} Kcal/h·m³`, 25, yPosition);
-      yPosition += 4;
-      doc.text(`  Radiadores instalados: ${radiatorCount} (${installedPower.toLocaleString('es-AR')} Kcal/h)`, 25, yPosition);
-      yPosition += 7;
-    });
-
-    // === LISTADO DE MATERIALES ===
-    if (yPosition + 40 > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    }
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('LISTADO DE MATERIALES', 15, yPosition);
-    yPosition += 8;
-
-    const materials = calculateMaterials(radiators);
-
+  rooms.forEach((room) => {
     if (yPosition > pageHeight - 20) {
       doc.addPage();
       yPosition = 20;
     }
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`• Radiadores: ${materials.radiatorCount} unidades`, 20, yPosition);
+    const volume = room.area * room.height;
+    const radiatorCount = room.radiatorIds.length;
+    const installedPower = radiatorCount > 0
+      ? room.radiatorIds.reduce((sum, id) => {
+        const rad = radiators.find((r) => r.id === id);
+        return sum + (rad?.power || 0);
+      }, 0)
+      : 0;
+
+    doc.text(`• ${room.name}`, 20, yPosition);
     yPosition += 5;
+    doc.text(`  Área: ${room.area} m² × ${room.height} m = ${volume.toFixed(1)} m³`, 25, yPosition);
+    yPosition += 4;
+    doc.text(`  Factor térmico: ${room.thermalFactor} Kcal/h·m³`, 25, yPosition);
+    yPosition += 4;
+    doc.text(`  Radiadores instalados: ${radiatorCount} (${installedPower.toLocaleString('es-AR')} Kcal/h)`, 25, yPosition);
+    yPosition += 7;
+  });
 
-    doc.text(`• Caldera recomendada: ${materials.boilerPower.toLocaleString('es-AR')} Kcal/h`, 20, yPosition);
-    yPosition += 10;
-
-    // === PRESUPUESTO DETALLADO DE INSTALACIÓN ===
-
-    if (yPosition + 60 > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    } else {
-      yPosition += 15;
-    }
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 0, 0);
-    doc.text('PRESUPUESTO ESTIMADO DE INSTALACIÓN', 15, yPosition);
-    yPosition += 10;
-
-    if (selectedBudget) {
-      // Header
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text('Concepto', 15, yPosition);
-      doc.text('Cantidad', 110, yPosition);
-      doc.text('Subtotal', 160, yPosition);
-
-      doc.line(15, yPosition + 2, 195, yPosition + 2);
-      yPosition += 8;
-      doc.setFont('helvetica', 'normal');
-
-      const addRow = (concepto: string, cantidad: string, precio: number) => {
-        if (yPosition > pageHeight - 20) {
-          doc.addPage();
-          yPosition = 20;
-        }
-        const cleanConcepto = concepto.length > 55 ? concepto.substring(0, 55) + '...' : concepto;
-        doc.text(cleanConcepto, 15, yPosition);
-        doc.text(cantidad, 110, yPosition);
-        doc.text(`$${precio.toFixed(2)}`, 160, yPosition);
-        yPosition += 6;
-      };
-
-      const { breakdown, totalCost } = selectedBudget;
-
-      // Boiler
-      if (breakdown.boiler) {
-        addRow(`Caldera: ${breakdown.boiler.model.brand} ${breakdown.boiler.model.model}`, '1 un', breakdown.boiler.cost);
-      }
-
-      // Radiators
-      if (breakdown.radiators) {
-        const { model, count, totalCost: radCost } = breakdown.radiators;
-        addRow(`Radiadores: ${model.brand} ${model.model} (${model.heightMm}mm)`, `${count} elem`, radCost);
-      }
-
-      // Accessories
-      if (breakdown.accessories && breakdown.accessories.length > 0) {
-        breakdown.accessories.forEach(acc => {
-          addRow(acc.model.name, `${acc.count} un`, acc.totalCost);
-        });
-      }
-
-      yPosition += 4;
-      doc.line(110, yPosition, 195, yPosition);
-      yPosition += 6;
-
-      // Total
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('TOTAL FINAL ESTIMADO:', 80, yPosition, { align: 'right' });
-      doc.text(`$${totalCost.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, 160, yPosition);
-
-    } else {
-      // FALLBACK message
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'italic');
-      doc.text('Detalle de costos no disponible en esta vista preliminar.', 15, yPosition);
-      yPosition += 10;
-    }
-
-    // === LEYENDA DE CIERRE (Fase 3 - Pruebas de Confianza) ===
-    const pageHeightFinal = doc.internal.pageSize.getHeight();
-
-    // Asegurar que estamos al final o pie de página
-    if (yPosition < pageHeightFinal - 40) {
-      yPosition = pageHeightFinal - 40;
-    } else {
-      doc.addPage();
-      yPosition = pageHeightFinal - 40;
-    }
-
-    doc.setDrawColor(0);
-    doc.setLineWidth(0.5);
-    doc.line(15, yPosition, pageWidth - 15, yPosition);
-    yPosition += 5;
-
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'italic');
-    doc.setTextColor(100);
-
-    const closingText = "Este presupuesto preliminar es el resultado de un cálculo de ingeniería avanzado. Para iniciar la fase de diseño definitivo y validar las eficiencias, por favor, póngase en contacto con nuestro equipo de especialistas.";
-    const splitText = doc.splitTextToSize(closingText, pageWidth - 30);
-    doc.text(splitText, 15, yPosition);
-
-
-    // === DESCARGA (100% SINCRÓNICA — probada en diagnóstico) ===
-    const safeProjectName = clientDetails.projectName ? clientDetails.projectName.replace(/\s+/g, '_') : 'Proyecto';
-    const fileName = `Presupuesto_${safeProjectName}_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`;
-
-    const pdfBlob = doc.output('blob');
-    // Direct synchronous download — NO setTimeout, NO dispatchEvent
-    const url = URL.createObjectURL(pdfBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();                    // ← sync click in user gesture stack
-    document.body.removeChild(link); // ← cleanup immediately after click
-    // Revoke URL later so browser has time to complete download
-    setTimeout(() => URL.revokeObjectURL(url), 60000);
-  } catch (error) {
-    throw error;
+  // === LISTADO DE MATERIALES ===
+  if (yPosition + 40 > pageHeight - 20) {
+    doc.addPage();
+    yPosition = 20;
   }
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LISTADO DE MATERIALES', 15, yPosition);
+  yPosition += 8;
+
+  const materials = calculateMaterials(radiators);
+
+  if (yPosition > pageHeight - 20) {
+    doc.addPage();
+    yPosition = 20;
+  }
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`• Radiadores: ${materials.radiatorCount} unidades`, 20, yPosition);
+  yPosition += 5;
+
+  doc.text(`• Caldera recomendada: ${materials.boilerPower.toLocaleString('es-AR')} Kcal/h`, 20, yPosition);
+  yPosition += 10;
+
+  // === PRESUPUESTO DETALLADO DE INSTALACIÓN ===
+
+  if (yPosition + 60 > pageHeight - 20) {
+    doc.addPage();
+    yPosition = 20;
+  } else {
+    yPosition += 15;
+  }
+
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('PRESUPUESTO ESTIMADO DE INSTALACIÓN', 15, yPosition);
+  yPosition += 10;
+
+  if (selectedBudget) {
+    // Header
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Concepto', 15, yPosition);
+    doc.text('Cantidad', 110, yPosition);
+    doc.text('Subtotal', 160, yPosition);
+
+    doc.line(15, yPosition + 2, 195, yPosition + 2);
+    yPosition += 8;
+    doc.setFont('helvetica', 'normal');
+
+    const addRow = (concepto: string, cantidad: string, precio: number) => {
+      if (yPosition > pageHeight - 20) {
+        doc.addPage();
+        yPosition = 20;
+      }
+      const cleanConcepto = concepto.length > 55 ? concepto.substring(0, 55) + '...' : concepto;
+      doc.text(cleanConcepto, 15, yPosition);
+      doc.text(cantidad, 110, yPosition);
+      doc.text(`$${precio.toFixed(2)}`, 160, yPosition);
+      yPosition += 6;
+    };
+
+    const { breakdown, totalCost } = selectedBudget;
+
+    // Boiler
+    if (breakdown.boiler) {
+      addRow(`Caldera: ${breakdown.boiler.model.brand} ${breakdown.boiler.model.model}`, '1 un', breakdown.boiler.cost);
+    }
+
+    // Radiators
+    if (breakdown.radiators) {
+      const { model, count, totalCost: radCost } = breakdown.radiators;
+      addRow(`Radiadores: ${model.brand} ${model.model} (${model.heightMm}mm)`, `${count} elem`, radCost);
+    }
+
+    // Accessories
+    if (breakdown.accessories && breakdown.accessories.length > 0) {
+      breakdown.accessories.forEach(acc => {
+        addRow(acc.model.name, `${acc.count} un`, acc.totalCost);
+      });
+    }
+
+    yPosition += 4;
+    doc.line(110, yPosition, 195, yPosition);
+    yPosition += 6;
+
+    // Total
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTAL FINAL ESTIMADO:', 80, yPosition, { align: 'right' });
+    doc.text(`$${totalCost.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, 160, yPosition);
+
+  } else {
+    // FALLBACK message
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.text('Detalle de costos no disponible en esta vista preliminar.', 15, yPosition);
+    yPosition += 10;
+  }
+
+  // === LEYENDA DE CIERRE (Fase 3 - Pruebas de Confianza) ===
+  const pageHeightFinal = doc.internal.pageSize.getHeight();
+
+  // Asegurar que estamos al final o pie de página
+  if (yPosition < pageHeightFinal - 40) {
+    yPosition = pageHeightFinal - 40;
+  } else {
+    doc.addPage();
+    yPosition = pageHeightFinal - 40;
+  }
+
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.5);
+  doc.line(15, yPosition, pageWidth - 15, yPosition);
+  yPosition += 5;
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(100);
+
+  const closingText = "Este presupuesto preliminar es el resultado de un cálculo de ingeniería avanzado. Para iniciar la fase de diseño definitivo y validar las eficiencias, por favor, póngase en contacto con nuestro equipo de especialistas.";
+  const splitText = doc.splitTextToSize(closingText, pageWidth - 30);
+  doc.text(splitText, 15, yPosition);
+
+
+  // === DESCARGA (100% SINCRÓNICA — probada en diagnóstico) ===
+  const safeProjectName = clientDetails.projectName ? clientDetails.projectName.replace(/\s+/g, '_') : 'Proyecto';
+  const fileName = `Presupuesto_${safeProjectName}_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`;
+
+  const pdfBlob = doc.output('blob');
+  // Direct synchronous download — NO setTimeout, NO dispatchEvent
+  const url = URL.createObjectURL(pdfBlob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();                    // ← sync click in user gesture stack
+  document.body.removeChild(link); // ← cleanup immediately after click
+  // Revoke URL later so browser has time to complete download
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 };
 
 // ============================================================

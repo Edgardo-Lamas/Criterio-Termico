@@ -20,4 +20,13 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    // Contenido como código: cada archivo exporta metadata (objeto) + componente
+    // a propósito (ver content/errores/index.ts). Rompe Fast Refresh pero es
+    // arquitectura deliberada, no un code smell.
+    files: ['src/content/errores/**/*.tsx'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
 ])

@@ -34,7 +34,7 @@ export const loadLogoAsBase64 = async (logoPath: string): Promise<string | null>
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
             });
-        } catch (error) {
+        } catch {
             return null;
         }
     })();
