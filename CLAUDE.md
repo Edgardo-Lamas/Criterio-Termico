@@ -343,9 +343,15 @@ chore:    tareas de mantenimiento (deps, config)
   - `companyStore.ts` está en `/stores/` mientras los demás están en `/store/`.
   - Unificar en una sola carpeta.
 
-- [ ] **Escribir tests para los motores de cálculo**
-  - `calcularPotencia()` en CalculadoraPotencia, `calculateRoomPower()` en thermalCalculator.
-  - Son el activo central del negocio — deben tener cobertura de casos borde.
+- [x] **Escribir tests para los motores de cálculo**
+  - Se eliminó la duplicación: `CalculadoraPotencia.tsx` tenía su propia copia de
+    `calcularPotencia()`/`kcalToKw()` casi idéntica a `thermalCalculator.ts`. Ahora
+    importa `calculateRoomPower()`/`kcalToKw()` de ahí — un solo lugar para testear.
+  - Vitest instalado (`npm run test` / `test:ui` / `test:coverage`, antes no existía
+    pese a estar documentado). 28 tests en `thermalCalculator.test.ts` cubriendo
+    `calculateRoomPower`, `calculateInstalledPower`, `isPowerSufficient`,
+    `calculateBoilerPower`, `kcalToKw`/`kwToKcal` — factores térmicos, ajustes que
+    suman (no multiplican), redondeo, división por cero y casos en 0.
 
 ### Notas para la próxima sesión de trabajo
 

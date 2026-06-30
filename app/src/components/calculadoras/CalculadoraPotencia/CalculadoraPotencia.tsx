@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { calculateRoomPower, kcalToKw } from '../../simulador/utils/thermalCalculator'
 import styles from './CalculadoraPotencia.module.css'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -14,26 +15,6 @@ interface Ambiente {
     thermalFactor: ThermalFactor
     hasExteriorWall: boolean
     windowsLevel: WindowsLevel
-}
-
-// ── Cálculo (extraído de thermalCalculator.ts) ───────────────────────────────
-
-function calcularPotencia(amb: Ambiente): number {
-    const volume = amb.area * amb.height
-    let adjustment = 0
-    if (amb.hasExteriorWall) adjustment += 0.15
-    const windowAdj: Record<WindowsLevel, number> = {
-        'sin-ventanas': 0,
-        pocas: 0.05,
-        normales: 0.10,
-        muchas: 0.20,
-    }
-    adjustment += windowAdj[amb.windowsLevel]
-    return Math.round(volume * amb.thermalFactor * (1 + adjustment))
-}
-
-function kcalToKw(kcal: number): number {
-    return Math.round((kcal / 860) * 10) / 10
 }
 
 // ── Constantes de UI ─────────────────────────────────────────────────────────
@@ -72,7 +53,7 @@ export function CalculadoraPotencia() {
     const [editingId, setEditingId] = useState<string | null>(null)
 
     // Totales
-    const totalKcal = ambientes.reduce((sum, a) => sum + calcularPotencia(a), 0)
+    const totalKcal = ambientes.reduce((sum, a) => sum + calculateRoomPower(a), 0)
     const totalKw = kcalToKw(totalKcal)
     const calderaKcal = ambientes.length > 0 ? Math.round(totalKcal / 0.80) : 0
     const calderaKw = kcalToKw(calderaKcal)
@@ -221,7 +202,7 @@ export function CalculadoraPotencia() {
                     </div>
                     <div className={styles.ambientesList}>
                         {ambientes.map(amb => {
-                            const kcal = calcularPotencia(amb)
+                            const kcal = calculateRoomPower(amb)
                             const kw = kcalToKw(kcal)
                             return (
                                 <div key={amb.id} className={styles.ambienteRow}>

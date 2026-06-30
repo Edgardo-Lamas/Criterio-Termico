@@ -8,7 +8,9 @@ import type { Radiator } from '../models/Radiator';
  * - Pared exterior: +15%
  * - Ventanas: +0% a +20%
  */
-export function calculateRoomPower(room: Room): number {
+type RoomPowerInput = Pick<Room, 'area' | 'height' | 'thermalFactor' | 'hasExteriorWall' | 'windowsLevel'>;
+
+export function calculateRoomPower(room: RoomPowerInput): number {
   // Potencia base: volumen × factor térmico
   const volume = room.area * room.height;
   let power = volume * room.thermalFactor;
