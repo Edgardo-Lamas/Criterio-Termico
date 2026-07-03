@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import * as Sentry from '@sentry/react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 export type SubscriptionTier = 'free' | 'pro' | 'premium'
@@ -40,11 +41,23 @@ const tierHierarchy: Record<SubscriptionTier, number> = {
 // ── Helpers para Supabase ────────────────────────────────────────────────────
 
 async function fetchProfile(userId: string): Promise<SubscriptionTier> {
-    const { data } = await supabase
+    const { data, error } = await supabase
         .from('profiles')
         .select('tier')
         .eq('id', userId)
         .single()
+
+    if (error) {
+        // No dejar el error en silencio: un fallo acá degrada a 'free' de forma
+        // invisible (el usuario ve un downgrade sin explicación). Reportarlo
+        // permite distinguir "falta la fila del perfil" (bug del trigger) de un
+        // error de red/RLS transitorio.
+        Sentry.captureException(error, {
+            tags: { context: 'fetchProfile' },
+            extra: { userId },
+        })
+    }
+
     return (data?.tier as SubscriptionTier) ?? 'free'
 }
 

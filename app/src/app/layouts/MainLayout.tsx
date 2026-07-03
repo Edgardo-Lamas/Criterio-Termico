@@ -68,6 +68,9 @@ export function MainLayout() {
                         <NavLink to="/terminos" className={styles.footerLink}>
                             Términos de Uso
                         </NavLink>
+                        <NavLink to="/privacidad" className={styles.footerLink}>
+                            Política de Privacidad
+                        </NavLink>
                     </div>
                 </div>
             </footer>

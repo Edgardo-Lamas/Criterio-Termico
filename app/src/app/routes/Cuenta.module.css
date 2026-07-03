@@ -76,6 +76,44 @@
     color: var(--color-text-muted);
 }
 
+/* Password field with show/hide toggle */
+.passwordField {
+    position: relative;
+    display: flex;
+}
+
+.passwordField input {
+    width: 100%;
+    padding-right: calc(var(--spacing-md) * 2 + 20px);
+}
+
+.togglePassword {
+    position: absolute;
+    right: var(--spacing-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: var(--spacing-xs);
+    font-size: var(--font-size-base);
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-muted);
+    border-radius: var(--border-radius-sm);
+}
+
+.togglePassword:hover {
+    color: var(--color-text-secondary);
+}
+
+.togglePassword:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
 .submitButton {
     padding: var(--spacing-md);
     background: var(--color-primary);

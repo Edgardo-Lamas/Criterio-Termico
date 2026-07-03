@@ -57,8 +57,9 @@ export function Cuenta() {
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [upgradeLoading, setUpgradeLoading] = useState(false)
-    const [mode, setMode] = useState<'login' | 'register'>('login')
+    const [mode, setMode] = useState<'login' | 'register'>('register')
     const [registerSuccess, setRegisterSuccess] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     usePageMeta({
         title: 'Mi Cuenta',
@@ -153,16 +154,28 @@ export function Cuenta() {
                                 </div>
                                 <div className={styles.formGroup}>
                                     <label htmlFor="password">Contraseña</label>
-                                    <input
-                                        id="password"
-                                        type="password"
-                                        value={password}
-                                        onChange={e => setPassword(e.target.value)}
-                                        placeholder="••••••••"
-                                        required
-                                        minLength={6}
-                                        autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                                    />
+                                    <div className={styles.passwordField}>
+                                        <input
+                                            id="password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={password}
+                                            onChange={e => setPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            required
+                                            minLength={6}
+                                            autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.togglePassword}
+                                            onClick={() => setShowPassword(v => !v)}
+                                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            aria-pressed={showPassword}
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? '🙈' : '👁️'}
+                                        </button>
+                                    </div>
                                 </div>
                                 <button type="submit" className={styles.submitButton} disabled={isLoading}>
                                     {isLoading

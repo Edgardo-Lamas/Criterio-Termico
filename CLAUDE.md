@@ -89,7 +89,7 @@ MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
 MAX_REQUESTS_PER_USER_FREE=10
 MAX_REQUESTS_PER_USER_PRO=50
 MAX_REQUESTS_PER_USER_PREMIUM=200
-ALLOWED_ORIGIN=https://edgardolamas.github.io   # origen permitido para CORS — actualizar al migrar de host
+ALLOWED_ORIGIN=https://edgardo-lamas.github.io   # origen permitido para CORS — actualizar al migrar de host
 ```
 
 ### MCP Server — `.env` en `/mcp-server`

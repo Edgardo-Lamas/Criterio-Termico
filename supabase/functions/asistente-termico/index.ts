@@ -32,7 +32,7 @@ const TIER_CONFIG: Record<Tier, TierConfig> = {
 // Centraliza el dominio permitido para no hardcodear el host del frontend
 // (facilita migrar de GitHub Pages a otro hosting sin tocar código).
 
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://edgardolamas.github.io'
+const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://edgardo-lamas.github.io'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': ALLOWED_ORIGIN,

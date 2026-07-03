@@ -83,7 +83,7 @@ const TOOL_COMPONENTS: Record<string, ComponentType> = {
 
 export function Herramientas() {
     const { toolId } = useParams()
-    const { canAccess } = useAuthStore()
+    const { canAccess, isLoading: authLoading } = useAuthStore()
 
     usePageMeta({
         title: 'Herramientas del Instalador',
@@ -98,6 +98,25 @@ export function Herramientas() {
                 <div className={styles.notFound}>
                     <h2>Herramienta no encontrada</h2>
                     <Link to="/herramientas">← Volver a herramientas</Link>
+                </div>
+            )
+        }
+
+        // Mientras el auth store rehidrata la sesión (y trae el tier real desde
+        // Supabase), no sabemos todavía si el usuario tiene acceso — evitar
+        // mostrar el banner de suscripción de forma incorrecta durante ese lapso.
+        if (authLoading) {
+            return (
+                <div className={styles.page}>
+                    <div className={styles.header}>
+                        <Link to="/herramientas" className={styles.backLink}>← Herramientas</Link>
+                        <h1>{tool.icon} {tool.name}</h1>
+                    </div>
+                    <div className={styles.toolContainer}>
+                        <div className={styles.placeholder}>
+                            <p>Verificando acceso...</p>
+                        </div>
+                    </div>
                 </div>
             )
         }
@@ -160,7 +179,11 @@ export function Herramientas() {
 
             <div className={styles.grid}>
                 {herramientas.map(tool => {
-                    const hasAccess = canAccess(tool.tier)
+                    // Mientras el auth store rehidrata la sesión, no mostrar el
+                    // candado de "requiere suscripción" — todavía no sabemos el
+                    // tier real del usuario. La página de detalle vuelve a
+                    // verificar el acceso una vez resuelto.
+                    const hasAccess = authLoading || canAccess(tool.tier)
                     const isLocked = !hasAccess || !tool.available
 
                     return (

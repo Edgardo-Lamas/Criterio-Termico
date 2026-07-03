@@ -13,6 +13,7 @@ const ErroresFrecuentes = lazy(() => import('./app/routes/ErroresFrecuentes').th
 const ErrorDetalle     = lazy(() => import('./app/routes/ErrorDetalle').then(m => ({ default: m.ErrorDetalle })))
 const Cuenta           = lazy(() => import('./app/routes/Cuenta').then(m => ({ default: m.Cuenta })))
 const TerminosDeUso    = lazy(() => import('./app/routes/TerminosDeUso').then(m => ({ default: m.TerminosDeUso })))
+const PoliticaPrivacidad = lazy(() => import('./app/routes/PoliticaPrivacidad').then(m => ({ default: m.PoliticaPrivacidad })))
 
 function App() {
   const initAuth = useAuthStore(state => state.initAuth)
@@ -38,6 +39,7 @@ function App() {
               <Route path="errores/:errorId" element={<ErrorDetalle />} />
               <Route path="cuenta" element={<Cuenta />} />
               <Route path="terminos" element={<TerminosDeUso />} />
+              <Route path="privacidad" element={<PoliticaPrivacidad />} />
             </Route>
           </Routes>
         </Suspense>
