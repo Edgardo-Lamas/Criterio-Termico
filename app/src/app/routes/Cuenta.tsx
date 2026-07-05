@@ -70,15 +70,21 @@ export function Cuenta() {
         e.preventDefault()
         clearError()
         setIsLoading(true)
-        if (mode === 'login') {
-            await login(email, password)
-        } else {
-            await register(email, password)
-            if (!useAuthStore.getState().authError) {
-                setRegisterSuccess(true)
+        try {
+            if (mode === 'login') {
+                await login(email, password)
+            } else {
+                await register(email, password)
+                if (!useAuthStore.getState().authError) {
+                    setRegisterSuccess(true)
+                }
             }
+        } finally {
+            // Garantiza que el botón se libere pase lo que pase — login()/register()
+            // ya capturan sus propias excepciones, pero este finally es la última
+            // red de seguridad para que el spinner nunca quede colgado.
+            setIsLoading(false)
         }
-        setIsLoading(false)
     }
 
     const handleUpgrade = async (tier: SubscriptionTier) => {

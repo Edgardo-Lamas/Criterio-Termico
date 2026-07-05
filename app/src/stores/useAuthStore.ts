@@ -140,11 +140,20 @@ export const useAuthStore = create<AuthState>()(
                     return
                 }
 
-                const { error } = await supabase.auth.signInWithPassword({ email, password })
-                if (error) {
-                    set({ isLoading: false, authError: friendlyError(error.message) })
+                try {
+                    const { error } = await supabase.auth.signInWithPassword({ email, password })
+                    if (error) {
+                        set({ isLoading: false, authError: friendlyError(error.message) })
+                    }
+                    // Si ok, onAuthStateChange actualiza el estado
+                } catch (err) {
+                    // signInWithPassword no debería lanzar (los errores HTTP vuelven
+                    // como { error }), pero un fallo de red/CORS/extensión del
+                    // browser puede hacer que el fetch interno tire una excepción.
+                    // Sin este catch, el botón queda "Ingresando..." para siempre
+                    // sin ningún mensaje — exactamente el bug reportado.
+                    set({ isLoading: false, authError: friendlyError(err instanceof Error ? err.message : '') })
                 }
-                // Si ok, onAuthStateChange actualiza el estado
             },
 
             // ── register ─────────────────────────────────────────────────
@@ -161,12 +170,18 @@ export const useAuthStore = create<AuthState>()(
                     return
                 }
 
-                const { error } = await supabase.auth.signUp({ email, password })
-                if (error) {
-                    set({ isLoading: false, authError: friendlyError(error.message) })
-                } else {
-                    set({ isLoading: false, authError: null })
-                    // onAuthStateChange maneja el estado si la confirmación de email está desactivada
+                try {
+                    const { error } = await supabase.auth.signUp({ email, password })
+                    if (error) {
+                        set({ isLoading: false, authError: friendlyError(error.message) })
+                    } else {
+                        set({ isLoading: false, authError: null })
+                        // onAuthStateChange maneja el estado si la confirmación de email está desactivada
+                    }
+                } catch (err) {
+                    // Mismo caso que en login(): sin este catch, un fetch que tira
+                    // excepción (red/CORS/extensión) deja el botón girando para siempre.
+                    set({ isLoading: false, authError: friendlyError(err instanceof Error ? err.message : '') })
                 }
             },
 
