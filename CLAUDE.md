@@ -159,10 +159,21 @@ La restricción real la hace la BD.
 
 | Función | Ruta | Descripción |
 |---|---|---|
-| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE |
-| `mcp-server` | `/functions/v1/mcp-server` | Servidor MCP del proyecto |
-| `pagos-webhook` | `/functions/v1/pagos-webhook` | Webhook de MercadoPago |
-| `crear-suscripcion` | `/functions/v1/crear-suscripcion` | Iniciar pago MP |
+| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG sobre casos |
+| `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
+| `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago |
+| `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |
+
+### RAG del asistente (desde 2026-07-08)
+El asistente busca en `public.conocimiento` (pgvector, embeddings gte-small 384d
+generados en el Edge Runtime, costo cero) los fragmentos de casos más parecidos
+a la consulta y los inyecta en el system prompt. Para reindexar tras modificar
+casos en `src/content/errores/`:
+```bash
+node scripts/extraer-casos.mjs app/src/content/errores /tmp/casos.json
+# POST por lotes de ≤5 a /functions/v1/indexar-conocimiento con la service key
+# (lotes chicos: el runtime free se queda sin CPU con lotes grandes)
+```
 
 ---
 
