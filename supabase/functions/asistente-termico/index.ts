@@ -5,6 +5,19 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.39.0'
 
+// Global del Edge Runtime de Supabase (no viene tipado en el SDK)
+declare const Supabase: {
+    ai: {
+        Session: new (model: string) => {
+            run(input: string, options: { mean_pool: boolean; normalize: boolean }): Promise<number[]>
+        }
+    }
+}
+
+// Sesión de embeddings para la búsqueda semántica (gte-small, 384 dims).
+// Misma configuración (mean_pool + normalize) que usa indexar-conocimiento.
+const embedder = new Supabase.ai.Session('gte-small')
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 type Tier = 'free' | 'pro' | 'premium'
@@ -41,9 +54,64 @@ const corsHeaders = {
     'Vary': 'Origin',
 }
 
+// ── Búsqueda semántica (RAG) sobre la base de conocimiento ───────────────────
+// Busca los fragmentos de casos documentados más parecidos a la consulta y los
+// devuelve formateados para inyectar en el system prompt. Si algo falla, el
+// asistente responde sin contexto extra (degradación silenciosa, nunca rompe).
+
+interface FragmentoConocimiento {
+    source_id: string
+    tipo: string
+    titulo: string
+    seccion: string | null
+    categoria: string | null
+    contenido: string
+    similarity: number
+}
+
+async function buscarConocimiento(consulta: string): Promise<string> {
+    try {
+        const embedding = await embedder.run(consulta.slice(0, 1500), {
+            mean_pool: true,
+            normalize: true,
+        })
+
+        // Cliente service_role: match_conocimiento no es ejecutable por anon/authenticated
+        const admin = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        )
+
+        const { data, error } = await admin.rpc('match_conocimiento', {
+            query_embedding: JSON.stringify(embedding),
+            match_count: 4,
+            min_similarity: 0.35,
+        })
+
+        if (error || !data || data.length === 0) return ''
+
+        const fragmentos = (data as FragmentoConocimiento[])
+            .map(f => `[${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
+            .join('\n\n')
+
+        return `
+
+CASOS REALES DOCUMENTADOS EN LA PLATAFORMA, RELEVANTES A ESTA CONSULTA:
+${fragmentos}
+
+Cuando la consulta coincida con alguno de estos casos, basá tu respuesta en ellos
+y mencioná que es un caso documentado en la sección Errores Frecuentes de la
+plataforma (nombralo por su título). Si ninguno aplica realmente, ignoralos.`
+    } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        console.error('[asistente-termico] RAG no disponible:', detail)
+        return ''
+    }
+}
+
 // ── System prompt de Criterio ─────────────────────────────────────────────────
 
-function buildSystemPrompt(tier: Tier, userName: string): string {
+function buildSystemPrompt(tier: Tier, userName: string, ragContext: string): string {
     const herramientasDisponibles = [
         '- Calculadora de Potencia (gratis): calcula la potencia térmica por ambiente',
         ...(tier !== 'free' ? [
@@ -87,6 +155,19 @@ DOMINIO DE CONOCIMIENTO:
 - El sistema monotubo ya NO se usa — estándar actual: bitubo punto a punto con colectores
 - Piso radiante + radiadores combinados: poco común en Argentina, requiere válvulas de zona, mezcladoras y termostatos
 
+FÓRMULAS Y CRITERIOS DE CÁLCULO DE LA PLATAFORMA (usá exactamente estos valores,
+son los mismos que dan las calculadoras):
+- Potencia por ambiente: Volumen (m² × altura) × factor térmico según aislación:
+  40 kcal/h·m³ (buena aislación: construcción nueva, doble vidrio),
+  50 kcal/h·m³ (aislación normal, estándar),
+  60 kcal/h·m³ (poca aislación: construcción antigua)
+- Ajustes sobre la potencia base (se SUMAN entre sí, no se multiplican):
+  pared exterior +15%; ventanas: pocas +5%, normales +10%, muchas +20%
+- Potencia de caldera: suma de radiadores ÷ 0.80 (la caldera debe trabajar al
+  80% de su capacidad máxima, nunca al límite)
+- Caudal por radiador: potencia (kcal/h) ÷ ΔT (°C entre ida y retorno, típico 20°C) = litros/hora
+- Todo valor que des lleva margen de seguridad conservador (+10-15%)
+
 HERRAMIENTAS DISPONIBLES EN LA PLATAFORMA:
 ${herramientasDisponibles}
 
@@ -101,7 +182,7 @@ LIMITACIONES QUE MENCIONÁS CUANDO APLICAN:
 - No reemplazás el relevamiento en obra
 - No recomendás marcas comerciales específicas
 - No generás presupuestos de obra (para eso está el Simulador 2D)
-- Para instalaciones de gas: siempre derivar a gasista matriculado`
+- Para instalaciones de gas: siempre derivar a gasista matriculado${ragContext}`
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -218,7 +299,14 @@ Deno.serve(async (req: Request): Promise<Response> => {
             )
         }
 
-        // ── 6. Llamar a Anthropic con streaming ──────────────────────────────
+        // ── 6. Búsqueda semántica sobre los casos documentados ───────────────
+        // Se busca con el último mensaje del usuario; si falla devuelve ''.
+        const ultimoMensajeUsuario = [...sanitizedMessages]
+            .reverse()
+            .find(m => m.role === 'user')?.content ?? ''
+        const ragContext = await buscarConocimiento(ultimoMensajeUsuario)
+
+        // ── 7. Llamar a Anthropic con streaming ──────────────────────────────
         const anthropic = new Anthropic({
             apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
         })
@@ -226,7 +314,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const stream = await anthropic.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: tierConfig.maxTokens,
-            system: buildSystemPrompt(tier, userName),
+            system: buildSystemPrompt(tier, userName, ragContext),
             messages: sanitizedMessages,
         })
 
