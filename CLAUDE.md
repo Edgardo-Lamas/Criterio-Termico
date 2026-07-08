@@ -1,7 +1,8 @@
 # Criterio Térmico — CLAUDE.md
 
 Plataforma SaaS para instaladores de calefacción por radiadores.
-Stack: React 19 + TypeScript 5.9 + Vite 7 + Supabase + GitHub Pages.
+Stack: React 19 + TypeScript 5.9 + Vite 7 + Supabase + Vercel.
+Producción: https://criterio-termico.vercel.app (root directory: `app/`).
 
 ---
 
@@ -18,8 +19,11 @@ npm run lint         # ESLint sobre todo el proyecto
 
 ### Deploy
 ```bash
-npm run deploy       # Build + push a gh-pages (GitHub Pages)
+git push origin main          # Vercel deploya automáticamente (integración Git)
+vercel deploy --prod --yes    # Deploy manual desde app/ (solo si hace falta)
 ```
+GitHub Actions corre CI (typecheck + lint + tests) en cada push y PR.
+GitHub Pages fue dado de baja el 2026-07-08 — el hosting es Vercel.
 
 ### Supabase
 ```bash
@@ -89,7 +93,7 @@ MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
 MAX_REQUESTS_PER_USER_FREE=10
 MAX_REQUESTS_PER_USER_PRO=50
 MAX_REQUESTS_PER_USER_PREMIUM=200
-ALLOWED_ORIGIN=https://edgardo-lamas.github.io   # origen permitido para CORS — actualizar al migrar de host
+ALLOWED_ORIGIN=https://criterio-termico.vercel.app   # origen permitido para CORS — actualizar al comprar dominio propio
 ```
 
 ### MCP Server — `.env` en `/mcp-server`
@@ -217,7 +221,7 @@ git push origin feature/<nombre>
 # Deploy a producción (solo desde main)
 git checkout main
 git pull
-npm run deploy
+git push   # Vercel deploya automáticamente
 ```
 
 ### Convención de commits
@@ -248,8 +252,9 @@ chore:    tareas de mantenimiento (deps, config)
 - **Mercado principal**: Argentina. MercadoPago como pasarela. Expansión
   planificada a España y Alemania.
 
-- **Costo de infra**: Prácticamente cero (GitHub Pages + Supabase free tier).
-  No agregar servicios pagos sin justificación.
+- **Costo de infra**: Prácticamente cero (Vercel Hobby + Supabase free tier).
+  No agregar servicios pagos sin justificación. OJO: al activar pagos reales,
+  Vercel Hobby no permite uso comercial → pasar a Pro (US$20/mes).
 
 - **PWA completa**: La app funciona offline. No romper el flujo offline
   al agregar nuevas features.
