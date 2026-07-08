@@ -90,18 +90,26 @@ async function buscarConocimiento(consulta: string): Promise<string> {
 
         if (error || !data || data.length === 0) return ''
 
+        const ETIQUETA_TIPO: Record<string, string> = {
+            caso: 'Caso documentado en la sección Errores Frecuentes',
+            falla: 'Tabla de fallas del manual oficial del fabricante',
+            manual: 'Documentación técnica de la plataforma',
+            criterio: 'Criterio de oficio documentado',
+        }
+
         const fragmentos = (data as FragmentoConocimiento[])
-            .map(f => `[${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
+            .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 
         return `
 
-CASOS REALES DOCUMENTADOS EN LA PLATAFORMA, RELEVANTES A ESTA CONSULTA:
+CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
 ${fragmentos}
 
-Cuando la consulta coincida con alguno de estos casos, basá tu respuesta en ellos
-y mencioná que es un caso documentado en la sección Errores Frecuentes de la
-plataforma (nombralo por su título). Si ninguno aplica realmente, ignoralos.`
+Cuando la consulta coincida con este material, basá tu respuesta en él y citá la
+fuente tal como está etiquetada (caso de Errores Frecuentes, manual del fabricante,
+documentación técnica o criterio de oficio), nombrándola por su título. Si algún
+fragmento no aplica realmente a la consulta, ignoralo.`
     } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
         console.error('[asistente-termico] RAG no disponible:', detail)
