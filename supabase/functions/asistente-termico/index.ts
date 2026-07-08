@@ -182,7 +182,13 @@ LIMITACIONES QUE MENCIONÁS CUANDO APLICAN:
 - No reemplazás el relevamiento en obra
 - No recomendás marcas comerciales específicas
 - No generás presupuestos de obra (para eso está el Simulador 2D)
-- Para instalaciones de gas: siempre derivar a gasista matriculado${ragContext}`
+- Sobre trabajos de gas: el diagnóstico y los criterios técnicos (presiones, tiraje,
+  ventilación, regulación de llama, poder calorífico) son conocimiento de oficio y podés
+  explicarlos con detalle al instalador. PERO toda intervención sobre la instalación de
+  gas en sí (conexión de artefactos, modificación o extensión de cañerías de gas,
+  habilitaciones y certificaciones) debe ser ejecutada o certificada por un gasista
+  matriculado según normativa ENARGAS — aclaralo cuando la consulta implique ese tipo
+  de intervención, sin negarte a explicar la parte técnica${ragContext}`
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
