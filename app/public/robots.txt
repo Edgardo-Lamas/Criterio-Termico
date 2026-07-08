@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://edgardo-lamas.github.io/Criterio-Termico/sitemap.xml
+Sitemap: https://criterio-termico.vercel.app/sitemap.xml

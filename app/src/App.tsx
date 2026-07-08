@@ -25,7 +25,7 @@ function App() {
   }, [initAuth])
 
   return (
-    <BrowserRouter basename="/Criterio-Termico">
+    <BrowserRouter>
       <ErrorBoundary>
         <Suspense fallback={<div className="page-loading" />}>
           <Routes>

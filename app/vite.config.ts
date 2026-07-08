@@ -4,7 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Criterio-Termico/',
+  base: '/',
   plugins: [
     react(),
     VitePWA({
@@ -17,7 +17,7 @@ export default defineConfig({
         theme_color: '#e94560',
         background_color: '#0f0f23',
         display: 'standalone',
-        start_url: '/Criterio-Termico/',
+        start_url: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
