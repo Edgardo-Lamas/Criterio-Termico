@@ -252,13 +252,18 @@ export const Canvas = () => {
       ctx.lineWidth = manifold.id === selectedElementId ? 3 : 2;
       ctx.strokeRect(manifold.x, manifold.y, manifold.width, manifold.height);
 
-      // Vías del colector (círculos rojo/azul alternados)
+      // Vías del colector (círculos rojo/azul alternados) a lo largo del eje mayor
+      const horizontal = manifold.width >= manifold.height;
       const vias = Math.max(2, Math.min(12, circuitosDelColector * 2));
-      const paso = manifold.width / (vias + 1);
+      const paso = (horizontal ? manifold.width : manifold.height) / (vias + 1);
       for (let i = 1; i <= vias; i++) {
         ctx.fillStyle = i % 2 === 1 ? '#D32F2F' : '#29B6F6';
         ctx.beginPath();
-        ctx.arc(manifold.x + paso * i, manifold.y + manifold.height / 2, 2, 0, Math.PI * 2);
+        if (horizontal) {
+          ctx.arc(manifold.x + paso * i, manifold.y + manifold.height / 2, 2, 0, Math.PI * 2);
+        } else {
+          ctx.arc(manifold.x + manifold.width / 2, manifold.y + paso * i, 2, 0, Math.PI * 2);
+        }
         ctx.fill();
       }
 
@@ -1268,6 +1273,42 @@ export const Canvas = () => {
               zIndex: 1000,
             }}
             title="Rotar radiador 90°"
+          >
+            ↻
+          </button>
+        );
+      })()}
+
+      {/* Botón de rotación (solo si hay un colector seleccionado) */}
+      {selectedElementId && currentFloorManifolds.some(m => m.id === selectedElementId) && (() => {
+        const selectedManifold = currentFloorManifolds.find(m => m.id === selectedElementId);
+        if (!selectedManifold) return null;
+
+        const screenX = selectedManifold.x * zoom + panOffset.x + (selectedManifold.width * zoom / 2);
+        const screenY = selectedManifold.y * zoom + panOffset.y - 35;
+
+        return (
+          <button
+            onClick={() => updateElement(selectedManifold.id, {
+              width: selectedManifold.height,
+              height: selectedManifold.width,
+            })}
+            style={{
+              position: 'absolute',
+              left: `${screenX}px`,
+              top: `${screenY}px`,
+              transform: 'translateX(-50%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '4px',
+              border: '2px solid #2196F3',
+              background: 'white',
+              fontSize: '16px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              zIndex: 1000,
+            }}
+            title="Rotar colector 90° (horizontal/vertical)"
           >
             ↻
           </button>
