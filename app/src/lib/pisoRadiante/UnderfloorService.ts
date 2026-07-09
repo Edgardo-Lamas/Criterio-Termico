@@ -89,7 +89,6 @@ export function calcularPisoRadiante(input: UnderfloorCalculationInput): Underfl
         numeroCircuitos,
         potenciaMaximaSuelo: floorConfig.maxPower,
         advisoryMessage,
-        notaDiseno: 'Cálculo con tubería PE-X 20mm. Máx. 120 m por circuito.',
-        distanciaAlimentacion: input.distanciaAlimentacion
+        notaDiseno: 'Cálculo con tubería PE-X 20mm. Máx. 120 m por circuito.'
     }
 }

@@ -17,15 +17,13 @@ interface FormState {
     cargaTermica: string
     tipoDeSuelo: TipoDeSuelo
     distanciaColector: string
-    distanciaAlimentacion: string
 }
 
 const FORM_INICIAL: FormState = {
     area: '',
     cargaTermica: '',
     tipoDeSuelo: TipoDeSuelo.PETREO,
-    distanciaColector: '',
-    distanciaAlimentacion: ''
+    distanciaColector: ''
 }
 
 export function CalculadoraPisoRadiante() {
@@ -63,14 +61,12 @@ export function CalculadoraPisoRadiante() {
         }
 
         const area = parseFloat(form.area)
-        const distAlim = form.distanciaAlimentacion ? parseFloat(form.distanciaAlimentacion) : undefined
 
         const input = {
             area,
             cargaTermicaRequerida: parseFloat(form.cargaTermica),
             tipoDeSuelo: form.tipoDeSuelo,
-            distanciaAlColector: parseFloat(form.distanciaColector),
-            distanciaAlimentacion: distAlim
+            distanciaAlColector: parseFloat(form.distanciaColector)
         }
 
         const res = calcularPisoRadiante(input)
@@ -166,24 +162,6 @@ export function CalculadoraPisoRadiante() {
                         </p>
                     </div>
 
-                    <div className={styles.field}>
-                        <label className={styles.label}>
-                            Distancia de alimentación
-                            <span className={styles.unitOptional}>m — opcional</span>
-                        </label>
-                        <input
-                            className={styles.input}
-                            type="number"
-                            name="distanciaAlimentacion"
-                            value={form.distanciaAlimentacion}
-                            onChange={handleChange}
-                            placeholder="ej: 10"
-                            min="0"
-                        />
-                        <p className={styles.hint}>
-                            Tramo caldera → colector en tubería de alimentación 1".
-                        </p>
-                    </div>
                 </div>
 
                 {error && <p className={styles.errorMsg}>{error}</p>}

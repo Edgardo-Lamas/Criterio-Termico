@@ -20,7 +20,6 @@ export interface UnderfloorCalculationInput {
     cargaTermicaRequerida: number   // W/m² (10–150)
     tipoDeSuelo: TipoDeSuelo
     distanciaAlColector: number     // metros (0–50) — ida, se multiplica ×2
-    distanciaAlimentacion?: number  // opcional
 }
 
 export interface FloorConfig {
@@ -48,7 +47,6 @@ export interface UnderfloorCalculationOutput {
     potenciaMaximaSuelo: number
     advisoryMessage?: AdvisoryMessage
     notaDiseno: string
-    distanciaAlimentacion?: number
 }
 
 // Presupuesto

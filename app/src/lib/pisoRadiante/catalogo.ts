@@ -14,22 +14,6 @@ export const CATALOGO: Catalogo = {
             categoria: 'TUBERIA'
         },
         {
-            id: 'TUB-ALIM-1P',
-            nombre: 'Tubería de Alimentación 1"',
-            descripcion: 'Tubería de polipropileno o PEX de 1 pulgada para tramo principal',
-            precioUnitario: 5.00,
-            unidad: 'm',
-            categoria: 'TUBERIA'
-        },
-        {
-            id: 'AIS-ALIM-1P',
-            nombre: 'Aislamiento Térmico 1"',
-            descripcion: 'Funda aislante para tubería de 1 pulgada (tipo Armaflex o similar)',
-            precioUnitario: 2.50,
-            unidad: 'm',
-            categoria: 'AISLACION'
-        },
-        {
             id: 'PLA-AIS-EPS',
             nombre: 'Placa Aislante EPS',
             descripcion: 'Placa de poliestireno expandido de alta densidad para piso radiante',

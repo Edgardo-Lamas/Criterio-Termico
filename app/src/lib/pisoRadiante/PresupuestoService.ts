@@ -46,16 +46,7 @@ export function calcularPresupuesto(
         items.push(crearItem(precintos.id, precintos.nombre, bolsas, precintos.unidad, precintos.precioUnitario))
     }
 
-    // 6. Tubería de alimentación (diseño avanzado)
-    const distAlim = techData.distanciaAlimentacion ?? 0
-    if (distAlim > 0) {
-        const tuboAlim = get('TUB-ALIM-1P')
-        const aisAlim  = get('AIS-ALIM-1P')
-        if (tuboAlim) items.push(crearItem(tuboAlim.id, tuboAlim.nombre, Math.ceil(distAlim), tuboAlim.unidad, tuboAlim.precioUnitario))
-        if (aisAlim)  items.push(crearItem(aisAlim.id,  aisAlim.nombre,  Math.ceil(distAlim), aisAlim.unidad,  aisAlim.precioUnitario))
-    }
-
-    // 7. Colector + válvulas + gabinete
+    // 6. Colector + válvulas + gabinete
     const colector = CATALOGO.colectores
         .slice()
         .sort((a, b) => a.vias - b.vias)
