@@ -1100,6 +1100,8 @@ export const Canvas = () => {
         };
         addFloorHeatingZone(newZone);
         setTool('select');
+        // Dejarla seleccionada: así aparece el selector de habitación y paso
+        setSelectedElement(newZone.id);
       }
       setZoneDraft(null);
     }
@@ -1299,6 +1301,34 @@ export const Canvas = () => {
               fontSize: '11px',
             }}
           >
+            <span style={{ color: '#666' }}>Habitación:</span>
+            <select
+              value={selectedZone.roomId ?? ''}
+              onChange={(e) => {
+                const room = currentFloorRooms.find(r => r.id === e.target.value);
+                const zoneIndex = floorHeatingZones.findIndex(z => z.id === selectedZone.id);
+                updateElement(selectedZone.id, room
+                  ? { roomId: room.id, name: room.name }
+                  : { roomId: undefined, name: `Zona ${zoneIndex + 1}` });
+              }}
+              style={{
+                padding: '2px 4px',
+                borderRadius: '3px',
+                border: '1px solid #E67E22',
+                background: 'white',
+                color: '#333',
+                fontSize: '11px',
+                maxWidth: '130px',
+                cursor: 'pointer',
+              }}
+              title="Habitación del plano a la que pertenece esta zona"
+            >
+              <option value="">Sin asignar</option>
+              {currentFloorRooms.map(room => (
+                <option key={room.id} value={room.id}>{room.name}</option>
+              ))}
+            </select>
+            <span style={{ color: '#ccc' }}>|</span>
             <span style={{ color: '#666' }}>Paso:</span>
             {([15, 20] as const).map(paso => (
               <button
@@ -1332,6 +1362,16 @@ export const Canvas = () => {
         fontFamily: 'monospace',
       }}>
         Tool: {tool} | Zoom: {(zoom * 100).toFixed(0)}% | Mouse: ({mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)})
+        {tool === 'floor-heating-zone' && (
+          <span style={{ color: '#E67E22', fontWeight: 'bold' }}>
+            {' '}— Arrastrá un rectángulo sobre la habitación del plano: los circuitos se generan solos
+          </span>
+        )}
+        {tool === 'manifold' && (
+          <span style={{ color: '#E67E22', fontWeight: 'bold' }}>
+            {' '}— Click donde va el colector (pasillo/lavadero): las zonas se conectan al más cercano
+          </span>
+        )}
       </div>
     </div>
   );
