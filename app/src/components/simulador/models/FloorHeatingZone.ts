@@ -5,6 +5,7 @@ import type { ElementBase } from './ElementBase';
 export interface FloorHeatingZone extends ElementBase {
   type: 'floor-heating-zone';
   name: string;
+  roomId?: string; // habitación del plano a la que pertenece (etiqueta los circuitos)
   width: number;   // px del canvas
   height: number;  // px del canvas
   pasoCm: 15 | 20; // separación entre tubos (ver UnderfloorService)

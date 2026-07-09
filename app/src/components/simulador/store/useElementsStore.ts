@@ -121,12 +121,21 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       rooms: state.rooms.map((room) =>
         room.id === id ? { ...room, ...updates } : room
       ),
+      // Las zonas de piso radiante vinculadas heredan el nombre de la habitación
+      floorHeatingZones: updates.name
+        ? state.floorHeatingZones.map((zone) =>
+            zone.roomId === id ? { ...zone, name: updates.name as string } : zone
+          )
+        : state.floorHeatingZones,
     }));
   },
 
   removeRoom: (id) => {
     set((state) => ({
       rooms: state.rooms.filter((room) => room.id !== id),
+      floorHeatingZones: state.floorHeatingZones.map((zone) =>
+        zone.roomId === id ? { ...zone, roomId: undefined } : zone
+      ),
     }));
   },
 
