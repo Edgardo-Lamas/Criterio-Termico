@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, emisionKcalhM2 } from './floorHeating';
 import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
@@ -195,10 +195,26 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(serpentin).toBeCloseTo(80.4, 1); // 12 m² × 6,7 m/m²
   });
 
-  it('potencia: 86 kcal/h por m² con suelo pétreo (12 m² → 1.032 kcal/h)', () => {
+  it('potencia: 86 kcal/h por m² con suelo pétreo a 45°C (12 m² → 1.032 kcal/h)', () => {
     const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
     const potencia = circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0);
     expect(potencia).toBe(1032);
+  });
+
+  it('la emisión depende de la temperatura de impulsión (misma para todo el sistema)', () => {
+    expect(emisionKcalhM2(45)).toBe(86); // tope EN 1264 (100 W/m²)
+    expect(emisionKcalhM2(40)).toBe(68);
+    expect(emisionKcalhM2(35)).toBe(48);
+
+    // A 35°C la misma zona de 12 m² entrega 12 × 48 = 576 kcal/h
+    const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)], 35);
+    expect(circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0)).toBe(576);
+
+    // Y el presupuesto arrastra la misma temperatura
+    const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)], [], [], 35);
+    expect(budget?.tempImpulsionC).toBe(35);
+    expect(budget?.emisionKcalhM2).toBe(48);
+    expect(budget?.potenciaTotalKcalh).toBe(576);
   });
 
   it('el presupuesto compara entrega vs. requerido de la habitación vinculada', () => {

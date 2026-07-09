@@ -23,10 +23,22 @@ export const MAX_CIRCUIT_LENGTH_M = 120;
 // NO la geometría del dibujo, que descuenta margen perimetral y queda corta.
 export const DENSIDAD_POR_PASO: Record<15 | 20, number> = { 15: 6.7, 20: 5.0 };
 
-// Emisión máxima del piso radiante con suelo pétreo (EN 1264, ver
-// FLOOR_CONFIG_TABLE en UnderfloorService): 100 W/m² ≈ 86 kcal/h·m².
-// Por metro de tubo: paso 20 → 86/5 ≈ 17 kcal/h·m · paso 15 → 86/6,7 ≈ 13 kcal/h·m.
-export const EMISION_MAX_KCALH_M2 = 86;
+// Emisión del piso según la temperatura de impulsión del agua. Suelo pétreo,
+// ambiente de diseño 20°C, salto ida-retorno 5°C → temperatura media del agua
+// = impulsión − 2,5°C. Característica lineal aproximada q ≈ 4,5 W/m²·K sobre
+// el salto agua-ambiente, con tope 100 W/m² (piso a 29°C máx, EN 1264):
+//   35°C → ~56 W/m² ≈ 48 kcal/h·m²
+//   40°C → ~79 W/m² ≈ 68 kcal/h·m²
+//   45°C → 100 W/m² (tope) ≈ 86 kcal/h·m²
+export const TEMPERATURAS_IMPULSION = [35, 40, 45] as const;
+export type TempImpulsion = (typeof TEMPERATURAS_IMPULSION)[number];
+export const TEMP_IMPULSION_DEFAULT: TempImpulsion = 45;
+
+export function emisionKcalhM2(impulsionC: TempImpulsion): number {
+  const mediaAgua = impulsionC - 2.5;
+  const wM2 = Math.min(4.5 * (mediaAgua - 20), 100);
+  return Math.round(wM2 * 0.86); // 1 W = 0,86 kcal/h
+}
 
 export interface CanvasPoint {
   x: number;
@@ -147,7 +159,8 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
 
 export function calcularCircuitosZona(
   zone: FloorHeatingZone,
-  manifold: Manifold | null
+  manifold: Manifold | null,
+  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
 ): FloorHeatingCircuit[] {
   const salidaColector: CanvasPoint | null = manifold
     ? puntoSalidaColector(manifold, zone)
@@ -204,7 +217,7 @@ export function calcularCircuitosZona(
         acometidaRetorno,
         pasoCm: zone.pasoCm,
         areaM2,
-        potenciaKcalh: Math.round(areaM2 * EMISION_MAX_KCALH_M2),
+        potenciaKcalh: Math.round(areaM2 * emisionKcalhM2(tempImpulsionC)),
         longitudSerpentin,
         longitudAcometida,
         longitudTotal,
@@ -298,10 +311,11 @@ function rutearAcometidas(
  */
 export function calcularCircuitosPlanta(
   zones: FloorHeatingZone[],
-  manifolds: Manifold[]
+  manifolds: Manifold[],
+  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
 ): FloorHeatingCircuit[] {
   const circuits = zones.flatMap(zone =>
-    calcularCircuitosZona(zone, colectorMasCercano(zone, manifolds))
+    calcularCircuitosZona(zone, colectorMasCercano(zone, manifolds), tempImpulsionC)
   )
   rutearAcometidas(circuits, zones, manifolds)
   return circuits
