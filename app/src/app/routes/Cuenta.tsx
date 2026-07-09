@@ -57,7 +57,9 @@ export function Cuenta() {
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [upgradeLoading, setUpgradeLoading] = useState(false)
-    const [mode, setMode] = useState<'login' | 'register'>('register')
+    // Arranca en 'login': el botón "Ingresar" de la barra de navegación trae
+    // acá, y mostrar "Crear cuenta" a quien vino a loguearse confunde.
+    const [mode, setMode] = useState<'login' | 'register'>('login')
     const [registerSuccess, setRegisterSuccess] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
 

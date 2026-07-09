@@ -108,17 +108,25 @@ export const useAuthStore = create<AuthState>()(
 
                 // Escuchar cambios de sesión (login, logout, token refresh)
                 const { data: { subscription } } = supabase.auth.onAuthStateChange(
-                    async (event, session) => {
-                        if (session?.user) {
-                            const tier = await fetchProfile(session.user.id)
-                            set({
-                                user: supabaseUserToStore(session.user, tier),
-                                isAuthenticated: true,
-                                isLoading: false,
-                            })
-                        } else if (event === 'SIGNED_OUT') {
-                            set({ user: null, isAuthenticated: false, isLoading: false })
-                        }
+                    (event, session) => {
+                        // IMPORTANTE: no llamar a la BD (fetchProfile) directamente acá.
+                        // supabase-js mantiene un lock de auth mientras notifica a los
+                        // suscriptores; una query adentro del callback espera ese mismo
+                        // lock y se produce un deadlock: signInWithPassword nunca
+                        // resuelve y el botón queda en "Ingresando..." para siempre.
+                        // Diferir al próximo tick libera el lock antes de consultar.
+                        setTimeout(async () => {
+                            if (session?.user) {
+                                const tier = await fetchProfile(session.user.id)
+                                set({
+                                    user: supabaseUserToStore(session.user, tier),
+                                    isAuthenticated: true,
+                                    isLoading: false,
+                                })
+                            } else if (event === 'SIGNED_OUT') {
+                                set({ user: null, isAuthenticated: false, isLoading: false })
+                            }
+                        }, 0)
                     }
                 )
 
