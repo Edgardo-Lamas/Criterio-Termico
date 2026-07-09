@@ -353,8 +353,9 @@ export const generateQuotePDF = (
     doc.setFont('helvetica', 'normal');
     floorHeating.zonas.forEach(z => {
       ensureSpace(5);
-      const requerido = z.requeridoKcalh !== null
-        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h ${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir impulsión, paso 15 o revisar aislación)'}`
+      const requerido = z.requeridoConMargenKcalh !== null
+        ? ` — requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h (incluye margen 15%) — cubre ${z.coberturaPct}% ` +
+          `${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir impulsión, paso 15, ampliar zona o revisar aislación)'}`
         : '';
       if (z.suficiente === false) doc.setTextColor(180, 30, 30);
       doc.text(

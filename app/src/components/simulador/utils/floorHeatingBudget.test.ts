@@ -217,9 +217,9 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(budget?.potenciaTotalKcalh).toBe(576);
   });
 
-  it('el presupuesto compara entrega vs. requerido de la habitación vinculada', () => {
-    // Habitación de 15 m² × 2,5 m × 50 kcal/h·m³ = 1.875 kcal/h requeridos.
-    // La zona de 12 m² entrega 1.032 → insuficiente (⚠).
+  it('compara entrega vs. requerido de la habitación con margen de seguridad del 15%', () => {
+    // Habitación de 15 m² × 2,5 m × 50 kcal/h·m³ = 1.875 kcal/h requeridos
+    // → con margen 15% = 2.156. La zona de 12 m² entrega 1.032 → cubre 48% ⚠.
     const room = {
       id: 'r1', name: 'Recámara 2', area: 15, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -232,8 +232,25 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(budget.zonas).toHaveLength(1);
     expect(budget.zonas[0].potenciaKcalh).toBe(1032);
     expect(budget.zonas[0].requeridoKcalh).toBe(1875);
+    expect(budget.zonas[0].requeridoConMargenKcalh).toBe(2156);
+    expect(budget.zonas[0].coberturaPct).toBe(48);
     expect(budget.zonas[0].suficiente).toBe(false);
     expect(budget.potenciaTotalKcalh).toBe(1032);
+  });
+
+  it('el margen exige un 15% por encima del requerido justo', () => {
+    // Habitación chica: 5 m² × 2,5 m × 50 = 625 kcal/h → con margen 719.
+    // Zona de 12 m² a 45°C entrega 1.032 → suficiente (144%).
+    const room = {
+      id: 'r1', name: 'Baño', area: 5, height: 2.5,
+      thermalFactor: 50 as const, hasExteriorWall: false,
+      windowsLevel: 'sin-ventanas' as const, radiatorIds: [],
+    };
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Baño' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
+    expect(budget?.zonas[0].requeridoConMargenKcalh).toBe(719);
+    expect(budget?.zonas[0].suficiente).toBe(true);
+    expect(budget?.zonas[0].coberturaPct).toBe(144);
   });
 
   it('sin habitación vinculada no hay comparación (requerido null)', () => {
