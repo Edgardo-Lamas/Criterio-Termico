@@ -181,6 +181,52 @@ describe('calcularMontantes — primaria caldera→colector Ø32', () => {
   });
 });
 
+describe('regla de obra: metros por m² y potencia térmica', () => {
+  it('paso 20: entran 5 m de tubo por m² (12 m² → 60 m de serpentín)', () => {
+    const z: FloorHeatingZone = { ...zona('z1', 2, 2, 4, 3), pasoCm: 20 };
+    const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 1)]);
+    const serpentin = circuits.reduce((acc, c) => acc + c.longitudSerpentin, 0);
+    expect(serpentin).toBeCloseTo(60, 1); // 12 m² × 5 m/m²
+  });
+
+  it('paso 15: 6,7 m de tubo por m² (12 m² → 80,4 m de serpentín)', () => {
+    const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    const serpentin = circuits.reduce((acc, c) => acc + c.longitudSerpentin, 0);
+    expect(serpentin).toBeCloseTo(80.4, 1); // 12 m² × 6,7 m/m²
+  });
+
+  it('potencia: 86 kcal/h por m² con suelo pétreo (12 m² → 1.032 kcal/h)', () => {
+    const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    const potencia = circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0);
+    expect(potencia).toBe(1032);
+  });
+
+  it('el presupuesto compara entrega vs. requerido de la habitación vinculada', () => {
+    // Habitación de 15 m² × 2,5 m × 50 kcal/h·m³ = 1.875 kcal/h requeridos.
+    // La zona de 12 m² entrega 1.032 → insuficiente (⚠).
+    const room = {
+      id: 'r1', name: 'Recámara 2', area: 15, height: 2.5,
+      thermalFactor: 50 as const, hasExteriorWall: false,
+      windowsLevel: 'sin-ventanas' as const, radiatorIds: [],
+    };
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Recámara 2' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
+    expect(budget).not.toBeNull();
+    if (!budget) return;
+    expect(budget.zonas).toHaveLength(1);
+    expect(budget.zonas[0].potenciaKcalh).toBe(1032);
+    expect(budget.zonas[0].requeridoKcalh).toBe(1875);
+    expect(budget.zonas[0].suficiente).toBe(false);
+    expect(budget.potenciaTotalKcalh).toBe(1032);
+  });
+
+  it('sin habitación vinculada no hay comparación (requerido null)', () => {
+    const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    expect(budget?.zonas[0].requeridoKcalh).toBeNull();
+    expect(budget?.zonas[0].suficiente).toBeNull();
+  });
+});
+
 describe('calcularPresupuesto — la Calculadora mantiene su comportamiento', () => {
   it('valores conocidos: 100 m, 1 circuito, 16 m²', () => {
     const techData: UnderfloorCalculationOutput = {

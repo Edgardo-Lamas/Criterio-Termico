@@ -295,7 +295,8 @@ export const generateQuotePDF = (
     doc.text(
       `Superficie cubierta: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  —  ` +
       `Circuitos: ${floorHeating.circuits.length}  —  ` +
-      `Tubería total: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m`,
+      `Tubería total: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m  —  ` +
+      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h`,
       15, yPosition
     );
     yPosition += 8;
@@ -341,13 +342,44 @@ export const generateQuotePDF = (
       yPosition += 6;
     }
 
+    // --- Potencia térmica por zona/habitación ---
+    ensureSpace(20);
+    yPosition += 4;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Potencia térmica por habitación', 15, yPosition);
+    yPosition += 7;
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    floorHeating.zonas.forEach(z => {
+      ensureSpace(5);
+      const requerido = z.requeridoKcalh !== null
+        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h ${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir a paso 15 o revisar aislación)'}`
+        : '';
+      if (z.suficiente === false) doc.setTextColor(180, 30, 30);
+      doc.text(
+        `• ${z.zoneName}: ${z.areaM2.toLocaleString('es-AR')} m² — entrega hasta ${z.potenciaKcalh.toLocaleString('es-AR')} kcal/h${requerido}`,
+        18, yPosition
+      );
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5;
+    });
+    ensureSpace(5);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(110, 110, 110);
+    doc.text('Emisión máx. con suelo pétreo: 86 kcal/h·m² (100 W/m², EN 1264). Por metro de tubo: aprox. 17 kcal/h a paso 20 · 13 a paso 15.', 15, yPosition);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    yPosition += 7;
+
     // --- Montantes caldera → colector (primaria Ø32) ---
     if (floorHeating.montantes.length > 0) {
       doc.setFontSize(10);
       floorHeating.montantes.forEach((m: Montante) => {
         ensureSpace(6);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Montante caldera → colector (Ø${m.diametroMm} mm, aislada por contrapiso)`, 15, yPosition);
+        doc.text(`Montante caldera - colector (Ø${m.diametroMm} mm, aislada por contrapiso)`, 15, yPosition);
         doc.text(`${m.longitudTotal.toLocaleString('es-AR')} m`, 168, yPosition);
         yPosition += 6;
       });
@@ -572,8 +604,8 @@ export const generateFloorPlanPDF = (
     }
     drawCircuitPolyline(c.retorno, 30, 90, 200);
 
-    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm" con fondo blanco
-    const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm`;
+    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · 645 kcal/h" con fondo blanco
+    const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${c.potenciaKcalh} kcal/h`;
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
     const tw = doc.getTextWidth(texto);

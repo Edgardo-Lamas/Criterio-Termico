@@ -257,8 +257,8 @@ export const Canvas = () => {
       }
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
-      // Etiqueta del circuito: "C1 · 66 m · p15" (como los planos de obra)
-      const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm}`;
+      // Etiqueta del circuito: "C1 · 66 m · p15 · 645 kcal/h" (como los planos de obra)
+      const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${c.potenciaKcalh} kcal/h`;
       ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';

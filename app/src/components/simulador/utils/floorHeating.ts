@@ -17,6 +17,17 @@ export const PIXELS_PER_METER = 50;
 // Límite hidráulico por circuito con PE-X 20mm (ver UnderfloorService).
 export const MAX_CIRCUIT_LENGTH_M = 120;
 
+// Densidad de tubería según paso (misma tabla que UnderfloorService):
+// la regla de obra — a paso 20 cm entran 5 m de tubo por m², a paso 15 son 6,7.
+// La longitud presupuestada usa área × densidad (como calculan los fabricantes),
+// NO la geometría del dibujo, que descuenta margen perimetral y queda corta.
+export const DENSIDAD_POR_PASO: Record<15 | 20, number> = { 15: 6.7, 20: 5.0 };
+
+// Emisión máxima del piso radiante con suelo pétreo (EN 1264, ver
+// FLOOR_CONFIG_TABLE en UnderfloorService): 100 W/m² ≈ 86 kcal/h·m².
+// Por metro de tubo: paso 20 → 86/5 ≈ 17 kcal/h·m · paso 15 → 86/6,7 ≈ 13 kcal/h·m.
+export const EMISION_MAX_KCALH_M2 = 86;
+
 export interface CanvasPoint {
   x: number;
   y: number;
@@ -33,7 +44,9 @@ export interface FloorHeatingCircuit {
   acometidaIda: CanvasPoint[];     // colector → inicio del serpentín
   acometidaRetorno: CanvasPoint[]; // fin del serpentín → colector
   pasoCm: number;
-  longitudSerpentin: number;   // m
+  areaM2: number;              // m² de la franja que cubre este circuito
+  potenciaKcalh: number;       // kcal/h que entrega como máximo (suelo pétreo)
+  longitudSerpentin: number;   // m (área × densidad del paso, como en obra)
   longitudAcometida: number;   // m (ida + vuelta)
   longitudTotal: number;       // m
   excedeLimite: boolean;       // true si aún dividiendo supera el máximo
@@ -173,7 +186,10 @@ export function calcularCircuitosZona(
         )
       }
 
-      const longitudTotal = redondear(serpentin.longitudTotal + longitudAcometida)
+      // Longitud presupuestada por densidad (regla de obra), no por el dibujo
+      const areaM2 = redondear(anchoM * altoM)
+      const longitudSerpentin = redondear(areaM2 * DENSIDAD_POR_PASO[zone.pasoCm])
+      const longitudTotal = redondear(longitudSerpentin + longitudAcometida)
       if (longitudTotal > MAX_CIRCUIT_LENGTH_M) algunoExcede = true
 
       circuitos.push({
@@ -187,7 +203,9 @@ export function calcularCircuitosZona(
         acometidaIda,
         acometidaRetorno,
         pasoCm: zone.pasoCm,
-        longitudSerpentin: serpentin.longitudTotal,
+        areaM2,
+        potenciaKcalh: Math.round(areaM2 * EMISION_MAX_KCALH_M2),
+        longitudSerpentin,
         longitudAcometida,
         longitudTotal,
         excedeLimite: longitudTotal > MAX_CIRCUIT_LENGTH_M,
