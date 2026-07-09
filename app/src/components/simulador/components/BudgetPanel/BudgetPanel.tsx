@@ -46,8 +46,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     // Presupuesto de piso radiante con las longitudes reales de los circuitos
     // dibujados (todas las plantas). Null si no hay zonas.
     const floorHeatingBudget = useMemo(
-        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers),
-        [floorHeatingZones, manifolds, boilers]
+        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers, rooms),
+        [floorHeatingZones, manifolds, boilers, rooms]
     );
 
     // Pre-load logo when panel opens (so download can stay synchronous).
@@ -276,7 +276,30 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                     <div className="budget-section">
                         <h4>🌀 Piso Radiante</h4>
                         <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '8px' }}>
-                            {floorHeatingBudget.areaM2.toLocaleString('es-AR')} m² · {floorHeatingBudget.circuits.length} circuito{floorHeatingBudget.circuits.length !== 1 ? 's' : ''} · {floorHeatingBudget.longitudTotalM.toLocaleString('es-AR')} m de tubería
+                            {floorHeatingBudget.areaM2.toLocaleString('es-AR')} m² · {floorHeatingBudget.circuits.length} circuito{floorHeatingBudget.circuits.length !== 1 ? 's' : ''} · {floorHeatingBudget.longitudTotalM.toLocaleString('es-AR')} m de tubería · hasta {floorHeatingBudget.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h
+                        </div>
+
+                        {/* Potencia por zona: entrega vs. requerido de la habitación */}
+                        <div className="breakdown-list" style={{ marginBottom: '10px' }}>
+                            {floorHeatingBudget.zonas.map((z) => (
+                                <div className="breakdown-item" key={z.zoneId}>
+                                    <span className="breakdown-label">
+                                        ⚡ {z.zoneName}
+                                        <small>
+                                            {' '}({z.areaM2.toLocaleString('es-AR')} m²
+                                            {z.requeridoKcalh !== null
+                                                ? ` · requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h`
+                                                : ' · sin habitación asignada'})
+                                        </small>
+                                    </span>
+                                    <span className="breakdown-cost" style={{ color: z.suficiente === false ? '#D32F2F' : undefined }}>
+                                        {z.suficiente === false ? '⚠ ' : ''}hasta {z.potenciaKcalh.toLocaleString('es-AR')} kcal/h
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '8px' }}>
+                            Piso pétreo: 86 kcal/h·m² máx. (≈17 kcal/h por metro a paso 20 · ≈13 a paso 15)
                         </div>
                         <div className="breakdown-list">
                             {floorHeatingBudget.circuits.map((c) => (

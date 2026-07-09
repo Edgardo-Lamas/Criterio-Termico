@@ -10,10 +10,26 @@ import type { ResumenPresupuesto } from '../../../lib/pisoRadiante/types';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
+import type { Room } from '../models/Room';
+import { calculateRoomPower } from './thermalCalculator';
+
+// Potencia por zona: lo que el piso puede entregar (área × 86 kcal/h·m²,
+// suelo pétreo) contra lo que la habitación vinculada requiere.
+export interface ZonaPotencia {
+  zoneId: string;
+  zoneName: string;
+  areaM2: number;
+  longitudM: number;          // m de tubo Ø20 de la zona
+  potenciaKcalh: number;      // entrega máxima
+  requeridoKcalh: number | null; // de la habitación vinculada (null si no hay)
+  suficiente: boolean | null;
+}
 
 export interface FloorHeatingBudget {
   circuits: FloorHeatingCircuit[];
   montantes: Montante[];
+  zonas: ZonaPotencia[];
+  potenciaTotalKcalh: number; // entrega máxima de todo el piso radiante
   longitudTotalM: number;     // m de tubo Ø20 de todos los circuitos
   longitudMontantesM: number; // m de primaria Ø32 (ida + retorno)
   areaM2: number;             // m² de las zonas con circuitos viables
@@ -29,7 +45,8 @@ const FLOORS = ['ground', 'first'] as const;
 export function calcularPresupuestoPisoRadiante(
   zones: FloorHeatingZone[],
   manifolds: Manifold[],
-  boilers: Boiler[] = []
+  boilers: Boiler[] = [],
+  rooms: Room[] = []
 ): FloorHeatingBudget | null {
   if (zones.length === 0) return null;
 
@@ -74,5 +91,32 @@ export function calcularPresupuestoPisoRadiante(
     longitudMontante: longitudMontantesM,
   });
 
-  return { circuits, montantes, longitudTotalM, longitudMontantesM, areaM2, resumen };
+  // Potencia por zona: entrega máxima vs. requerido de la habitación vinculada
+  const zonasPotencia: ZonaPotencia[] = zonasActivas.map(zone => {
+    const propios = circuits.filter(c => c.zoneId === zone.id);
+    const potenciaKcalh = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
+    const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined;
+    const requeridoKcalh = room ? Math.round(calculateRoomPower(room)) : null;
+    return {
+      zoneId: zone.id,
+      zoneName: zone.name,
+      areaM2: Math.round(propios.reduce((acc, c) => acc + c.areaM2, 0) * 100) / 100,
+      longitudM: Math.round(propios.reduce((acc, c) => acc + c.longitudTotal, 0) * 100) / 100,
+      potenciaKcalh,
+      requeridoKcalh,
+      suficiente: requeridoKcalh === null ? null : potenciaKcalh >= requeridoKcalh,
+    };
+  });
+  const potenciaTotalKcalh = zonasPotencia.reduce((acc, z) => acc + z.potenciaKcalh, 0);
+
+  return {
+    circuits,
+    montantes,
+    zonas: zonasPotencia,
+    potenciaTotalKcalh,
+    longitudTotalM,
+    longitudMontantesM,
+    areaM2,
+    resumen,
+  };
 }
