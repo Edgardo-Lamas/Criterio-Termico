@@ -13,16 +13,24 @@ import type { Boiler } from '../models/Boiler';
 import type { Room } from '../models/Room';
 import { calculateRoomPower } from './thermalCalculator';
 
-// Potencia por zona: lo que el piso puede entregar (área × 86 kcal/h·m²,
-// suelo pétreo) contra lo que la habitación vinculada requiere.
+// Margen de seguridad del proyecto: los resultados deben ser conservadores,
+// el piso tiene que entregar el requerido MÁS un 15% (misma regla que las
+// calculadoras de potencia y el presupuesto de radiadores).
+export const MARGEN_SEGURIDAD = 1.15;
+
+// Potencia por zona: lo que el piso puede entregar (área × emisión según
+// temperatura de impulsión) contra lo que la habitación vinculada requiere
+// con el margen de seguridad aplicado.
 export interface ZonaPotencia {
   zoneId: string;
   zoneName: string;
   areaM2: number;
   longitudM: number;          // m de tubo Ø20 de la zona
   potenciaKcalh: number;      // entrega máxima
-  requeridoKcalh: number | null; // de la habitación vinculada (null si no hay)
-  suficiente: boolean | null;
+  requeridoKcalh: number | null;          // de la habitación vinculada (null si no hay)
+  requeridoConMargenKcalh: number | null; // requerido × 1,15
+  coberturaPct: number | null;            // entrega / requerido con margen × 100
+  suficiente: boolean | null;             // entrega ≥ requerido con margen
 }
 
 export interface FloorHeatingBudget {
@@ -100,6 +108,9 @@ export function calcularPresupuestoPisoRadiante(
     const potenciaKcalh = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined;
     const requeridoKcalh = room ? Math.round(calculateRoomPower(room)) : null;
+    const requeridoConMargenKcalh = requeridoKcalh === null
+      ? null
+      : Math.round(requeridoKcalh * MARGEN_SEGURIDAD);
     return {
       zoneId: zone.id,
       zoneName: zone.name,
@@ -107,7 +118,11 @@ export function calcularPresupuestoPisoRadiante(
       longitudM: Math.round(propios.reduce((acc, c) => acc + c.longitudTotal, 0) * 100) / 100,
       potenciaKcalh,
       requeridoKcalh,
-      suficiente: requeridoKcalh === null ? null : potenciaKcalh >= requeridoKcalh,
+      requeridoConMargenKcalh,
+      coberturaPct: requeridoConMargenKcalh === null
+        ? null
+        : Math.round((potenciaKcalh / requeridoConMargenKcalh) * 100),
+      suficiente: requeridoConMargenKcalh === null ? null : potenciaKcalh >= requeridoConMargenKcalh,
     };
   });
   const potenciaTotalKcalh = zonasPotencia.reduce((acc, z) => acc + z.potenciaKcalh, 0);

@@ -287,13 +287,15 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                                         ⚡ {z.zoneName}
                                         <small>
                                             {' '}({z.areaM2.toLocaleString('es-AR')} m²
-                                            {z.requeridoKcalh !== null
-                                                ? ` · requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h`
+                                            {z.requeridoConMargenKcalh !== null
+                                                ? ` · requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h con margen 15%`
                                                 : ' · sin habitación asignada'})
                                         </small>
                                     </span>
-                                    <span className="breakdown-cost" style={{ color: z.suficiente === false ? '#D32F2F' : undefined }}>
-                                        {z.suficiente === false ? '⚠ ' : ''}hasta {z.potenciaKcalh.toLocaleString('es-AR')} kcal/h
+                                    <span className="breakdown-cost" style={{ color: z.suficiente === false ? '#D32F2F' : z.suficiente === true ? '#2E7D32' : undefined }}>
+                                        {z.suficiente === false ? '⚠ ' : z.suficiente === true ? '✓ ' : ''}
+                                        {z.potenciaKcalh.toLocaleString('es-AR')} kcal/h
+                                        {z.coberturaPct !== null ? ` (${z.coberturaPct}%)` : ''}
                                     </span>
                                 </div>
                             ))}
