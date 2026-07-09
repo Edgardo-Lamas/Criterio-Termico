@@ -4,15 +4,19 @@ import type { Boiler } from '../models/Boiler';
 import type { PipeSegment, Point, PipeType } from '../models/PipeSegment';
 import type { Project } from '../utils/projectStorage';
 import type { Room } from '../models/Room';
+import type { Manifold } from '../models/Manifold';
+import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 
 // Type for updateElement - allows partial updates with any valid element properties
-export type ElementUpdates = Partial<Radiator> | Partial<Boiler> | Partial<PipeSegment>;
+export type ElementUpdates = Partial<Radiator> | Partial<Boiler> | Partial<PipeSegment> | Partial<Manifold> | Partial<FloorHeatingZone>;
 
 interface ElementsStore {
   radiators: Radiator[];
   boilers: Boiler[];
   pipes: PipeSegment[];
   rooms: Room[];
+  manifolds: Manifold[];
+  floorHeatingZones: FloorHeatingZone[];
 
   tempPipe: PipeSegment | null;
   selectedElementId: string | null;
@@ -33,6 +37,8 @@ interface ElementsStore {
   assignRadiatorToRoom: (radiatorId: string, roomId: string) => void;
   unassignRadiatorFromRoom: (radiatorId: string, roomId: string) => void;
   // Piso Radiante
+  addManifold: (manifold: Manifold) => void;
+  addFloorHeatingZone: (zone: FloorHeatingZone) => void;
 
   setSelectedElement: (id: string | null) => void;
   updateRadiatorPosition: (id: string, x: number, y: number, width?: number, height?: number) => void;
@@ -65,6 +71,8 @@ export const useElementsStore = create<ElementsStore>((set) => ({
   boilers: [],
   pipes: [],
   rooms: [],
+  manifolds: [],
+  floorHeatingZones: [],
 
   tempPipe: null,
   selectedElementId: null,
@@ -93,6 +101,18 @@ export const useElementsStore = create<ElementsStore>((set) => ({
   addRoom: (room) => {
     set((state) => ({
       rooms: [...state.rooms, { ...room, floor: state.currentFloor }],
+    }));
+  },
+
+  addManifold: (manifold) => {
+    set((state) => ({
+      manifolds: [...state.manifolds, { ...manifold, floor: state.currentFloor }],
+    }));
+  },
+
+  addFloorHeatingZone: (zone) => {
+    set((state) => ({
+      floorHeatingZones: [...state.floorHeatingZones, { ...zone, floor: state.currentFloor }],
     }));
   },
 
@@ -360,6 +380,26 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         };
       }
 
+      // Verificar si es colector
+      const isManifold = state.manifolds.some(m => m.id === id);
+      if (isManifold) {
+        return {
+          manifolds: state.manifolds.map((manifold) =>
+            manifold.id === id ? { ...manifold, ...updates } as Manifold : manifold
+          ),
+        };
+      }
+
+      // Verificar si es zona de piso radiante
+      const isZone = state.floorHeatingZones.some(z => z.id === id);
+      if (isZone) {
+        return {
+          floorHeatingZones: state.floorHeatingZones.map((zone) =>
+            zone.id === id ? { ...zone, ...updates } as FloorHeatingZone : zone
+          ),
+        };
+      }
+
       return state;
     });
   },
@@ -369,6 +409,8 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       radiators: state.radiators.filter((radiator) => radiator.id !== id),
       boilers: state.boilers.filter((boiler) => boiler.id !== id),
       pipes: state.pipes.filter((pipe) => pipe.id !== id),
+      manifolds: state.manifolds.filter((manifold) => manifold.id !== id),
+      floorHeatingZones: state.floorHeatingZones.filter((zone) => zone.id !== id),
       // Limpiar selección si era el elemento eliminado
       selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
     }));
@@ -438,6 +480,8 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       boilers: [],
       pipes: [],
       rooms: [],
+      manifolds: [],
+      floorHeatingZones: [],
       tempPipe: null,
       selectedElementId: null,
     });
@@ -450,6 +494,8 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       boilers: [],
       pipes: [],
       rooms: [],
+      manifolds: [],
+      floorHeatingZones: [],
       tempPipe: null,
       selectedElementId: null,
       currentFloor: 'ground',

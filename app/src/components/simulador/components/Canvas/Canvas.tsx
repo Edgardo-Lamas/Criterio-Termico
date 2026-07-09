@@ -1,11 +1,15 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import { useToolsStore } from '../../store/useToolsStore';
 import { useElementsStore } from '../../store/useElementsStore';
 import { useCanvasZoom } from './hooks/useCanvasZoom';
 import type { Radiator } from '../../models/Radiator';
 import type { Boiler } from '../../models/Boiler';
+import type { Manifold } from '../../models/Manifold';
+import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
+import { calcularCircuitosPlanta } from '../../utils/floorHeating';
+import type { FloorHeatingCircuit, CanvasPoint } from '../../utils/floorHeating';
 
 
 
@@ -16,6 +20,8 @@ export const Canvas = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [pipeStartElement, setPipeStartElement] = useState<{ id: string, type: 'radiator' | 'boiler' } | null>(null);
+  // Rectángulo en construcción para zonas de piso radiante (arrastre)
+  const [zoneDraft, setZoneDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
 
   // NOTE: Zoom/pan state and handlers are now in useCanvasZoom hook (initialized below after filtering elements)
 
@@ -25,9 +31,14 @@ export const Canvas = () => {
     boilers,
     pipes,
     rooms,
+    manifolds,
+    floorHeatingZones,
     currentFloor,
     addRadiator,
     addBoiler,
+    addManifold,
+    addFloorHeatingZone,
+    updateElement,
     selectedElementId,
     setSelectedElement,
     updateRadiatorPosition,
@@ -45,6 +56,16 @@ export const Canvas = () => {
   const currentFloorBoilers = boilers.filter(b => b.floor === currentFloor);
   const currentFloorPipes = pipes.filter(p => p.floor === currentFloor || p.floor === 'vertical');
   const currentFloorRooms = rooms.filter(r => r.floor === currentFloor);
+  const currentFloorManifolds = manifolds.filter(m => m.floor === currentFloor);
+  const currentFloorZones = floorHeatingZones.filter(z => z.floor === currentFloor);
+
+  // Circuitos de piso radiante: solo se recalculan cuando cambian zonas o
+  // colectores, no en cada redibujado (zoom/pan/drag de otros elementos).
+  const floorHeatingCircuits = useMemo<FloorHeatingCircuit[]>(
+    () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [floorHeatingZones, manifolds, currentFloor]
+  );
 
 
   // Plano de fondo de la planta actual
@@ -100,6 +121,24 @@ export const Canvas = () => {
     );
   };
 
+  const isPointInsideManifold = (x: number, y: number, manifold: Manifold): boolean => {
+    return (
+      x >= manifold.x &&
+      x <= manifold.x + manifold.width &&
+      y >= manifold.y &&
+      y <= manifold.y + manifold.height
+    );
+  };
+
+  const isPointInsideZone = (x: number, y: number, zone: FloorHeatingZone): boolean => {
+    return (
+      x >= zone.x &&
+      x <= zone.x + zone.width &&
+      y >= zone.y &&
+      y <= zone.y + zone.height
+    );
+  };
+
 
 
   // Función para dibujar todos los radiadores
@@ -151,6 +190,107 @@ export const Canvas = () => {
     }
 
 
+
+    // ── Piso radiante: zonas, serpentines, acometidas y colectores ──────────
+    const drawPolyline = (pts: CanvasPoint[], color: string, lineWidth: number) => {
+      if (pts.length < 2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    };
+
+    // Zonas (rectángulo de fondo, debajo del serpentín)
+    currentFloorZones.forEach((zone) => {
+      ctx.fillStyle = 'rgba(255, 152, 0, 0.08)';
+      ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
+      ctx.strokeStyle = zone.id === selectedElementId ? '#2196F3' : 'rgba(230, 126, 34, 0.7)';
+      ctx.lineWidth = zone.id === selectedElementId ? 2 : 1;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+      ctx.setLineDash([]);
+    });
+
+    // Serpentines y acometidas de cada circuito
+    floorHeatingCircuits.forEach((c) => {
+      drawPolyline(c.acometidaIda, '#D32F2F', 1.5);
+      drawPolyline(c.acometidaRetorno, '#29B6F6', 1.5);
+      drawPolyline(c.ida, '#D32F2F', 1.5);
+      // Conexión central ida → retorno
+      if (c.ida.length > 0 && c.retorno.length > 0) {
+        drawPolyline([c.ida[c.ida.length - 1], c.retorno[0]], '#8E24AA', 1.5);
+      }
+      drawPolyline(c.retorno, '#29B6F6', 1.5);
+
+      // Etiqueta del circuito: "C1 · 66 m · p15" (como los planos de obra)
+      const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm}`;
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const ancho = ctx.measureText(texto).width;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.fillRect(c.labelPos.x - 3, c.labelPos.y - 8, ancho + 6, 16);
+      ctx.strokeStyle = c.excedeLimite ? '#D32F2F' : '#999';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(c.labelPos.x - 3, c.labelPos.y - 8, ancho + 6, 16);
+      ctx.fillStyle = c.excedeLimite ? '#D32F2F' : '#333';
+      ctx.fillText(texto, c.labelPos.x, c.labelPos.y);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    });
+
+    // Colectores
+    currentFloorManifolds.forEach((manifold) => {
+      const circuitosDelColector = floorHeatingCircuits.length;
+      ctx.fillStyle = '#78909C';
+      ctx.fillRect(manifold.x, manifold.y, manifold.width, manifold.height);
+      ctx.strokeStyle = manifold.id === selectedElementId ? '#2196F3' : '#455A64';
+      ctx.lineWidth = manifold.id === selectedElementId ? 3 : 2;
+      ctx.strokeRect(manifold.x, manifold.y, manifold.width, manifold.height);
+
+      // Vías del colector (círculos rojo/azul alternados)
+      const vias = Math.max(2, Math.min(12, circuitosDelColector * 2));
+      const paso = manifold.width / (vias + 1);
+      for (let i = 1; i <= vias; i++) {
+        ctx.fillStyle = i % 2 === 1 ? '#D32F2F' : '#29B6F6';
+        ctx.beginPath();
+        ctx.arc(manifold.x + paso * i, manifold.y + manifold.height / 2, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Etiqueta
+      ctx.fillStyle = '#455A64';
+      ctx.font = 'bold 9px Arial';
+      ctx.fillText('Colector', manifold.x, manifold.y - 4);
+    });
+
+    // Preview del rectángulo de zona mientras se arrastra
+    if (zoneDraft) {
+      const zx = Math.min(zoneDraft.startX, zoneDraft.endX);
+      const zy = Math.min(zoneDraft.startY, zoneDraft.endY);
+      const zw = Math.abs(zoneDraft.endX - zoneDraft.startX);
+      const zh = Math.abs(zoneDraft.endY - zoneDraft.startY);
+      ctx.fillStyle = 'rgba(230, 126, 34, 0.15)';
+      ctx.fillRect(zx, zy, zw, zh);
+      ctx.strokeStyle = '#E67E22';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(zx, zy, zw, zh);
+      ctx.setLineDash([]);
+      // Medidas en metros mientras dibuja
+      const PIXELS_PER_METER = 50;
+      ctx.fillStyle = '#E67E22';
+      ctx.font = 'bold 11px Arial';
+      ctx.fillText(
+        `${(zw / PIXELS_PER_METER).toFixed(1)} × ${(zh / PIXELS_PER_METER).toFixed(1)} m`,
+        zx + 4,
+        zy - 6
+      );
+    }
 
     // Dibujar radiadores de la planta actual
     currentFloorRadiators.forEach((radiator) => {
@@ -516,7 +656,7 @@ export const Canvas = () => {
   // Redibujar cuando cambien los radiadores, calderas, pipes, zonas PR, colectores, conexiones, backgroundImage, selección, tool, pipeStart o PLANTA ACTUAL
   useEffect(() => {
     draw();
-  }, [radiators, boilers, pipes, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor]);
+  }, [radiators, boilers, pipes, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor]);
 
   // Redibujar solo cuando cambia mousePos y estamos creando una tubería o dibujando zona (para preview)
   useEffect(() => {
@@ -696,6 +836,25 @@ export const Canvas = () => {
       addBoiler(newBoiler);
     }
 
+    // Si la herramienta es "manifold", colocar un colector
+    if (tool === 'manifold') {
+      const newManifold: Manifold = {
+        id: crypto.randomUUID(),
+        type: 'manifold',
+        x: coords.x,
+        y: coords.y,
+        width: 40,  // 80 cm a escala 50 px/m — gabinete de colector típico
+        height: 12,
+      };
+      addManifold(newManifold);
+      setTool('select');
+    }
+
+    // Si la herramienta es "floor-heating-zone", empezar a dibujar el rectángulo
+    if (tool === 'floor-heating-zone') {
+      setZoneDraft({ startX: coords.x, startY: coords.y, endX: coords.x, endY: coords.y });
+    }
+
     // Si la herramienta es "select", intentar seleccionar o arrastrar
     if (tool === 'select') {
       // Buscar si hicimos click en algún radiador de la planta actual (recorrer en orden inverso para priorizar los últimos)
@@ -774,6 +933,28 @@ export const Canvas = () => {
 
 
 
+      // Buscar colector (antes que zona: el colector suele estar sobre una zona)
+      let foundManifold: Manifold | null = null;
+      if (!foundRadiator && !foundBoiler && !foundPipeId) {
+        for (let i = currentFloorManifolds.length - 1; i >= 0; i--) {
+          if (isPointInsideManifold(coords.x, coords.y, currentFloorManifolds[i])) {
+            foundManifold = currentFloorManifolds[i];
+            break;
+          }
+        }
+      }
+
+      // Buscar zona de piso radiante (al final: ocupa mucha superficie)
+      let foundZone: FloorHeatingZone | null = null;
+      if (!foundRadiator && !foundBoiler && !foundPipeId && !foundManifold) {
+        for (let i = currentFloorZones.length - 1; i >= 0; i--) {
+          if (isPointInsideZone(coords.x, coords.y, currentFloorZones[i])) {
+            foundZone = currentFloorZones[i];
+            break;
+          }
+        }
+      }
+
       if (foundRadiator) {
         // Seleccionar el radiador
         setSelectedElement(foundRadiator.id);
@@ -798,6 +979,20 @@ export const Canvas = () => {
         // Seleccionar la tubería
         setSelectedElement(foundPipeId);
         setIsDragging(false);
+      } else if (foundManifold) {
+        setSelectedElement(foundManifold.id);
+        setIsDragging(true);
+        setDragOffset({
+          x: coords.x - foundManifold.x,
+          y: coords.y - foundManifold.y,
+        });
+      } else if (foundZone) {
+        setSelectedElement(foundZone.id);
+        setIsDragging(true);
+        setDragOffset({
+          x: coords.x - foundZone.x,
+          y: coords.y - foundZone.y,
+        });
       } else {
         // No se encontró ningún elemento
         setSelectedElement(null);
@@ -850,6 +1045,12 @@ export const Canvas = () => {
     const coords = getMouseCoordinates(e);
     setMousePos(coords);
 
+    // Si estamos dibujando una zona de piso radiante, actualizar el rectángulo
+    if (zoneDraft) {
+      setZoneDraft({ ...zoneDraft, endX: coords.x, endY: coords.y });
+      return;
+    }
+
     // Si estamos arrastrando un elemento seleccionado
     if (isDragging && selectedElementId) {
       const newX = coords.x - dragOffset.x;
@@ -867,11 +1068,42 @@ export const Canvas = () => {
         updateBoilerPosition(selectedElementId, newX, newY);
       }
 
-
+      // Colector o zona de piso radiante: comparten updateElement
+      const isManifoldOrZone =
+        manifolds.some(m => m.id === selectedElementId) ||
+        floorHeatingZones.some(z => z.id === selectedElementId);
+      if (isManifoldOrZone) {
+        updateElement(selectedElementId, { x: newX, y: newY });
+      }
     }
   };
 
   const handleMouseUp = () => {
+    // Finalizar el dibujo de una zona de piso radiante
+    if (zoneDraft) {
+      const zx = Math.min(zoneDraft.startX, zoneDraft.endX);
+      const zy = Math.min(zoneDraft.startY, zoneDraft.endY);
+      const zw = Math.abs(zoneDraft.endX - zoneDraft.startX);
+      const zh = Math.abs(zoneDraft.endY - zoneDraft.startY);
+
+      // Mínimo 1×1 m (50×50 px): evita zonas creadas por un click accidental
+      if (zw >= 50 && zh >= 50) {
+        const newZone: FloorHeatingZone = {
+          id: crypto.randomUUID(),
+          type: 'floor-heating-zone',
+          name: `Zona ${floorHeatingZones.length + 1}`,
+          x: zx,
+          y: zy,
+          width: zw,
+          height: zh,
+          pasoCm: 15,
+        };
+        addFloorHeatingZone(newZone);
+        setTool('select');
+      }
+      setZoneDraft(null);
+    }
+
     // Desactivar dragging y panning
     setIsDragging(false);
     setIsPanning(false);
@@ -898,7 +1130,7 @@ export const Canvas = () => {
       return 'default';
     }
     if (tool === 'radiator' || tool === 'boiler' || tool === 'manifold') return 'copy';
-    if (tool === 'vertical-pipe') return 'crosshair';
+    if (tool === 'vertical-pipe' || tool === 'floor-heating-zone') return 'crosshair';
 
     return 'default';
   };
@@ -1037,6 +1269,56 @@ export const Canvas = () => {
           >
             ↻
           </button>
+        );
+      })()}
+
+      {/* Selector de paso (solo si hay una zona de piso radiante seleccionada) */}
+      {selectedElementId && currentFloorZones.some(z => z.id === selectedElementId) && (() => {
+        const selectedZone = currentFloorZones.find(z => z.id === selectedElementId);
+        if (!selectedZone) return null;
+
+        const screenX = selectedZone.x * zoom + panOffset.x + (selectedZone.width * zoom / 2);
+        const screenY = selectedZone.y * zoom + panOffset.y - 38;
+
+        return (
+          <div
+            style={{
+              position: 'absolute',
+              left: `${screenX}px`,
+              top: `${screenY}px`,
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '4px',
+              background: 'white',
+              border: '2px solid #E67E22',
+              borderRadius: '4px',
+              padding: '3px 6px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              zIndex: 1000,
+              alignItems: 'center',
+              fontSize: '11px',
+            }}
+          >
+            <span style={{ color: '#666' }}>Paso:</span>
+            {([15, 20] as const).map(paso => (
+              <button
+                key={paso}
+                onClick={() => updateElement(selectedZone.id, { pasoCm: paso })}
+                style={{
+                  padding: '2px 8px',
+                  borderRadius: '3px',
+                  border: '1px solid #E67E22',
+                  background: selectedZone.pasoCm === paso ? '#E67E22' : 'white',
+                  color: selectedZone.pasoCm === paso ? 'white' : '#E67E22',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+                title={`Separación entre tubos: ${paso} cm`}
+              >
+                {paso} cm
+              </button>
+            ))}
+          </div>
         );
       })()}
 

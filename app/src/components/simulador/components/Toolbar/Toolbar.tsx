@@ -229,6 +229,22 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         >
           <span>🔥</span> Caldera
         </button>
+        <button
+          type="button"
+          className={`toolbar-btn ${tool === 'floor-heating-zone' ? 'active' : ''}`}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('floor-heating-zone'); }}
+          title="Dibujar zona de piso radiante (arrastrá un rectángulo sobre el ambiente)"
+        >
+          <span>🌀</span> Piso Radiante
+        </button>
+        <button
+          type="button"
+          className={`toolbar-btn ${tool === 'manifold' ? 'active' : ''}`}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('manifold'); }}
+          title="Colocar colector distribuidor de piso radiante"
+        >
+          <span>⊞</span> Colector
+        </button>
       </div>
 
       <div className="toolbar-separator" />
