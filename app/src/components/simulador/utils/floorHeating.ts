@@ -88,12 +88,34 @@ function dividirZona(zone: FloorHeatingZone, n: number): { x: number; y: number;
  * aumentando la cantidad de circuitos hasta que ninguno supere los 120 m
  * (incluyendo su acometida al colector).
  */
+// Punto por donde salen las acometidas: el lado del colector que mira hacia
+// la zona. Un colector horizontal descarga por arriba o abajo; uno vertical
+// (rotado contra una pared lateral) descarga por izquierda o derecha.
+function puntoSalidaColector(manifold: Manifold, zone: FloorHeatingZone): CanvasPoint {
+  const horizontal = manifold.width >= manifold.height
+  const centroColectorX = manifold.x + manifold.width / 2
+  const centroColectorY = manifold.y + manifold.height / 2
+  const centroZonaX = zone.x + zone.width / 2
+  const centroZonaY = zone.y + zone.height / 2
+
+  if (horizontal) {
+    return {
+      x: centroColectorX,
+      y: centroZonaY >= centroColectorY ? manifold.y + manifold.height : manifold.y,
+    }
+  }
+  return {
+    x: centroZonaX >= centroColectorX ? manifold.x + manifold.width : manifold.x,
+    y: centroColectorY,
+  }
+}
+
 export function calcularCircuitosZona(
   zone: FloorHeatingZone,
   manifold: Manifold | null
 ): FloorHeatingCircuit[] {
   const salidaColector: CanvasPoint | null = manifold
-    ? { x: manifold.x + manifold.width / 2, y: manifold.y + manifold.height }
+    ? puntoSalidaColector(manifold, zone)
     : null
 
   const MAX_INTENTOS = 8
