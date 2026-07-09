@@ -14,6 +14,14 @@ export const CATALOGO: Catalogo = {
             categoria: 'TUBERIA'
         },
         {
+            id: 'TUB-PEX-32',
+            nombre: 'Tubo PE-X 32mm (1") primaria',
+            descripcion: 'Tubería de 1 pulgada para montante caldera-colector, va aislada con coquilla',
+            precioUnitario: 4.50,
+            unidad: 'm',
+            categoria: 'TUBERIA'
+        },
+        {
             id: 'PLA-AIS-EPS',
             nombre: 'Placa Aislante EPS',
             descripcion: 'Placa de poliestireno expandido de alta densidad para piso radiante',

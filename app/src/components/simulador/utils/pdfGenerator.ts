@@ -6,7 +6,7 @@ import type { PipeSegment } from '../models/PipeSegment';
 import type { CompanyInfo, Promotion, ClientInfo } from '../store/companyStore';
 import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
-import type { FloorHeatingCircuit } from './floorHeating';
+import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { calculateBoilerPower } from './thermalCalculator';
 import type { SelectedBudget } from '../services/budgetService';
@@ -341,6 +341,18 @@ export const generateQuotePDF = (
       yPosition += 6;
     }
 
+    // --- Montantes caldera → colector (primaria Ø32) ---
+    if (floorHeating.montantes.length > 0) {
+      doc.setFontSize(10);
+      floorHeating.montantes.forEach((m: Montante) => {
+        ensureSpace(6);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Montante caldera → colector (Ø${m.diametroMm} mm, aislada por contrapiso)`, 15, yPosition);
+        doc.text(`${m.longitudTotal.toLocaleString('es-AR')} m`, 168, yPosition);
+        yPosition += 6;
+      });
+    }
+
     // --- Materiales de piso radiante ---
     ensureSpace(30);
     yPosition += 4;
@@ -444,7 +456,8 @@ export const generateFloorPlanPDF = (
   currentFloor: 'ground' | 'first',
   floorHeatingZones: FloorHeatingZone[] = [],
   floorHeatingCircuits: FloorHeatingCircuit[] = [],
-  manifolds: Manifold[] = []
+  manifolds: Manifold[] = [],
+  montantes: Montante[] = []
 ): void => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -509,15 +522,37 @@ export const generateFloorPlanPDF = (
     }
   });
 
-  // --- 2.5 Piso radiante: zonas, serpentines y colectores ---
-  const drawCircuitPolyline = (pts: { x: number; y: number }[], r: number, g: number, b: number) => {
+  // --- 2.5 Piso radiante: montantes, zonas, serpentines y colectores ---
+  const drawCircuitPolyline = (pts: { x: number; y: number }[], r: number, g: number, b: number, w = 0.35) => {
     if (pts.length < 2) return;
     doc.setDrawColor(r, g, b);
-    doc.setLineWidth(0.35);
+    doc.setLineWidth(w);
     for (let i = 0; i < pts.length - 1; i++) {
       doc.line(toPdfX(pts[i].x), toPdfY(pts[i].y), toPdfX(pts[i + 1].x), toPdfY(pts[i + 1].y));
     }
   };
+
+  // Montantes caldera→colector primero: capa inferior, trazo punteado grueso
+  // (van aisladas por el contrapiso, debajo de las placas y los circuitos)
+  montantes.forEach(m => {
+    doc.setLineDashPattern([2.5, 1.2], 0);
+    drawCircuitPolyline(m.ida, 139, 0, 0, 0.7);
+    drawCircuitPolyline(m.retorno, 13, 71, 161, 0.7);
+    doc.setLineDashPattern([], 0);
+
+    const texto = `Montante Ø${m.diametroMm} · ${Math.round(m.longitudTotal)} m`;
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    const tw = doc.getTextWidth(texto);
+    const lx = toPdfX(m.labelPos.x);
+    const ly = toPdfY(m.labelPos.y);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(139, 0, 0);
+    doc.setLineWidth(0.2);
+    doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
+    doc.setTextColor(139, 0, 0);
+    doc.text(texto, lx, ly);
+  });
 
   floorHeatingZones.forEach(zone => {
     doc.setDrawColor(230, 126, 34);

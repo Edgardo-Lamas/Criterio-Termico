@@ -8,8 +8,8 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta } from '../../utils/floorHeating';
-import type { FloorHeatingCircuit, CanvasPoint } from '../../utils/floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes } from '../../utils/floorHeating';
+import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
 
@@ -65,6 +65,13 @@ export const Canvas = () => {
     () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [floorHeatingZones, manifolds, currentFloor]
+  );
+
+  // Montantes caldera→colector (primaria Ø32, capa inferior)
+  const floorHeatingMontantes = useMemo<Montante[]>(
+    () => calcularMontantes(currentFloorManifolds, currentFloorBoilers, currentFloorZones),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [manifolds, boilers, floorHeatingZones, currentFloor]
   );
 
 
@@ -203,6 +210,30 @@ export const Canvas = () => {
       for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
       ctx.stroke();
     };
+
+    // Montantes caldera→colector (CAPA INFERIOR: van aisladas por el
+    // contrapiso, debajo de placas y circuitos — por eso pueden cruzar zonas)
+    floorHeatingMontantes.forEach((m) => {
+      ctx.setLineDash([10, 6]);
+      drawPolyline(m.ida, '#8B0000', 3);
+      drawPolyline(m.retorno, '#0D47A1', 3);
+      ctx.setLineDash([]);
+
+      const texto = `Montante Ø${m.diametroMm} · ${Math.round(m.longitudTotal)} m`;
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const ancho = ctx.measureText(texto).width;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.fillRect(m.labelPos.x - 3, m.labelPos.y - 8, ancho + 6, 16);
+      ctx.strokeStyle = '#8B0000';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(m.labelPos.x - 3, m.labelPos.y - 8, ancho + 6, 16);
+      ctx.fillStyle = '#8B0000';
+      ctx.fillText(texto, m.labelPos.x, m.labelPos.y);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    });
 
     // Zonas (rectángulo de fondo, debajo del serpentín)
     currentFloorZones.forEach((zone) => {
@@ -1388,6 +1419,40 @@ export const Canvas = () => {
               >
                 {paso} cm
               </button>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* Guía de orden de diseño de piso radiante */}
+      {(currentFloorZones.length > 0 || currentFloorManifolds.length > 0 ||
+        tool === 'floor-heating-zone' || tool === 'manifold') && (() => {
+        const pasos: { ok: boolean; texto: string }[] = [
+          { ok: rooms.length > 0, texto: '1. Definí las habitaciones' },
+          { ok: currentFloorBoilers.length > 0, texto: '2. Colocá la caldera' },
+          { ok: currentFloorManifolds.length > 0, texto: '3. Colocá los colectores (máx. 7 circuitos c/u)' },
+          { ok: floorHeatingMontantes.length > 0, texto: '4. Montante caldera→colector Ø32 — se genera sola' },
+          { ok: floorHeatingCircuits.length > 0, texto: '5. Dibujá las zonas: circuitos Ø20 automáticos' },
+        ];
+        return (
+          <div style={{
+            position: 'absolute',
+            bottom: 12,
+            left: 12,
+            background: 'rgba(255,255,255,0.95)',
+            border: '1px solid #E67E22',
+            borderRadius: '6px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            zIndex: 900,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+            lineHeight: 1.7,
+          }}>
+            <div style={{ fontWeight: 'bold', color: '#E67E22', marginBottom: 2 }}>🌀 Orden de diseño</div>
+            {pasos.map((p) => (
+              <div key={p.texto} style={{ color: p.ok ? '#2E7D32' : '#555' }}>
+                {p.ok ? '✅' : '⬜'} {p.texto}
+              </div>
             ))}
           </div>
         );
