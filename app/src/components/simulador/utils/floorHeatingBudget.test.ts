@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes } from './floorHeating';
+import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
+import type { Boiler } from '../models/Boiler';
 
 function zona(id: string, xM: number, yM: number, anchoM: number, altoM: number, floor: 'ground' | 'first' = 'ground'): FloorHeatingZone {
   return {
@@ -101,6 +103,81 @@ describe('calcularPresupuestoPisoRadiante — presupuesto desde circuitos reales
       .filter(i => i.productoId.startsWith('COL-'))
       .reduce((acc, i) => acc + i.cantidad, 0);
     expect(totalColectores).toBe(1);
+  });
+});
+
+function caldera(id: string, xM: number, yM: number, floor: 'ground' | 'first' = 'ground'): Boiler {
+  return { id, type: 'boiler', power: 24000, x: xM * PIXELS_PER_METER, y: yM * PIXELS_PER_METER, width: 40, height: 40, floor };
+}
+
+// Muestrea una polilínea y verifica que no pase por dentro del rectángulo
+function cruzaRect(pts: CanvasPoint[], r: { x: number; y: number; width: number; height: number }): boolean {
+  for (let i = 0; i < pts.length - 1; i++) {
+    for (let s = 0; s <= 40; s++) {
+      const x = pts[i].x + ((pts[i + 1].x - pts[i].x) * s) / 40;
+      const y = pts[i].y + ((pts[i + 1].y - pts[i].y) * s) / 40;
+      if (x > r.x + 2 && x < r.x + r.width - 2 && y > r.y + 2 && y < r.y + r.height - 2) return true;
+    }
+  }
+  return false;
+}
+
+describe('rutearAcometidas — criterio: no atravesar habitaciones ajenas', () => {
+  it('la acometida rodea la zona vecina en vez de cruzarla (caso del plano de Edgardo)', () => {
+    // Recámara 2 arriba, Recámara 1 abajo, colector debajo de todo:
+    // el camino directo cruzaría Recámara 1.
+    const recamara2 = zona('recamara2', 2, 2, 4, 3);
+    const recamara1 = zona('recamara1', 2, 5.5, 4, 3);
+    const col = colector('m1', 3.5, 10);
+
+    const circuits = calcularCircuitosPlanta([recamara2, recamara1], [col]);
+    const deRecamara2 = circuits.filter(c => c.zoneId === 'recamara2');
+    expect(deRecamara2.length).toBeGreaterThan(0);
+
+    for (const c of deRecamara2) {
+      expect(cruzaRect(c.acometidaIda, recamara1)).toBe(false);
+      expect(cruzaRect(c.acometidaRetorno, recamara1)).toBe(false);
+    }
+  });
+});
+
+describe('calcularMontantes — primaria caldera→colector Ø32', () => {
+  it('genera una montante por colector hacia la caldera más cercana', () => {
+    const montantes = calcularMontantes(
+      [colector('m1', 3, 8), colector('m2', 20, 8)],
+      [caldera('b1', 5, 12), caldera('b2', 22, 12)],
+      []
+    );
+    expect(montantes).toHaveLength(2);
+    expect(montantes[0].boilerId).toBe('b1');
+    expect(montantes[1].boilerId).toBe('b2');
+    expect(montantes[0].diametroMm).toBe(32);
+    // ida + retorno: al menos el doble de la distancia recta
+    expect(montantes[0].longitudTotal).toBeGreaterThan(0);
+  });
+
+  it('sin caldera no hay montante', () => {
+    expect(calcularMontantes([colector('m1', 3, 8)], [], [])).toHaveLength(0);
+  });
+
+  it('el presupuesto incluye el tubo Ø32 cuando hay caldera y colector', () => {
+    const budget = calcularPresupuestoPisoRadiante(
+      [zona('z1', 2, 2, 4, 3)],
+      [colector('m1', 1, 1)],
+      [caldera('b1', 8, 8)]
+    );
+    expect(budget).not.toBeNull();
+    if (!budget) return;
+    expect(budget.montantes).toHaveLength(1);
+    expect(budget.longitudMontantesM).toBeGreaterThan(0);
+    const pex32 = budget.resumen.items.find(i => i.productoId === 'TUB-PEX-32');
+    expect(pex32).toBeDefined();
+    expect(pex32?.cantidad).toBe(Math.ceil(budget.longitudMontantesM * 1.05));
+  });
+
+  it('sin caldera el presupuesto no incluye tubo Ø32', () => {
+    const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    expect(budget?.resumen.items.find(i => i.productoId === 'TUB-PEX-32')).toBeUndefined();
   });
 });
 

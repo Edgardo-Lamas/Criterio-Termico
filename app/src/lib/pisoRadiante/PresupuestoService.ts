@@ -15,10 +15,11 @@ function crearItem(
 // (valores estimados) como para el Simulador 2D (longitudes/áreas reales de
 // los circuitos dibujados sobre el plano).
 export interface MaterialesPisoRadianteInput {
-    longitudTotal: number          // m de tubo PEX (serpentines + acometidas)
+    longitudTotal: number          // m de tubo PEX Ø20 (serpentines + acometidas)
     area: number                   // m² de superficie cubierta
     perimetro: number              // m de banda perimetral
     circuitosPorColector: number[] // circuitos que atiende cada colector (vías necesarias)
+    longitudMontante?: number      // m de primaria Ø32 caldera↔colectores (ida+retorno)
 }
 
 export function calcularMaterialesPisoRadiante(input: MaterialesPisoRadianteInput): ResumenPresupuesto {
@@ -30,6 +31,12 @@ export function calcularMaterialesPisoRadiante(input: MaterialesPisoRadianteInpu
     // 1. Tubo PEX
     const pex = get('TUB-PEX-20')
     if (pex) items.push(crearItem(pex.id, pex.nombre, Math.ceil(input.longitudTotal * WASTE), pex.unidad, pex.precioUnitario))
+
+    // 1b. Tubo primaria Ø32 (montante caldera↔colector)
+    if (input.longitudMontante && input.longitudMontante > 0) {
+        const pex32 = get('TUB-PEX-32')
+        if (pex32) items.push(crearItem(pex32.id, pex32.nombre, Math.ceil(input.longitudMontante * WASTE), pex32.unidad, pex32.precioUnitario))
+    }
 
     // 2. Placa aislante
     const placa = get('PLA-AIS-EPS')

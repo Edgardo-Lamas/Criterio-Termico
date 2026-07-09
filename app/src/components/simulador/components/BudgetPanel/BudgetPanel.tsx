@@ -46,8 +46,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     // Presupuesto de piso radiante con las longitudes reales de los circuitos
     // dibujados (todas las plantas). Null si no hay zonas.
     const floorHeatingBudget = useMemo(
-        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds),
-        [floorHeatingZones, manifolds]
+        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers),
+        [floorHeatingZones, manifolds, boilers]
     );
 
     // Pre-load logo when panel opens (so download can stay synchronous).
@@ -127,7 +127,10 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 currentFloor,
                 currentFloorZones,
                 (floorHeatingBudget?.circuits ?? []).filter(c => currentZoneIds.has(c.zoneId)),
-                manifolds.filter(m => m.floor === currentFloor)
+                manifolds.filter(m => m.floor === currentFloor),
+                (floorHeatingBudget?.montantes ?? []).filter(m =>
+                    manifolds.some(mf => mf.id === m.manifoldId && mf.floor === currentFloor)
+                )
             );
         } catch {
             alert('Hubo un error al generar el plano. Por favor intenta nuevamente.');
@@ -286,6 +289,18 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                                 </div>
                             ))}
                         </div>
+                        {floorHeatingBudget.montantes.length > 0 && (
+                            <div className="breakdown-list" style={{ marginTop: '10px' }}>
+                                {floorHeatingBudget.montantes.map((m) => (
+                                    <div className="breakdown-item" key={m.manifoldId}>
+                                        <span className="breakdown-label">
+                                            Montante caldera → colector <small>(Ø{m.diametroMm} mm, ida+retorno)</small>
+                                        </span>
+                                        <span className="breakdown-cost">{m.longitudTotal.toLocaleString('es-AR')} m</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                         <div className="breakdown-list" style={{ marginTop: '10px' }}>
                             {floorHeatingBudget.resumen.items.map((item) => (
                                 <div className="breakdown-item" key={item.productoId}>
