@@ -16,7 +16,7 @@ interface BudgetPanelProps {
 }
 
 export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => {
-    const { radiators, boilers, rooms, pipes, floorPlans, currentFloor, floorHeatingZones, manifolds } = useElementsStore();
+    const { radiators, boilers, rooms, pipes, floorPlans, currentFloor, floorHeatingZones, manifolds, floorHeatingTempC } = useElementsStore();
     const { prices } = usePriceStore();
     const { companyDetails, clientDetails, getActivePromotions } = useCompanyStore();
     const { saveLead } = useLeadStore();
@@ -46,8 +46,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     // Presupuesto de piso radiante con las longitudes reales de los circuitos
     // dibujados (todas las plantas). Null si no hay zonas.
     const floorHeatingBudget = useMemo(
-        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers, rooms),
-        [floorHeatingZones, manifolds, boilers, rooms]
+        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC),
+        [floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC]
     );
 
     // Pre-load logo when panel opens (so download can stay synchronous).
@@ -299,7 +299,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                             ))}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '8px' }}>
-                            Piso pétreo: 86 kcal/h·m² máx. (≈17 kcal/h por metro a paso 20 · ≈13 a paso 15)
+                            Impulsión {floorHeatingBudget.tempImpulsionC}°C → {floorHeatingBudget.emisionKcalhM2} kcal/h·m² (piso pétreo) · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 5)} kcal/h por metro a paso 20 · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 6.7)} a paso 15
                         </div>
                         <div className="breakdown-list">
                             {floorHeatingBudget.circuits.map((c) => (

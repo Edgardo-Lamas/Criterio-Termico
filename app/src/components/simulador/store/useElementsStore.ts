@@ -6,6 +6,8 @@ import type { Project } from '../utils/projectStorage';
 import type { Room } from '../models/Room';
 import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { TempImpulsion } from '../utils/floorHeating';
+import { TEMP_IMPULSION_DEFAULT } from '../utils/floorHeating';
 
 // Type for updateElement - allows partial updates with any valid element properties
 export type ElementUpdates = Partial<Radiator> | Partial<Boiler> | Partial<PipeSegment> | Partial<Manifold> | Partial<FloorHeatingZone>;
@@ -37,8 +39,10 @@ interface ElementsStore {
   assignRadiatorToRoom: (radiatorId: string, roomId: string) => void;
   unassignRadiatorFromRoom: (radiatorId: string, roomId: string) => void;
   // Piso Radiante
+  floorHeatingTempC: TempImpulsion; // temperatura de impulsión de diseño (única para todo el sistema)
   addManifold: (manifold: Manifold) => void;
   addFloorHeatingZone: (zone: FloorHeatingZone) => void;
+  setFloorHeatingTempC: (temp: TempImpulsion) => void;
 
   setSelectedElement: (id: string | null) => void;
   updateRadiatorPosition: (id: string, x: number, y: number, width?: number, height?: number) => void;
@@ -73,6 +77,7 @@ export const useElementsStore = create<ElementsStore>((set) => ({
   rooms: [],
   manifolds: [],
   floorHeatingZones: [],
+  floorHeatingTempC: TEMP_IMPULSION_DEFAULT,
 
   tempPipe: null,
   selectedElementId: null,
@@ -114,6 +119,10 @@ export const useElementsStore = create<ElementsStore>((set) => ({
     set((state) => ({
       floorHeatingZones: [...state.floorHeatingZones, { ...zone, floor: state.currentFloor }],
     }));
+  },
+
+  setFloorHeatingTempC: (temp) => {
+    set({ floorHeatingTempC: temp });
   },
 
   updateRoom: (id, updates) => {

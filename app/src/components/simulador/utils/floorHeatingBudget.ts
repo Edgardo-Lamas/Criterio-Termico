@@ -3,8 +3,8 @@
 // circuitos generados (serpentín + acometidas ruteadas) y de las montantes
 // caldera→colector (Ø32), no estimaciones.
 
-import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER } from './floorHeating';
-import type { FloorHeatingCircuit, Montante } from './floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, TEMP_IMPULSION_DEFAULT } from './floorHeating';
+import type { FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
 import { calcularMaterialesPisoRadiante } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { ResumenPresupuesto } from '../../../lib/pisoRadiante/types';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
@@ -29,6 +29,8 @@ export interface FloorHeatingBudget {
   circuits: FloorHeatingCircuit[];
   montantes: Montante[];
   zonas: ZonaPotencia[];
+  tempImpulsionC: TempImpulsion;  // temperatura de diseño usada en el cálculo
+  emisionKcalhM2: number;         // kcal/h·m² que entrega el piso a esa temperatura
   potenciaTotalKcalh: number; // entrega máxima de todo el piso radiante
   longitudTotalM: number;     // m de tubo Ø20 de todos los circuitos
   longitudMontantesM: number; // m de primaria Ø32 (ida + retorno)
@@ -46,7 +48,8 @@ export function calcularPresupuestoPisoRadiante(
   zones: FloorHeatingZone[],
   manifolds: Manifold[],
   boilers: Boiler[] = [],
-  rooms: Room[] = []
+  rooms: Room[] = [],
+  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
 ): FloorHeatingBudget | null {
   if (zones.length === 0) return null;
 
@@ -57,7 +60,7 @@ export function calcularPresupuestoPisoRadiante(
     const zonesFloor = zones.filter(z => z.floor === floor);
     const manifoldsFloor = manifolds.filter(m => m.floor === floor);
     const boilersFloor = boilers.filter(b => !b.floor || b.floor === floor);
-    circuits.push(...calcularCircuitosPlanta(zonesFloor, manifoldsFloor));
+    circuits.push(...calcularCircuitosPlanta(zonesFloor, manifoldsFloor, tempImpulsionC));
     montantes.push(...calcularMontantes(manifoldsFloor, boilersFloor, zonesFloor));
   }
   if (circuits.length === 0) return null;
@@ -113,6 +116,8 @@ export function calcularPresupuestoPisoRadiante(
     circuits,
     montantes,
     zonas: zonasPotencia,
+    tempImpulsionC,
+    emisionKcalhM2: emisionKcalhM2(tempImpulsionC),
     potenciaTotalKcalh,
     longitudTotalM,
     longitudMontantesM,

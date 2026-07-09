@@ -296,7 +296,7 @@ export const generateQuotePDF = (
       `Superficie cubierta: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  —  ` +
       `Circuitos: ${floorHeating.circuits.length}  —  ` +
       `Tubería total: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m  —  ` +
-      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h`,
+      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h (impulsión ${floorHeating.tempImpulsionC}°C)`,
       15, yPosition
     );
     yPosition += 8;
@@ -354,7 +354,7 @@ export const generateQuotePDF = (
     floorHeating.zonas.forEach(z => {
       ensureSpace(5);
       const requerido = z.requeridoKcalh !== null
-        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h ${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir a paso 15 o revisar aislación)'}`
+        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h ${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir impulsión, paso 15 o revisar aislación)'}`
         : '';
       if (z.suficiente === false) doc.setTextColor(180, 30, 30);
       doc.text(
@@ -368,7 +368,11 @@ export const generateQuotePDF = (
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(110, 110, 110);
-    doc.text('Emisión máx. con suelo pétreo: 86 kcal/h·m² (100 W/m², EN 1264). Por metro de tubo: aprox. 17 kcal/h a paso 20 · 13 a paso 15.', 15, yPosition);
+    doc.text(
+      `Cálculo con agua de impulsión a ${floorHeating.tempImpulsionC}°C (suelo pétreo, EN 1264): el piso entrega ${floorHeating.emisionKcalhM2} kcal/h·m² — ` +
+      `aprox. ${Math.round(floorHeating.emisionKcalhM2 / 5)} kcal/h por metro de tubo a paso 20 y ${Math.round(floorHeating.emisionKcalhM2 / 6.7)} a paso 15.`,
+      15, yPosition
+    );
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     yPosition += 7;

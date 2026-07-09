@@ -8,7 +8,7 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes } from '../../utils/floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, TEMPERATURAS_IMPULSION, emisionKcalhM2 } from '../../utils/floorHeating';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
@@ -33,6 +33,8 @@ export const Canvas = () => {
     rooms,
     manifolds,
     floorHeatingZones,
+    floorHeatingTempC,
+    setFloorHeatingTempC,
     currentFloor,
     addRadiator,
     addBoiler,
@@ -62,9 +64,9 @@ export const Canvas = () => {
   // Circuitos de piso radiante: solo se recalculan cuando cambian zonas o
   // colectores, no en cada redibujado (zoom/pan/drag de otros elementos).
   const floorHeatingCircuits = useMemo<FloorHeatingCircuit[]>(
-    () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds),
+    () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds, floorHeatingTempC),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [floorHeatingZones, manifolds, currentFloor]
+    [floorHeatingZones, manifolds, currentFloor, floorHeatingTempC]
   );
 
   // Montantes caldera→colector (primaria Ø32, capa inferior)
@@ -1454,6 +1456,29 @@ export const Canvas = () => {
                 {p.ok ? '✅' : '⬜'} {p.texto}
               </div>
             ))}
+            <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: '#555' }}>🌡 Impulsión:</span>
+              {TEMPERATURAS_IMPULSION.map(t => (
+                <button
+                  key={t}
+                  onClick={() => setFloorHeatingTempC(t)}
+                  style={{
+                    padding: '1px 7px',
+                    borderRadius: '3px',
+                    border: '1px solid #E67E22',
+                    background: floorHeatingTempC === t ? '#E67E22' : 'white',
+                    color: floorHeatingTempC === t ? 'white' : '#E67E22',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                  }}
+                  title={`Agua de impulsión a ${t}°C → el piso entrega ${emisionKcalhM2(t)} kcal/h·m²`}
+                >
+                  {t}°
+                </button>
+              ))}
+              <span style={{ color: '#888', fontSize: '11px' }}>→ {emisionKcalhM2(floorHeatingTempC)} kcal/h·m²</span>
+            </div>
           </div>
         );
       })()}
