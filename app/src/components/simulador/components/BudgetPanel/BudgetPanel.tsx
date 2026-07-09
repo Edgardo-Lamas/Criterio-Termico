@@ -4,6 +4,7 @@ import { usePriceStore } from '../../store/usePriceStore';
 import { generateBudgetOptions, calculateTotalBudget } from '../../services/budgetService';
 import type { BudgetOptions, SelectedBudget, PipeQuantities } from '../../services/budgetService';
 import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator';
+import { calcularPresupuestoPisoRadiante } from '../../utils/floorHeatingBudget';
 import { useCompanyStore } from '../../store/companyStore';
 import { useLeadStore } from '../../store/useLeadStore';
 import { loadLogoAsBase64 } from '../../utils/logoHelper';
@@ -15,7 +16,7 @@ interface BudgetPanelProps {
 }
 
 export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => {
-    const { radiators, boilers, rooms, pipes, floorPlans, currentFloor } = useElementsStore();
+    const { radiators, boilers, rooms, pipes, floorPlans, currentFloor, floorHeatingZones, manifolds } = useElementsStore();
     const { prices } = usePriceStore();
     const { companyDetails, clientDetails, getActivePromotions } = useCompanyStore();
     const { saveLead } = useLeadStore();
@@ -41,6 +42,13 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         });
         return quantities;
     }, [pipes]);
+
+    // Presupuesto de piso radiante con las longitudes reales de los circuitos
+    // dibujados (todas las plantas). Null si no hay zonas.
+    const floorHeatingBudget = useMemo(
+        () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds),
+        [floorHeatingZones, manifolds]
+    );
 
     // Pre-load logo when panel opens (so download can stay synchronous).
     // Solo el caso async (URL remota) necesita el efecto; el caso data: URL
@@ -104,6 +112,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
             return;
         }
         try {
+            const currentFloorZones = floorHeatingZones.filter(z => z.floor === currentFloor);
+            const currentZoneIds = new Set(currentFloorZones.map(z => z.id));
             generateFloorPlanPDF(
                 plan.image,
                 plan.dimensions,
@@ -114,7 +124,10 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 rooms,
                 companyDetails,
                 clientDetails,
-                currentFloor
+                currentFloor,
+                currentFloorZones,
+                (floorHeatingBudget?.circuits ?? []).filter(c => currentZoneIds.has(c.zoneId)),
+                manifolds.filter(m => m.floor === currentFloor)
             );
         } catch {
             alert('Hubo un error al generar el plano. Por favor intenta nuevamente.');
@@ -146,7 +159,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 clientDetails,
                 getActivePromotions(),
                 budgetResult,
-                preloadedLogo
+                preloadedLogo,
+                floorHeatingBudget
             );
         } catch {
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');
@@ -250,6 +264,44 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                                     <span className="breakdown-cost">${pipe.totalCost.toLocaleString()}</span>
                                 </div>
                             ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Floor Heating Section */}
+                {floorHeatingBudget && (
+                    <div className="budget-section">
+                        <h4>🌀 Piso Radiante</h4>
+                        <div style={{ fontSize: '0.85rem', color: '#555', marginBottom: '8px' }}>
+                            {floorHeatingBudget.areaM2.toLocaleString('es-AR')} m² · {floorHeatingBudget.circuits.length} circuito{floorHeatingBudget.circuits.length !== 1 ? 's' : ''} · {floorHeatingBudget.longitudTotalM.toLocaleString('es-AR')} m de tubería
+                        </div>
+                        <div className="breakdown-list">
+                            {floorHeatingBudget.circuits.map((c) => (
+                                <div className="breakdown-item" key={`${c.zoneId}-${c.numero}`}>
+                                    <span className="breakdown-label">
+                                        {c.zoneName} — C{c.numero}
+                                        <small> (c/c {c.pasoCm * 10} mm{c.excedeLimite ? ' · ⚠ excede 120 m' : ''})</small>
+                                    </span>
+                                    <span className="breakdown-cost">{c.longitudTotal.toLocaleString('es-AR')} m</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="breakdown-list" style={{ marginTop: '10px' }}>
+                            {floorHeatingBudget.resumen.items.map((item) => (
+                                <div className="breakdown-item" key={item.productoId}>
+                                    <span className="breakdown-label">
+                                        {item.nombre} <small>x{item.cantidad} {item.unidad}</small>
+                                    </span>
+                                    <span className="breakdown-cost">USD {item.subtotal.toLocaleString('es-AR')}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#eef2f5', borderRadius: '6px', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between' }}>
+                            <strong>Subtotal piso radiante</strong>
+                            <strong style={{ color: 'var(--bp-primary)' }}>USD {floorHeatingBudget.resumen.totalFinal.toLocaleString('es-AR')}</strong>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>
+                            Precios de catálogo en USD — no se suma al total de radiadores.
                         </div>
                     </div>
                 )}

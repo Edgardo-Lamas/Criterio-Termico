@@ -4,6 +4,10 @@ import type { Radiator } from '../models/Radiator';
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { CompanyInfo, Promotion, ClientInfo } from '../store/companyStore';
+import type { Manifold } from '../models/Manifold';
+import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { FloorHeatingCircuit } from './floorHeating';
+import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { calculateBoilerPower } from './thermalCalculator';
 import type { SelectedBudget } from '../services/budgetService';
 
@@ -29,7 +33,8 @@ export const generateQuotePDF = (
   clientDetails: ClientInfo,
   _activePromotions: Promotion[],
   selectedBudget?: SelectedBudget | null,
-  preloadedLogo?: string | null
+  preloadedLogo?: string | null,
+  floorHeating?: FloorHeatingBudget | null
 ): void => {
   const doc = new jsPDF();
 
@@ -270,6 +275,117 @@ export const generateQuotePDF = (
     yPosition += 10;
   }
 
+  // === PISO RADIANTE — CIRCUITOS REALES Y MATERIALES ===
+  if (floorHeating && floorHeating.circuits.length > 0) {
+    if (yPosition + 60 > pageHeight - 20) {
+      doc.addPage();
+      yPosition = 20;
+    } else {
+      yPosition += 14;
+    }
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('PISO RADIANTE', 15, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Superficie cubierta: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  —  ` +
+      `Circuitos: ${floorHeating.circuits.length}  —  ` +
+      `Tubería total: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m`,
+      15, yPosition
+    );
+    yPosition += 8;
+
+    // --- Tabla de circuitos (como los planos de obra) ---
+    const ensureSpace = (needed: number) => {
+      if (yPosition + needed > pageHeight - 20) {
+        doc.addPage();
+        yPosition = 20;
+      }
+    };
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Circuito', 15, yPosition);
+    doc.text('Paso', 80, yPosition);
+    doc.text('Serpentín', 105, yPosition);
+    doc.text('Acometida', 135, yPosition);
+    doc.text('Total', 168, yPosition);
+    doc.line(15, yPosition + 2, 195, yPosition + 2);
+    yPosition += 8;
+    doc.setFont('helvetica', 'normal');
+
+    let hayExcedidos = false;
+    floorHeating.circuits.forEach((c: FloorHeatingCircuit) => {
+      ensureSpace(6);
+      if (c.excedeLimite) hayExcedidos = true;
+      doc.text(`${c.zoneName} — C${c.numero}`, 15, yPosition);
+      doc.text(`c/c ${c.pasoCm * 10} mm`, 80, yPosition);
+      doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 105, yPosition);
+      doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 135, yPosition);
+      doc.text(`${c.longitudTotal.toLocaleString('es-AR')} m${c.excedeLimite ? ' (*)' : ''}`, 168, yPosition);
+      yPosition += 6;
+    });
+
+    if (hayExcedidos) {
+      ensureSpace(6);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(180, 30, 30);
+      doc.text('(*) El circuito supera los 120 m recomendados para PE-X 20mm — revisar el diseño.', 15, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += 6;
+    }
+
+    // --- Materiales de piso radiante ---
+    ensureSpace(30);
+    yPosition += 4;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Materiales de piso radiante', 15, yPosition);
+    yPosition += 7;
+
+    doc.setFontSize(10);
+    doc.text('Concepto', 15, yPosition);
+    doc.text('Cantidad', 110, yPosition);
+    doc.text('Subtotal', 160, yPosition);
+    doc.line(15, yPosition + 2, 195, yPosition + 2);
+    yPosition += 8;
+    doc.setFont('helvetica', 'normal');
+
+    floorHeating.resumen.items.forEach(item => {
+      ensureSpace(6);
+      const nombre = item.nombre.length > 55 ? item.nombre.substring(0, 55) + '...' : item.nombre;
+      doc.text(nombre, 15, yPosition);
+      doc.text(`${item.cantidad} ${item.unidad}`, 110, yPosition);
+      doc.text(`$${item.subtotal.toFixed(2)}`, 160, yPosition);
+      yPosition += 6;
+    });
+
+    ensureSpace(12);
+    yPosition += 2;
+    doc.line(110, yPosition, 195, yPosition);
+    yPosition += 6;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUBTOTAL PISO RADIANTE (USD):', 105, yPosition, { align: 'right' });
+    doc.text(
+      `$${floorHeating.resumen.totalFinal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+      160, yPosition
+    );
+    yPosition += 5;
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(110, 110, 110);
+    doc.text('Precios de catálogo de referencia en USD — no incluidos en el total de instalación por radiadores.', 15, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 5;
+  }
+
   // === LEYENDA DE CIERRE (Fase 3 - Pruebas de Confianza) ===
   const pageHeightFinal = doc.internal.pageSize.getHeight();
 
@@ -325,7 +441,10 @@ export const generateFloorPlanPDF = (
   rooms: Room[],
   companyDetails: CompanyInfo,
   clientDetails: ClientInfo,
-  currentFloor: 'ground' | 'first'
+  currentFloor: 'ground' | 'first',
+  floorHeatingZones: FloorHeatingZone[] = [],
+  floorHeatingCircuits: FloorHeatingCircuit[] = [],
+  manifolds: Manifold[] = []
 ): void => {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -388,6 +507,66 @@ export const generateFloorPlanPDF = (
       doc.setTextColor(140, 20, 20);
       doc.text(`Ø${pipe.diameter}`, mx, my - 1.2);
     }
+  });
+
+  // --- 2.5 Piso radiante: zonas, serpentines y colectores ---
+  const drawCircuitPolyline = (pts: { x: number; y: number }[], r: number, g: number, b: number) => {
+    if (pts.length < 2) return;
+    doc.setDrawColor(r, g, b);
+    doc.setLineWidth(0.35);
+    for (let i = 0; i < pts.length - 1; i++) {
+      doc.line(toPdfX(pts[i].x), toPdfY(pts[i].y), toPdfX(pts[i + 1].x), toPdfY(pts[i + 1].y));
+    }
+  };
+
+  floorHeatingZones.forEach(zone => {
+    doc.setDrawColor(230, 126, 34);
+    doc.setLineWidth(0.3);
+    doc.setLineDashPattern([1.5, 1], 0);
+    doc.rect(toPdfX(zone.x), toPdfY(zone.y), zone.width * scale, zone.height * scale);
+    doc.setLineDashPattern([], 0);
+  });
+
+  floorHeatingCircuits.forEach(c => {
+    drawCircuitPolyline(c.acometidaIda, 190, 30, 30);
+    drawCircuitPolyline(c.acometidaRetorno, 30, 90, 200);
+    drawCircuitPolyline(c.ida, 190, 30, 30);
+    // Conexión central ida → retorno (violeta, igual que en el canvas)
+    if (c.ida.length > 0 && c.retorno.length > 0) {
+      drawCircuitPolyline([c.ida[c.ida.length - 1], c.retorno[0]], 142, 36, 170);
+    }
+    drawCircuitPolyline(c.retorno, 30, 90, 200);
+
+    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm" con fondo blanco
+    const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm`;
+    doc.setFontSize(5.5);
+    doc.setFont('helvetica', 'bold');
+    const tw = doc.getTextWidth(texto);
+    const lx = toPdfX(c.labelPos.x);
+    const ly = toPdfY(c.labelPos.y);
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(c.excedeLimite ? 190 : 150, c.excedeLimite ? 30 : 150, c.excedeLimite ? 30 : 150);
+    doc.setLineWidth(0.2);
+    doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
+    doc.setTextColor(c.excedeLimite ? 190 : 40, c.excedeLimite ? 30 : 40, c.excedeLimite ? 30 : 40);
+    doc.text(texto, lx, ly);
+  });
+
+  manifolds.forEach(manifold => {
+    const mx = toPdfX(manifold.x);
+    const my = toPdfY(manifold.y);
+    const mw = manifold.width * scale;
+    const mh = manifold.height * scale;
+
+    doc.setFillColor(96, 125, 139);
+    doc.setDrawColor(55, 71, 79);
+    doc.setLineWidth(0.3);
+    doc.rect(mx, my, mw, mh, 'FD');
+
+    doc.setFontSize(4.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    doc.text('COLECTOR', mx + mw / 2, my + mh / 2 + 1, { align: 'center' });
   });
 
   // --- 3. Radiators ---

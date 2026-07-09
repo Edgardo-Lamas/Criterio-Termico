@@ -21,6 +21,8 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     radiators,
     boilers,
     pipes,
+    manifolds,
+    floorHeatingZones,
     projectName,
     currentFloor,
     floorPlans,
@@ -44,16 +46,17 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
   // Autoguardado cada 30 segundos
   useEffect(() => {
     const autoSaveInterval = setInterval(() => {
-      if (radiators.length > 0 || boilers.length > 0 || pipes.length > 0) {
+      if (radiators.length > 0 || boilers.length > 0 || pipes.length > 0 ||
+          manifolds.length > 0 || floorHeatingZones.length > 0) {
         setIsSaving(true);
-        saveToLocalStorage(radiators, boilers, pipes, projectName);
+        saveToLocalStorage(radiators, boilers, pipes, projectName, manifolds, floorHeatingZones);
         setLastSaved(new Date());
         setTimeout(() => setIsSaving(false), 1000);
       }
     }, 30000); // 30 segundos
 
     return () => clearInterval(autoSaveInterval);
-  }, [radiators, boilers, pipes, projectName]);
+  }, [radiators, boilers, pipes, manifolds, floorHeatingZones, projectName]);
 
   // Formatear tiempo desde último guardado
   const getTimeSinceLastSave = () => {
