@@ -23,6 +23,7 @@ export interface CanvasPoint {
 export interface FloorHeatingCircuit {
   zoneId: string;
   zoneName: string;
+  manifoldId: string | null;   // colector asignado (null si no hay en la planta)
   numero: number;              // número de circuito dentro de la zona (1..n)
   patron: 'espiral' | 'meandro';
   ida: CanvasPoint[];          // px absolutos del canvas
@@ -134,6 +135,7 @@ export function calcularCircuitosZona(
       circuitos.push({
         zoneId: zone.id,
         zoneName: zone.name,
+        manifoldId: manifold?.id ?? null,
         numero: i + 1,
         patron: serpentin.patron,
         ida,
