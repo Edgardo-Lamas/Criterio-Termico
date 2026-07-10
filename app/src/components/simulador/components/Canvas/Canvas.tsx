@@ -9,6 +9,8 @@ import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
 import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
+import { calculateRoomPower } from '../../utils/thermalCalculator';
+import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
@@ -292,8 +294,8 @@ export const Canvas = () => {
       }
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
-      // Etiqueta del circuito: "C1 · 66 m · p15 · 645 kcal/h" (como los planos de obra)
-      const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${c.potenciaKcalh} kcal/h`;
+      // Etiqueta del circuito: "C2 · 66 m · p15 · 645 kcal/h" (C2 = colector 2)
+      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${c.potenciaKcalh} kcal/h`;
       ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -305,6 +307,40 @@ export const Canvas = () => {
       ctx.strokeRect(c.labelPos.x - 3, c.labelPos.y - 8, ancho + 6, 16);
       ctx.fillStyle = c.excedeLimite ? '#D32F2F' : '#333';
       ctx.fillText(texto, c.labelPos.x, c.labelPos.y);
+      ctx.textAlign = 'start';
+      ctx.textBaseline = 'alphabetic';
+    });
+
+    // Cobertura térmica sobre el plano: lo que entregan los circuitos de la
+    // zona contra lo que la habitación vinculada requiere (+15% de margen),
+    // el mismo criterio del panel y del presupuesto.
+    if (visibleLayers.circuitos) currentFloorZones.forEach((zone) => {
+      if (!zone.roomId) return;
+      const room = rooms.find(r => r.id === zone.roomId);
+      if (!room) return;
+      const propios = floorHeatingCircuits.filter(c => c.zoneId === zone.id);
+      if (propios.length === 0) return;
+
+      const entrega = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
+      const requerido = Math.round(calculateRoomPower(room) * MARGEN_SEGURIDAD);
+      const pct = requerido > 0 ? Math.round((entrega / requerido) * 100) : 0;
+      const ok = entrega >= requerido;
+      const texto = `${ok ? '✓' : '⚠'} entrega ${entrega.toLocaleString('es-AR')} · req+15% ${requerido.toLocaleString('es-AR')} kcal/h · ${pct}%`;
+      const color = ok ? '#2E7D32' : '#C62828';
+
+      ctx.font = 'bold 10px Arial';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      const ancho = ctx.measureText(texto).width;
+      const lx = zone.x + 6;
+      const ly = zone.y + zone.height - 12;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+      ctx.fillRect(lx - 3, ly - 8, ancho + 6, 16);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(lx - 3, ly - 8, ancho + 6, 16);
+      ctx.fillStyle = color;
+      ctx.fillText(texto, lx, ly);
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
     });
@@ -734,7 +770,7 @@ export const Canvas = () => {
   // Redibujar cuando cambien los radiadores, calderas, pipes, zonas PR, colectores, conexiones, backgroundImage, selección, tool, pipeStart o PLANTA ACTUAL
   useEffect(() => {
     draw();
-  }, [radiators, boilers, pipes, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor, floorHeatingTempC, visibleLayers]);
+  }, [radiators, boilers, pipes, rooms, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor, floorHeatingTempC, visibleLayers]);
 
   // Redibujar solo cuando cambia mousePos y estamos creando una tubería o dibujando zona (para preview)
   useEffect(() => {

@@ -106,6 +106,8 @@ export interface FloorHeatingCircuit {
   zoneName: string;
   manifoldId: string | null;   // colector asignado (null si no hay en la planta)
   numero: number;              // número de circuito dentro de la zona (1..n)
+  colectorNumero: number | null; // índice 1..n del colector en la planta (null sin colector)
+  etiqueta: string;            // "C2" = va al colector 2; "C2.1" si la zona tiene varios circuitos
   patron: 'espiral' | 'meandro';
   ida: CanvasPoint[];          // px absolutos del canvas
   retorno: CanvasPoint[];      // px absolutos del canvas
@@ -266,6 +268,8 @@ export function calcularCircuitosZona(
         zoneName: zone.name,
         manifoldId: manifold?.id ?? null,
         numero: i + 1,
+        colectorNumero: null,        // se completa en calcularCircuitosPlanta
+        etiqueta: `C${i + 1}`,       // fallback sin numeración de colector
         patron: serpentin.patron,
         ida,
         retorno,
@@ -391,7 +395,19 @@ export function calcularCircuitosPlanta(
   const circuits = zones.flatMap(zone => {
     // Colector asignado a mano en la zona; si no hay (o ya no existe), el más cercano
     const manual = zone.manifoldId ? manifolds.find(m => m.id === zone.manifoldId) : undefined
-    return calcularCircuitosZona(zone, manual ?? colectorMasCercano(zone, manifolds), tempImpulsionC)
+    const manifold = manual ?? colectorMasCercano(zone, manifolds)
+    const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC)
+
+    // Etiqueta con la numeración del colector (como leen los planos de obra):
+    // "C2" = circuito del colector 2; "C2.1"/"C2.2" si la zona se divide.
+    const nColector = manifold ? manifolds.indexOf(manifold) + 1 : null
+    for (const c of propios) {
+      c.colectorNumero = nColector
+      if (nColector !== null) {
+        c.etiqueta = propios.length > 1 ? `C${nColector}.${c.numero}` : `C${nColector}`
+      }
+    }
+    return propios
   })
   rutearAcometidas(circuits, zones, manifolds)
   return circuits

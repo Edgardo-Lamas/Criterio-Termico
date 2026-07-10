@@ -307,7 +307,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                             {floorHeatingBudget.circuits.map((c) => (
                                 <div className="breakdown-item" key={`${c.zoneId}-${c.numero}`}>
                                     <span className="breakdown-label">
-                                        {c.zoneName} — C{c.numero}
+                                        {c.zoneName} — {c.etiqueta}
                                         <small> (c/c {c.pasoCm * 10} mm{c.excedeLimite ? ' · ⚠ excede 120 m' : ''})</small>
                                     </span>
                                     <span className="breakdown-cost">{c.longitudTotal.toLocaleString('es-AR')} m</span>

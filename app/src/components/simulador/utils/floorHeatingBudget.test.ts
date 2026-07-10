@@ -304,6 +304,22 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(circuits.every(c => c.manifoldId === 'm1')).toBe(true);
   });
 
+  it('la etiqueta numera por colector: C1 y C2 con dos colectores', () => {
+    // z1 cerca de m1, z2 cerca de m2 → sus circuitos etiquetan C1 y C2
+    const circuits = calcularCircuitosPlanta(
+      [zona('z1', 2, 2, 4, 3), zona('z2', 40, 2, 4, 3)],
+      [colector('m1', 1, 1), colector('m2', 39, 1)]
+    );
+    const deZ1 = circuits.filter(c => c.zoneId === 'z1');
+    const deZ2 = circuits.filter(c => c.zoneId === 'z2');
+    expect(deZ1.every(c => c.colectorNumero === 1)).toBe(true);
+    expect(deZ2.every(c => c.colectorNumero === 2)).toBe(true);
+    if (deZ1.length === 1) expect(deZ1[0].etiqueta).toBe('C1');
+    if (deZ2.length === 1) expect(deZ2[0].etiqueta).toBe('C2');
+    // Si una zona se divide, la etiqueta lleva el subíndice del circuito
+    if (deZ2.length > 1) expect(deZ2.map(c => c.etiqueta)).toEqual(deZ2.map((_, i) => `C2.${i + 1}`));
+  });
+
   it('potenciaZonaKcalh: la misma cuenta que suman los circuitos, sin serpentines', () => {
     // Zona de 4×3 m = 12 m²: a 45°C → 12 × 86 = 1.032, a 35°C → 12 × 48 = 576.
     // Es lo que el panel de Cálculo de Potencia usa como "instalado" del piso.

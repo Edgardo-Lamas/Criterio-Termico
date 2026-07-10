@@ -324,7 +324,7 @@ export const generateQuotePDF = (
     floorHeating.circuits.forEach((c: FloorHeatingCircuit) => {
       ensureSpace(6);
       if (c.excedeLimite) hayExcedidos = true;
-      doc.text(`${c.zoneName} — C${c.numero}`, 15, yPosition);
+      doc.text(`${c.zoneName} — ${c.etiqueta}`, 15, yPosition);
       doc.text(`c/c ${c.pasoCm * 10} mm`, 80, yPosition);
       doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 105, yPosition);
       doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 135, yPosition);
@@ -610,7 +610,7 @@ export const generateFloorPlanPDF = (
     drawCircuitPolyline(c.retorno, 30, 90, 200);
 
     // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · 645 kcal/h" con fondo blanco
-    const texto = `${c.zoneName} C${c.numero} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${c.potenciaKcalh} kcal/h`;
+    const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${c.potenciaKcalh} kcal/h`;
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
     const tw = doc.getTextWidth(texto);
