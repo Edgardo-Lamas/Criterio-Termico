@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, emisionKcalhM2, potenciaZonaKcalh } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, emisionKcalhM2, potenciaZonaKcalh, puertaDesdePunto } from './floorHeating';
 import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
@@ -141,6 +141,33 @@ describe('rutearAcometidas — criterio: no atravesar habitaciones ajenas', () =
   });
 });
 
+describe('puerta de la zona — la acometida entra por la puerta real', () => {
+  it('con puerta marcada, ida y retorno pasan por el vano (±4 px sobre el borde)', () => {
+    // Zona 4×3 m con puerta en el centro del lado de abajo; colector abajo a la izquierda
+    const z: FloorHeatingZone = { ...zona('z1', 4, 2, 4, 3), puerta: { lado: 'abajo', t: 0.5 } };
+    const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 7)]);
+    expect(circuits.length).toBeGreaterThan(0);
+
+    // Punto de la puerta apenas afuera del borde: (x centro, y borde inferior + 12)
+    const puertaX = z.x + z.width * 0.5;
+    const puertaY = z.y + z.height + 12;
+    for (const c of circuits) {
+      const pasaPorPuerta = (pts: { x: number; y: number }[]) =>
+        pts.some(p => Math.abs(p.y - puertaY) < 1 && Math.abs(p.x - puertaX) <= 15);
+      expect(pasaPorPuerta(c.acometidaIda)).toBe(true);
+      expect(pasaPorPuerta(c.acometidaRetorno)).toBe(true);
+    }
+  });
+
+  it('puertaDesdePunto proyecta el click al borde más cercano', () => {
+    const z = zona('z1', 2, 2, 4, 3); // px: x=100, y=100, w=200, h=150
+    // Click apenas abajo del borde inferior, a 3/4 del ancho
+    expect(puertaDesdePunto(z, { x: 250, y: 260 })).toEqual({ lado: 'abajo', t: 0.75 });
+    // Click a la izquierda, a mitad de altura
+    expect(puertaDesdePunto(z, { x: 90, y: 175 })).toEqual({ lado: 'izquierda', t: 0.5 });
+  });
+});
+
 describe('calcularMontantes — primaria caldera→colector Ø32', () => {
   it('genera una montante por colector hacia la caldera más cercana', () => {
     const montantes = calcularMontantes(
@@ -257,6 +284,24 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
     expect(budget?.zonas[0].requeridoKcalh).toBeNull();
     expect(budget?.zonas[0].suficiente).toBeNull();
+  });
+
+  it('la zona con colector asignado a mano lo respeta aunque haya otro más cerca', () => {
+    // m1 pegado a la zona, m2 lejos: sin asignación iría a m1
+    const z = { ...zona('z1', 2, 2, 4, 3), manifoldId: 'm2' };
+    const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 1), colector('m2', 30, 1)]);
+    expect(circuits.length).toBeGreaterThan(0);
+    expect(circuits.every(c => c.manifoldId === 'm2')).toBe(true);
+
+    const conteo = circuitosPorColector(circuits);
+    expect(conteo.get('m2')).toBe(circuits.length);
+    expect(conteo.get('m1')).toBeUndefined();
+  });
+
+  it('si el colector asignado ya no existe, vuelve al más cercano', () => {
+    const z = { ...zona('z1', 2, 2, 4, 3), manifoldId: 'borrado' };
+    const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 1)]);
+    expect(circuits.every(c => c.manifoldId === 'm1')).toBe(true);
   });
 
   it('potenciaZonaKcalh: la misma cuenta que suman los circuitos, sin serpentines', () => {

@@ -8,7 +8,7 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes, TEMPERATURAS_IMPULSION, emisionKcalhM2 } from '../../utils/floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
@@ -22,6 +22,8 @@ export const Canvas = () => {
   const [pipeStartElement, setPipeStartElement] = useState<{ id: string, type: 'radiator' | 'boiler' } | null>(null);
   // Rectángulo en construcción para zonas de piso radiante (arrastre)
   const [zoneDraft, setZoneDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
+  // Zona a la que se le está marcando la puerta (modo "click en el borde")
+  const [placingDoorZoneId, setPlacingDoorZoneId] = useState<string | null>(null);
 
   // NOTE: Zoom/pan state and handlers are now in useCanvasZoom hook (initialized below after filtering elements)
 
@@ -246,6 +248,37 @@ export const Canvas = () => {
       ctx.setLineDash([6, 4]);
       ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
       ctx.setLineDash([]);
+
+      // Marcador de puerta: vano sobre el borde + hoja a 45° (símbolo de plano)
+      if (zone.puerta) {
+        const p = puntoPuerta(zone, zone.puerta);
+        // Tangente al borde y normal hacia adentro de la zona, según el lado
+        const [tg, nor] = {
+          arriba: [{ x: 1, y: 0 }, { x: 0, y: 1 }],
+          abajo: [{ x: 1, y: 0 }, { x: 0, y: -1 }],
+          izquierda: [{ x: 0, y: 1 }, { x: 1, y: 0 }],
+          derecha: [{ x: 0, y: 1 }, { x: -1, y: 0 }],
+        }[zone.puerta.lado];
+        const MEDIA_APERTURA = 20; // vano de 40 px = 0,80 m a 50 px/m (puerta estándar)
+        const jambaA = { x: p.x - tg.x * MEDIA_APERTURA, y: p.y - tg.y * MEDIA_APERTURA };
+        // Vano: segmento grueso sobre el borde
+        ctx.strokeStyle = '#6D4C41';
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(p.x - tg.x * MEDIA_APERTURA, p.y - tg.y * MEDIA_APERTURA);
+        ctx.lineTo(p.x + tg.x * MEDIA_APERTURA, p.y + tg.y * MEDIA_APERTURA);
+        ctx.stroke();
+        // Hoja de la puerta a 45° hacia adentro
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(jambaA.x, jambaA.y);
+        ctx.lineTo(jambaA.x + (tg.x + nor.x) * 28, jambaA.y + (tg.y + nor.y) * 28);
+        ctx.stroke();
+        // Etiqueta chica afuera
+        ctx.fillStyle = '#6D4C41';
+        ctx.font = 'bold 9px Arial';
+        ctx.fillText('puerta', p.x - nor.x * 14 - 14, p.y - nor.y * 14);
+      }
     });
 
     // Serpentines y acometidas de cada circuito
@@ -277,11 +310,15 @@ export const Canvas = () => {
     });
 
     // Colectores
-    currentFloorManifolds.forEach((manifold) => {
-      const circuitosDelColector = floorHeatingCircuits.length;
-      ctx.fillStyle = '#78909C';
+    const conteoColectores = circuitosPorColector(floorHeatingCircuits);
+    currentFloorManifolds.forEach((manifold, indice) => {
+      const circuitosDelColector = conteoColectores.get(manifold.id) ?? 0;
+      const excedido = circuitosDelColector > MAX_CIRCUITOS_POR_COLECTOR;
+      ctx.fillStyle = excedido ? '#C62828' : '#78909C';
       ctx.fillRect(manifold.x, manifold.y, manifold.width, manifold.height);
-      ctx.strokeStyle = manifold.id === selectedElementId ? '#2196F3' : '#455A64';
+      ctx.strokeStyle = manifold.id === selectedElementId
+        ? '#2196F3'
+        : excedido ? '#B71C1C' : '#455A64';
       ctx.lineWidth = manifold.id === selectedElementId ? 3 : 2;
       ctx.strokeRect(manifold.x, manifold.y, manifold.width, manifold.height);
 
@@ -300,10 +337,13 @@ export const Canvas = () => {
         ctx.fill();
       }
 
-      // Etiqueta
-      ctx.fillStyle = '#455A64';
+      // Etiqueta con conteo de circuitos contra el tope de diseño (máx. 7)
+      const textoColector = circuitosDelColector > 0
+        ? `Colector ${indice + 1} · ${circuitosDelColector}/${MAX_CIRCUITOS_POR_COLECTOR}${excedido ? ' ⚠ agregá otro colector' : ''}`
+        : `Colector ${indice + 1}`;
+      ctx.fillStyle = excedido ? '#C62828' : '#455A64';
       ctx.font = 'bold 9px Arial';
-      ctx.fillText('Colector', manifold.x, manifold.y - 4);
+      ctx.fillText(textoColector, manifold.x, manifold.y - 4);
     });
 
     // Preview del rectángulo de zona mientras se arrastra
@@ -798,6 +838,21 @@ export const Canvas = () => {
 
     const coords = getMouseCoordinates(e);
     setMousePos(coords);
+
+    // Modo puerta: el click marca la puerta sobre el borde más cercano de la
+    // zona. Un click lejos de la zona (>60 px) cancela sin marcar.
+    if (placingDoorZoneId) {
+      const zone = floorHeatingZones.find(z => z.id === placingDoorZoneId);
+      if (zone) {
+        const dx = Math.max(zone.x - coords.x, 0, coords.x - (zone.x + zone.width));
+        const dy = Math.max(zone.y - coords.y, 0, coords.y - (zone.y + zone.height));
+        if (Math.hypot(dx, dy) <= 60) {
+          updateElement(zone.id, { puerta: puertaDesdePunto(zone, coords) });
+        }
+      }
+      setPlacingDoorZoneId(null);
+      return;
+    }
 
     // Si la herramienta es "radiator", crear un radiador
     if (tool === 'radiator') {
@@ -1403,6 +1458,32 @@ export const Canvas = () => {
               ))}
             </select>
             <span style={{ color: '#ccc' }}>|</span>
+            <span style={{ color: '#666' }}>Colector:</span>
+            <select
+              value={selectedZone.manifoldId ?? ''}
+              onChange={(e) => {
+                updateElement(selectedZone.id, {
+                  manifoldId: e.target.value || undefined,
+                });
+              }}
+              style={{
+                padding: '2px 4px',
+                borderRadius: '3px',
+                border: '1px solid #E67E22',
+                background: 'white',
+                color: '#333',
+                fontSize: '11px',
+                maxWidth: '110px',
+                cursor: 'pointer',
+              }}
+              title="Colector al que van los circuitos de esta zona (Auto: el más cercano)"
+            >
+              <option value="">Auto (cercano)</option>
+              {currentFloorManifolds.map((m, i) => (
+                <option key={m.id} value={m.id}>Colector {i + 1}</option>
+              ))}
+            </select>
+            <span style={{ color: '#ccc' }}>|</span>
             <span style={{ color: '#666' }}>Paso:</span>
             {([15, 20] as const).map(paso => (
               <button
@@ -1422,6 +1503,45 @@ export const Canvas = () => {
                 {paso} cm
               </button>
             ))}
+            <span style={{ color: '#ccc' }}>|</span>
+            <button
+              onClick={() => setPlacingDoorZoneId(
+                placingDoorZoneId === selectedZone.id ? null : selectedZone.id
+              )}
+              style={{
+                padding: '2px 8px',
+                borderRadius: '3px',
+                border: '1px solid #6D4C41',
+                background: placingDoorZoneId === selectedZone.id ? '#6D4C41' : 'white',
+                color: placingDoorZoneId === selectedZone.id ? 'white' : '#6D4C41',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+              title={selectedZone.puerta
+                ? 'Reubicar la puerta: click en el borde de la zona por donde entra la cañería'
+                : 'Marcar la puerta: click en el borde de la zona por donde entra la cañería'}
+            >
+              🚪 {selectedZone.puerta ? 'Mover' : 'Puerta'}
+            </button>
+            {selectedZone.puerta && (
+              <button
+                onClick={() => {
+                  updateElement(selectedZone.id, { puerta: undefined });
+                  setPlacingDoorZoneId(null);
+                }}
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  border: '1px solid #6D4C41',
+                  background: 'white',
+                  color: '#6D4C41',
+                  cursor: 'pointer',
+                }}
+                title="Quitar la puerta (la acometida vuelve al borde más cercano)"
+              >
+                ✕
+              </button>
+            )}
           </div>
         );
       })()}
@@ -1522,6 +1642,11 @@ export const Canvas = () => {
         {tool === 'floor-heating-zone' && (
           <span style={{ color: '#E67E22', fontWeight: 'bold' }}>
             {' '}— Arrastrá un rectángulo sobre la habitación del plano: los circuitos se generan solos
+          </span>
+        )}
+        {placingDoorZoneId && (
+          <span style={{ color: '#6D4C41', fontWeight: 'bold' }}>
+            {' '}— 🚪 Click en el borde de la zona por donde entra la cañería (lejos de la zona cancela)
           </span>
         )}
         {tool === 'manifold' && (

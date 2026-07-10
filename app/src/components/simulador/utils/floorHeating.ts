@@ -5,7 +5,7 @@
 
 import { generarSerpentin } from '../../../lib/pisoRadiante/serpentin';
 import type { Punto } from '../../../lib/pisoRadiante/serpentin';
-import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { FloorHeatingZone, PuertaZona } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
 import { rutearOrtogonal, marcarRuta, areaDeTrabajo } from './orthogonalRouter';
@@ -16,6 +16,10 @@ export const PIXELS_PER_METER = 50;
 
 // Límite hidráulico por circuito con PE-X 20mm (ver UnderfloorService).
 export const MAX_CIRCUIT_LENGTH_M = 120;
+
+// Criterio de diseño: máximo de circuitos por colector (caudal y equilibrado).
+// Los colectores comerciales llegan a 12 vías, pero el criterio de obra es 7.
+export const MAX_CIRCUITOS_POR_COLECTOR = 7;
 
 // Densidad de tubería según paso (misma tabla que UnderfloorService):
 // la regla de obra — a paso 20 cm entran 5 m de tubo por m², a paso 15 son 6,7.
@@ -38,6 +42,47 @@ export function emisionKcalhM2(impulsionC: TempImpulsion): number {
   const mediaAgua = impulsionC - 2.5;
   const wM2 = Math.min(4.5 * (mediaAgua - 20), 100);
   return Math.round(wM2 * 0.86); // 1 W = 0,86 kcal/h
+}
+
+// ── Puerta de la zona ───────────────────────────────────────────────────────
+// En obra la acometida entra a la habitación por la puerta, no atraviesa una
+// pared (tipos LadoZona/PuertaZona en el modelo FloorHeatingZone).
+
+// Punto de la puerta en px del canvas. `alongPx` desplaza a lo largo del borde
+// (separa ida de retorno) y `fueraPx` lo aleja perpendicular hacia afuera.
+export function puntoPuerta(
+  zone: FloorHeatingZone,
+  puerta: PuertaZona,
+  alongPx = 0,
+  fueraPx = 0
+): CanvasPoint {
+  const t = Math.min(1, Math.max(0, puerta.t))
+  switch (puerta.lado) {
+    case 'arriba':
+      return { x: zone.x + zone.width * t + alongPx, y: zone.y - fueraPx }
+    case 'abajo':
+      return { x: zone.x + zone.width * t + alongPx, y: zone.y + zone.height + fueraPx }
+    case 'izquierda':
+      return { x: zone.x - fueraPx, y: zone.y + zone.height * t + alongPx }
+    case 'derecha':
+      return { x: zone.x + zone.width + fueraPx, y: zone.y + zone.height * t + alongPx }
+  }
+}
+
+// Lado y fracción de la puerta a partir de un punto del canvas (el click del
+// usuario): se proyecta al borde más cercano del rectángulo de la zona.
+export function puertaDesdePunto(zone: FloorHeatingZone, p: CanvasPoint): PuertaZona {
+  const clampX = Math.min(zone.x + zone.width, Math.max(zone.x, p.x))
+  const clampY = Math.min(zone.y + zone.height, Math.max(zone.y, p.y))
+  const dArr = Math.abs(p.y - zone.y)
+  const dAba = Math.abs(p.y - (zone.y + zone.height))
+  const dIzq = Math.abs(p.x - zone.x)
+  const dDer = Math.abs(p.x - (zone.x + zone.width))
+  const min = Math.min(dArr, dAba, dIzq, dDer)
+  if (min === dArr) return { lado: 'arriba', t: (clampX - zone.x) / zone.width }
+  if (min === dAba) return { lado: 'abajo', t: (clampX - zone.x) / zone.width }
+  if (min === dIzq) return { lado: 'izquierda', t: (clampY - zone.y) / zone.height }
+  return { lado: 'derecha', t: (clampY - zone.y) / zone.height }
 }
 
 // Entrega máxima de una zona completa: área × emisión a la impulsión de
@@ -290,19 +335,37 @@ function rutearAcometidas(
     // el punto de entrada, que queda apenas fuera del rectángulo).
     const obstaculos = zones
 
-    const entradaIda = puntoEntradaZona(zone, c.ida[0])
+    // Con puerta marcada, la acometida entra por la puerta real (ida y
+    // retorno apenas separados sobre el borde); sin puerta, por el punto
+    // del perímetro más cercano al serpentín.
+    const puerta = zone.puerta
+    // Tramo interno puerta → serpentín: en L, arrancando perpendicular al lado
+    const codoInterno = (entrada: CanvasPoint, objetivo: CanvasPoint): CanvasPoint =>
+      (puerta!.lado === 'arriba' || puerta!.lado === 'abajo')
+        ? { x: entrada.x, y: objetivo.y }
+        : { x: objetivo.x, y: entrada.y }
+
+    const entradaIda = puerta
+      ? puntoPuerta(zone, puerta, -4, 12)
+      : puntoEntradaZona(zone, c.ida[0])
     const rutaIda = rutearOrtogonal({ start: salida, goal: entradaIda, obstaculos, ocupadas, area })
     if (rutaIda) {
       marcarRuta(ocupadas, rutaIda)
-      c.acometidaIda = [...rutaIda, c.ida[0]]
+      c.acometidaIda = puerta
+        ? [...rutaIda, codoInterno(entradaIda, c.ida[0]), c.ida[0]]
+        : [...rutaIda, c.ida[0]]
     }
 
     const finRetorno = c.retorno[c.retorno.length - 1]
-    const entradaRetorno = puntoEntradaZona(zone, finRetorno)
+    const entradaRetorno = puerta
+      ? puntoPuerta(zone, puerta, 4, 12)
+      : puntoEntradaZona(zone, finRetorno)
     const rutaRetorno = rutearOrtogonal({ start: salida, goal: entradaRetorno, obstaculos, ocupadas, area })
     if (rutaRetorno) {
       marcarRuta(ocupadas, rutaRetorno)
-      c.acometidaRetorno = [finRetorno, ...[...rutaRetorno].reverse()]
+      c.acometidaRetorno = puerta
+        ? [finRetorno, codoInterno(entradaRetorno, finRetorno), ...[...rutaRetorno].reverse()]
+        : [finRetorno, ...[...rutaRetorno].reverse()]
     }
 
     if (rutaIda || rutaRetorno) {
@@ -325,11 +388,23 @@ export function calcularCircuitosPlanta(
   manifolds: Manifold[],
   tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
 ): FloorHeatingCircuit[] {
-  const circuits = zones.flatMap(zone =>
-    calcularCircuitosZona(zone, colectorMasCercano(zone, manifolds), tempImpulsionC)
-  )
+  const circuits = zones.flatMap(zone => {
+    // Colector asignado a mano en la zona; si no hay (o ya no existe), el más cercano
+    const manual = zone.manifoldId ? manifolds.find(m => m.id === zone.manifoldId) : undefined
+    return calcularCircuitosZona(zone, manual ?? colectorMasCercano(zone, manifolds), tempImpulsionC)
+  })
   rutearAcometidas(circuits, zones, manifolds)
   return circuits
+}
+
+// Circuitos que caen en cada colector (para el tope de 7 vías y el dibujo).
+export function circuitosPorColector(circuits: FloorHeatingCircuit[]): Map<string, number> {
+  const conteo = new Map<string, number>()
+  for (const c of circuits) {
+    if (!c.manifoldId) continue
+    conteo.set(c.manifoldId, (conteo.get(c.manifoldId) ?? 0) + 1)
+  }
+  return conteo
 }
 
 // ============================================================

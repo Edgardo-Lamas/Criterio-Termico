@@ -428,7 +428,10 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       boilers: state.boilers.filter((boiler) => boiler.id !== id),
       pipes: state.pipes.filter((pipe) => pipe.id !== id),
       manifolds: state.manifolds.filter((manifold) => manifold.id !== id),
-      floorHeatingZones: state.floorHeatingZones.filter((zone) => zone.id !== id),
+      // Zonas que apuntaban al colector borrado vuelven a asignación automática
+      floorHeatingZones: state.floorHeatingZones
+        .filter((zone) => zone.id !== id)
+        .map((zone) => zone.manifoldId === id ? { ...zone, manifoldId: undefined } : zone),
       // Limpiar selección si era el elemento eliminado
       selectedElementId: state.selectedElementId === id ? null : state.selectedElementId,
     }));

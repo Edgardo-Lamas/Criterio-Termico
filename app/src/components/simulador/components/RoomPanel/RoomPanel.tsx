@@ -8,6 +8,7 @@ import {
   kcalToKw
 } from '../../utils/thermalCalculator';
 import { potenciaZonaKcalh } from '../../utils/floorHeating';
+import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 
 export const RoomPanel: React.FC = () => {
   const {
@@ -204,9 +205,12 @@ export const RoomPanel: React.FC = () => {
               (acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0
             );
             const installed = powerCheck.installed + pisoPower;
-            const sufficient = installed >= powerCheck.required;
-            const percentage = powerCheck.required > 0
-              ? Math.round((installed / powerCheck.required) * 100)
+            // Mismo criterio conservador que el presupuesto: la habitación
+            // aprueba solo si lo instalado cubre el requerido + 15% de margen
+            const requeridoConMargen = Math.round(powerCheck.required * MARGEN_SEGURIDAD);
+            const sufficient = installed >= requeridoConMargen;
+            const percentage = requeridoConMargen > 0
+              ? Math.round((installed / requeridoConMargen) * 100)
               : 0;
             const hasEmitters = room.radiatorIds.length > 0 || roomZones.length > 0;
 
@@ -253,6 +257,9 @@ export const RoomPanel: React.FC = () => {
                   <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
                     <strong>Requerido:</strong> {powerCheck.required.toLocaleString()} Kcal/h
+                  </div>
+                  <div>
+                    <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
                   </div>
                   {hasEmitters ? (
                     <>
