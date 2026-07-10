@@ -9,7 +9,7 @@ export const errorPresionPasivador = {
     categoria: 'Química del agua / Corrosión',
     tier: 'pro' as const,
     preview: 'La presión del sistema sube progresivamente, acciona la válvula de seguridad y vuelve a subir. La caldera, el vaso de expansión y las purgas no explican el origen.',
-    resumen: 'Ciertos pasivadores contienen compuestos alcalinos que reaccionan con el aluminio de los radiadores produciendo gas hidrógeno (H₂). A diferencia de la expansión térmica, el H₂ es un gas no condensable que se acumula en el sistema elevando la presión de forma continua hasta superar los límites de seguridad.',
+    resumen: 'El pasivador correcto para radiadores de aluminio es un aditivo anticorrosivo de pH neutro —muchas formulaciones son a base de glicol y cumplen doble función anticongelante— que refuerza la capa protectora de óxido de aluminio. El problema aparece cuando al circuito entra un producto incompatible: inhibidores alcalinos pensados para sistemas de hierro, o aditivos genéricos sin certificar, que reaccionan con el aluminio produciendo gas hidrógeno (H₂). El H₂ es un gas no condensable que se acumula en el sistema elevando la presión de forma continua hasta superar los límites de seguridad.',
 }
 
 export function ErrorPresionPasivadorDetalle() {
@@ -54,18 +54,44 @@ export function ErrorPresionPasivadorDetalle() {
                 Muchos fabricantes de radiadores y empresas de servicio técnico recomiendan
                 agregar un pasivador al circuito para acelerar y reforzar esa reacción
                 inicial. La lógica es correcta: una capa de óxido bien formada desde
-                el inicio prolonga la vida útil del radiador.
+                el inicio prolonga la vida útil del radiador. La clave está en que
+                el Al₂O₃ <strong>no es soluble en agua</strong>: una vez formado, queda
+                adherido como barrera permanente que protege el metal.
+            </p>
+            <p>
+                Los pasivadores comerciales para radiadores son aditivos anticorrosivos
+                y antiincrustantes de <strong>pH neutro</strong>. Muchas formulaciones
+                son <strong>a base de glicol</strong> y cumplen doble función:
+                anticongelante y pasivador. Ese es el producto correcto.
             </p>
 
-            <h3>El problema: pasivadores alcalinos incompatibles</h3>
+            <h3>El problema: aditivos incompatibles que alcalinizan el agua</h3>
             <p>
-                El problema surge cuando el pasivador elegido contiene compuestos
-                altamente alcalinos —como hidróxido de sodio (NaOH), hidróxido de
-                potasio (KOH) o silicatos alcalinos— que elevan el pH del agua
-                del circuito por encima de 9.
+                La alcalinidad es uno de los grandes enemigos de los sistemas cerrados
+                de calefacción con aluminio. El problema surge cuando al circuito
+                entra un producto que eleva el pH del agua por encima de 9:
             </p>
+            <ul>
+                <li>
+                    <strong>Inhibidores para sistemas de hierro o acero</strong> usados
+                    por error en un circuito con aluminio: contienen compuestos alcalinos
+                    (silicatos, boratos, hidróxido de sodio o de potasio) que protegen
+                    los metales ferrosos pero atacan al aluminio.
+                </li>
+                <li>
+                    <strong>Aditivos genéricos o de origen desconocido</strong>, sin
+                    certificación de compatibilidad con aluminio, con formulaciones
+                    que nadie controló.
+                </li>
+                <li>
+                    <strong>Interacción con otros materiales del circuito</strong>:
+                    ciertos compuestos del aditivo reaccionan con los demás metales
+                    presentes (hierro, cobre, latón) y esas reacciones también
+                    liberan gases al circuito.
+                </li>
+            </ul>
             <p>
-                A ese pH, la reacción con el aluminio no forma simplemente la capa
+                A pH mayor a 9, la reacción con el aluminio no forma simplemente la capa
                 protectora: disuelve el óxido ya formado y ataca el aluminio puro
                 subyacente en forma continua y agresiva:
             </p>
@@ -195,10 +221,14 @@ export function ErrorPresionPasivadorDetalle() {
                     de vaciado más bajo, con la caldera fría.
                 </li>
                 <li>
-                    <strong>Hacer circular agua limpia</strong> varias veces, vaciando
-                    y rellenando hasta que el agua que sale esté clara y sin olor
-                    químico. En casos severos puede ser necesario circular el doble
-                    o triple del volumen del sistema.
+                    <strong>Hacer circular agua limpia por todos los componentes
+                    del sistema</strong> — caldera, cada radiador, colectores, válvulas
+                    y todo el recorrido de cañerías —, con las válvulas de los
+                    radiadores abiertas para que el lavado pase por cada uno. Vaciar
+                    y rellenar varias veces hasta que el agua que sale esté clara y
+                    sin olor químico. Si queda producto retenido en un solo radiador
+                    o en un tramo sin circular, la reacción continúa. En casos severos
+                    puede ser necesario circular el doble o triple del volumen del sistema.
                 </li>
                 <li>
                     <strong>Verificar el vaso de expansión:</strong> controlar la
@@ -222,7 +252,9 @@ export function ErrorPresionPasivadorDetalle() {
                 <p>
                     Verificar siempre que el producto esté certificado para sistemas
                     con <strong>aluminio</strong>. El pH de trabajo debe ser entre 7 y 8.5
-                    para radiadores de aluminio. Evitar productos que no especifiquen
+                    para radiadores de aluminio; los pasivadores serios son de pH neutro
+                    y muchos son a base de glicol (doble función: anticongelante y
+                    pasivador). Evitar productos que no especifiquen
                     compatibilidad con aluminio o que indiquen pH superior a 9.
                     En sistemas mixtos (tuberías de cobre + radiadores de aluminio)
                     la elección del inhibidor es especialmente crítica: el par
@@ -230,6 +262,21 @@ export function ErrorPresionPasivadorDetalle() {
                     para ambos metales.
                 </p>
             </div>
+
+            <h3>Daño colateral documentado: sellos y o&apos;rings destruidos</h3>
+            <p>
+                En obra se documentaron casos donde, tras agregar un aditivo de
+                formulación dudosa (en uno de ellos, con alto contenido de fósforo),
+                aparecieron destruidos los o&apos;rings de las válvulas del circuito.
+                Un dato técnico para interpretar esto: el EPDM —el material estándar
+                de los sellos en calefacción— resiste bien los fosfatos y el glicol,
+                así que el ataque suele venir de <em>otros</em> componentes de esas
+                formulaciones baratas (solventes, tensioactivos) o encontrar sellos
+                de materiales inferiores. La lección práctica es la misma: si después
+                de agregar un aditivo aparecen fugas por juntas y o&apos;rings en varios
+                puntos del circuito, el sospechoso principal es el producto agregado,
+                y corresponde vaciar y lavar el sistema igual que con el problema del H₂.
+            </p>
 
             <h2>Compatibilidad de metales: el caso del cobre con aluminio</h2>
             <p>

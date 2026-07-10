@@ -8,6 +8,8 @@ import { errorRadiadorFrioAbajo, ErrorRadiadorFrioAbajoDetalle } from './radiado
 import { errorSelladoresRosca, ErrorSelladoresRoscaDetalle } from './selladores-rosca'
 import { errorPruebaHidraulica, ErrorPruebaHidraulicaDetalle } from './prueba-hidraulica'
 import { errorPresionPasivador, ErrorPresionPasivadorDetalle } from './presion-pasivador'
+import { errorPresionVasoMembrana, ErrorPresionVasoMembranaDetalle } from './presion-vaso-membrana'
+import { errorPresionSubeAguaRed, ErrorPresionSubeAguaRedDetalle } from './presion-sube-agua-red'
 import { errorAnticongelante, ErrorAnticongelanteDetalle } from './anticongelante'
 import { errorCalidadAgua, ErrorCalidadAguaDetalle } from './calidad-agua'
 
@@ -32,6 +34,8 @@ export const erroresList: ErrorMeta[] = [
     errorSelladoresRosca,
     errorPruebaHidraulica,
     errorPresionPasivador,
+    errorPresionVasoMembrana,
+    errorPresionSubeAguaRed,
     errorAnticongelante,
     errorCalidadAgua,
 ]
@@ -46,6 +50,8 @@ const erroresContent: Record<string, ComponentType> = {
     'selladores-rosca': ErrorSelladoresRoscaDetalle,
     'prueba-hidraulica': ErrorPruebaHidraulicaDetalle,
     'presion-pasivador': ErrorPresionPasivadorDetalle,
+    'presion-vaso-membrana': ErrorPresionVasoMembranaDetalle,
+    'presion-sube-agua-red': ErrorPresionSubeAguaRedDetalle,
     'anticongelante': ErrorAnticongelanteDetalle,
     'calidad-agua': ErrorCalidadAguaDetalle,
 }
