@@ -40,6 +40,17 @@ export function emisionKcalhM2(impulsionC: TempImpulsion): number {
   return Math.round(wM2 * 0.86); // 1 W = 0,86 kcal/h
 }
 
+// Entrega máxima de una zona completa: área × emisión a la impulsión de
+// diseño. Es la misma cuenta que suman los circuitos de la zona (cada franja
+// aporta su área × emisión), sin necesidad de generar los serpentines.
+export function potenciaZonaKcalh(
+  zone: FloorHeatingZone,
+  tempImpulsionC: TempImpulsion
+): number {
+  const areaM2 = (zone.width / PIXELS_PER_METER) * (zone.height / PIXELS_PER_METER);
+  return Math.round(areaM2 * emisionKcalhM2(tempImpulsionC));
+}
+
 export interface CanvasPoint {
   x: number;
   y: number;

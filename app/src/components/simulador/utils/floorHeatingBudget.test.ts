@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, emisionKcalhM2 } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, emisionKcalhM2, potenciaZonaKcalh } from './floorHeating';
 import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
@@ -257,6 +257,17 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
     expect(budget?.zonas[0].requeridoKcalh).toBeNull();
     expect(budget?.zonas[0].suficiente).toBeNull();
+  });
+
+  it('potenciaZonaKcalh: la misma cuenta que suman los circuitos, sin serpentines', () => {
+    // Zona de 4×3 m = 12 m²: a 45°C → 12 × 86 = 1.032, a 35°C → 12 × 48 = 576.
+    // Es lo que el panel de Cálculo de Potencia usa como "instalado" del piso.
+    const z = zona('z1', 2, 2, 4, 3);
+    expect(potenciaZonaKcalh(z, 45)).toBe(1032);
+    expect(potenciaZonaKcalh(z, 35)).toBe(576);
+
+    const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 1)]);
+    expect(circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0)).toBe(potenciaZonaKcalh(z, 45));
   });
 });
 

@@ -7,9 +7,13 @@ import {
   calculateBoilerPower,
   kcalToKw
 } from '../../utils/thermalCalculator';
+import { potenciaZonaKcalh } from '../../utils/floorHeating';
 
 export const RoomPanel: React.FC = () => {
-  const { rooms, radiators, currentFloor, addRoom, updateRoom, removeRoom } = useElementsStore();
+  const {
+    rooms, radiators, floorHeatingZones, floorHeatingTempC,
+    currentFloor, addRoom, updateRoom, removeRoom
+  } = useElementsStore();
   const { isBudgetPanelOpen } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -53,8 +57,15 @@ export const RoomPanel: React.FC = () => {
     }
   };
 
-  // Calcular totales para la caldera
+  // Calcular totales para la caldera: radiadores + piso radiante.
+  // El piso aporta su entrega máxima (área × emisión a la impulsión de diseño)
+  // y la caldera se dimensiona con la misma regla del 80% de capacidad.
   const boilerCalc = calculateBoilerPower(radiators);
+  const pisoTotalPower = floorHeatingZones.reduce(
+    (acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0
+  );
+  const totalEmittersPower = boilerCalc.totalRadiatorPower + pisoTotalPower;
+  const recommendedBoilerPower = Math.round(totalEmittersPower / 0.80);
 
   // Si está colapsado, solo mostrar botón flotante
   if (isCollapsed) {
@@ -128,12 +139,8 @@ export const RoomPanel: React.FC = () => {
         </button>
       </div>
 
-      {/* Lista de habitaciones + detalle seleccionado */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '12px'
-      }}>
+      {/* Planta actual + botón de alta: fijos fuera del scroll, siempre a mano */}
+      <div style={{ padding: '12px 12px 0' }}>
         {/* Indicador de planta actual */}
         <div style={{
           marginBottom: '12px',
@@ -170,7 +177,14 @@ export const RoomPanel: React.FC = () => {
             + Nueva Habitación
           </button>
         </div>
+      </div>
 
+      {/* Lista de habitaciones + detalle seleccionado */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        padding: '0 12px 12px'
+      }}>
         {rooms.length === 0 ? (
           <div style={{
             textAlign: 'center',
@@ -183,6 +197,18 @@ export const RoomPanel: React.FC = () => {
         ) : (
           rooms.map(room => {
             const powerCheck = isPowerSufficient(room, radiators);
+            // Piso radiante vinculado a la habitación (zona↔habitación del canvas):
+            // su entrega máxima cuenta como potencia instalada, igual que un radiador
+            const roomZones = floorHeatingZones.filter(z => z.roomId === room.id);
+            const pisoPower = roomZones.reduce(
+              (acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0
+            );
+            const installed = powerCheck.installed + pisoPower;
+            const sufficient = installed >= powerCheck.required;
+            const percentage = powerCheck.required > 0
+              ? Math.round((installed / powerCheck.required) * 100)
+              : 0;
+            const hasEmitters = room.radiatorIds.length > 0 || roomZones.length > 0;
 
             return (
               <div
@@ -228,22 +254,34 @@ export const RoomPanel: React.FC = () => {
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
                     <strong>Requerido:</strong> {powerCheck.required.toLocaleString()} Kcal/h
                   </div>
-                  {room.radiatorIds.length > 0 ? (
+                  {hasEmitters ? (
                     <>
-                      <div>
-                        <strong>Instalado:</strong> {powerCheck.installed.toLocaleString()} Kcal/h
-                      </div>
+                      {room.radiatorIds.length > 0 && (
+                        <div>
+                          <strong>Radiadores:</strong> {powerCheck.installed.toLocaleString()} Kcal/h
+                        </div>
+                      )}
+                      {roomZones.length > 0 && (
+                        <div>
+                          <strong>Piso radiante:</strong> {pisoPower.toLocaleString()} Kcal/h
+                        </div>
+                      )}
+                      {room.radiatorIds.length > 0 && roomZones.length > 0 && (
+                        <div>
+                          <strong>Instalado:</strong> {installed.toLocaleString()} Kcal/h
+                        </div>
+                      )}
                       <div style={{
                         marginTop: '4px',
-                        color: powerCheck.sufficient ? '#4CAF50' : '#f44336',
+                        color: sufficient ? '#4CAF50' : '#f44336',
                         fontWeight: 600
                       }}>
-                        {powerCheck.sufficient ? '✓ Suficiente' : '⚠ Insuficiente'} ({powerCheck.percentage}%)
+                        {sufficient ? '✓ Suficiente' : '⚠ Insuficiente'} ({percentage}%)
                       </div>
                     </>
                   ) : (
                     <div style={{ marginTop: '4px', color: '#999', fontSize: '11px' }}>
-                      Sin radiadores asignados
+                      Sin radiadores ni piso radiante asignados
                     </div>
                   )}
                 </div>
@@ -506,10 +544,15 @@ export const RoomPanel: React.FC = () => {
         </h4>
         <div style={{ fontSize: '12px', lineHeight: '1.6' }}>
           <div>
-            Total radiadores: <strong>{boilerCalc.totalRadiatorPower.toLocaleString()} Kcal/h</strong>
+            Radiadores: <strong>{boilerCalc.totalRadiatorPower.toLocaleString()} Kcal/h</strong>
           </div>
+          {pisoTotalPower > 0 && (
+            <div>
+              Piso radiante: <strong>{pisoTotalPower.toLocaleString()} Kcal/h</strong>
+            </div>
+          )}
           <div>
-            ({kcalToKw(boilerCalc.totalRadiatorPower)} kW)
+            Total: <strong>{totalEmittersPower.toLocaleString()} Kcal/h</strong> ({kcalToKw(totalEmittersPower)} kW)
           </div>
           <div style={{
             marginTop: '8px',
@@ -519,10 +562,10 @@ export const RoomPanel: React.FC = () => {
           }}>
             Caldera recomendada:
             <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD54F' }}>
-              {boilerCalc.recommendedBoilerPower.toLocaleString()} Kcal/h
+              {recommendedBoilerPower.toLocaleString()} Kcal/h
             </div>
             <div style={{ fontSize: '11px', color: '#B0BEC5' }}>
-              ({kcalToKw(boilerCalc.recommendedBoilerPower)} kW)
+              ({kcalToKw(recommendedBoilerPower)} kW)
             </div>
           </div>
           <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '4px' }}>

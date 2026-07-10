@@ -25,7 +25,7 @@ export const Canvas = () => {
 
   // NOTE: Zoom/pan state and handlers are now in useCanvasZoom hook (initialized below after filtering elements)
 
-  const { tool, setTool } = useToolsStore();
+  const { tool, setTool, visibleLayers, toggleLayer } = useToolsStore();
   const {
     radiators,
     boilers,
@@ -173,8 +173,8 @@ export const Canvas = () => {
     ctx.translate(panOffset.x, panOffset.y);
     ctx.scale(zoom, zoom);
 
-    // Dibujar imagen de fondo del plano (si existe)
-    if (backgroundImage) {
+    // Dibujar imagen de fondo del plano (si existe y la capa está visible)
+    if (backgroundImage && visibleLayers.plano) {
       const img = new Image();
       img.src = backgroundImage;
 
@@ -215,7 +215,7 @@ export const Canvas = () => {
 
     // Montantes caldera→colector (CAPA INFERIOR: van aisladas por el
     // contrapiso, debajo de placas y circuitos — por eso pueden cruzar zonas)
-    floorHeatingMontantes.forEach((m) => {
+    if (visibleLayers.montantes) floorHeatingMontantes.forEach((m) => {
       ctx.setLineDash([10, 6]);
       drawPolyline(m.ida, '#8B0000', 3);
       drawPolyline(m.retorno, '#0D47A1', 3);
@@ -249,7 +249,7 @@ export const Canvas = () => {
     });
 
     // Serpentines y acometidas de cada circuito
-    floorHeatingCircuits.forEach((c) => {
+    if (visibleLayers.circuitos) floorHeatingCircuits.forEach((c) => {
       drawPolyline(c.acometidaIda, '#D32F2F', 1.5);
       drawPolyline(c.acometidaRetorno, '#29B6F6', 1.5);
       drawPolyline(c.ida, '#D32F2F', 1.5);
@@ -694,7 +694,7 @@ export const Canvas = () => {
   // Redibujar cuando cambien los radiadores, calderas, pipes, zonas PR, colectores, conexiones, backgroundImage, selección, tool, pipeStart o PLANTA ACTUAL
   useEffect(() => {
     draw();
-  }, [radiators, boilers, pipes, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor]);
+  }, [radiators, boilers, pipes, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor, floorHeatingTempC, visibleLayers]);
 
   // Redibujar solo cuando cambia mousePos y estamos creando una tubería o dibujando zona (para preview)
   useEffect(() => {
@@ -1478,6 +1478,32 @@ export const Canvas = () => {
                 </button>
               ))}
               <span style={{ color: '#888', fontSize: '11px' }}>→ {emisionKcalhM2(floorHeatingTempC)} kcal/h·m²</span>
+            </div>
+            <div style={{ marginTop: 6, paddingTop: 6, borderTop: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: '#555' }}>🗂 Capas:</span>
+              {([
+                ['plano', 'Plano', 'Imagen de fondo del plano'],
+                ['circuitos', 'Circuitos Ø20', 'Serpentines y acometidas de piso radiante'],
+                ['montantes', 'Montantes Ø32', 'Primaria caldera→colector (capa inferior, por contrapiso)'],
+              ] as const).map(([capa, nombre, detalle]) => (
+                <button
+                  key={capa}
+                  onClick={() => toggleLayer(capa)}
+                  style={{
+                    padding: '1px 7px',
+                    borderRadius: '3px',
+                    border: '1px solid #607D8B',
+                    background: visibleLayers[capa] ? '#607D8B' : 'white',
+                    color: visibleLayers[capa] ? 'white' : '#90A4AE',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '11px',
+                  }}
+                  title={`${detalle} — click para ${visibleLayers[capa] ? 'ocultar' : 'mostrar'}`}
+                >
+                  {visibleLayers[capa] ? '👁' : '🚫'} {nombre}
+                </button>
+              ))}
             </div>
           </div>
         );
