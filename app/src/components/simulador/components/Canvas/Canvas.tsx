@@ -68,9 +68,9 @@ export const Canvas = () => {
   // Circuitos de piso radiante: solo se recalculan cuando cambian zonas o
   // colectores, no en cada redibujado (zoom/pan/drag de otros elementos).
   const floorHeatingCircuits = useMemo<FloorHeatingCircuit[]>(
-    () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds, floorHeatingTempC),
+    () => calcularCircuitosPlanta(currentFloorZones, currentFloorManifolds, floorHeatingTempC, rooms),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [floorHeatingZones, manifolds, currentFloor, floorHeatingTempC]
+    [floorHeatingZones, manifolds, currentFloor, floorHeatingTempC, rooms]
   );
 
   // Montantes caldera→colector (primaria Ø32, capa inferior)
@@ -294,8 +294,13 @@ export const Canvas = () => {
       }
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
-      // Etiqueta del circuito: "C2 · 66 m · p15 · 645 kcal/h" (C2 = colector 2)
-      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${c.potenciaKcalh} kcal/h`;
+      // Etiqueta del circuito: con habitación vinculada muestra la CARGA de
+      // diseño del panel (lo que el circuito debe cubrir); sin vínculo, la
+      // entrega máxima del piso. "C2" = colector 2.
+      const potenciaTxt = c.cargaKcalh != null
+        ? `carga ${c.cargaKcalh.toLocaleString('es-AR')}`
+        : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
+      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${potenciaTxt} kcal/h`;
       ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -325,20 +330,24 @@ export const Canvas = () => {
       const requerido = Math.round(calculateRoomPower(room) * MARGEN_SEGURIDAD);
       const pct = requerido > 0 ? Math.round((entrega / requerido) * 100) : 0;
       const ok = entrega >= requerido;
-      const texto = `${ok ? '✓' : '⚠'} entrega ${entrega.toLocaleString('es-AR')} · req+15% ${requerido.toLocaleString('es-AR')} kcal/h · ${pct}%`;
+      // Compacto para no tapar los circuitos; el detalle completo aparece
+      // al seleccionar la zona (y en el panel / presupuesto).
+      const texto = zone.id === selectedElementId
+        ? `${ok ? '\u2713' : '\u26A0'} el piso rinde ${entrega.toLocaleString('es-AR')} de ${requerido.toLocaleString('es-AR')} kcal/h (req+15%) \u00B7 ${pct}%`
+        : `${ok ? '\u2713' : '\u26A0'} piso ${pct}%`;
       const color = ok ? '#2E7D32' : '#C62828';
 
-      ctx.font = 'bold 10px Arial';
+      ctx.font = 'bold 9px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
       const ancho = ctx.measureText(texto).width;
-      const lx = zone.x + 6;
-      const ly = zone.y + zone.height - 12;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
-      ctx.fillRect(lx - 3, ly - 8, ancho + 6, 16);
+      const lx = zone.x + 4;
+      const ly = zone.y + zone.height - 9;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.fillRect(lx - 2, ly - 7, ancho + 4, 14);
       ctx.strokeStyle = color;
       ctx.lineWidth = 1;
-      ctx.strokeRect(lx - 3, ly - 8, ancho + 6, 16);
+      ctx.strokeRect(lx - 2, ly - 7, ancho + 4, 14);
       ctx.fillStyle = color;
       ctx.fillText(texto, lx, ly);
       ctx.textAlign = 'start';

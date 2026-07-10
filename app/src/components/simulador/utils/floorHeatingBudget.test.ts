@@ -246,7 +246,8 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
 
   it('compara entrega vs. requerido de la habitación con margen de seguridad del 15%', () => {
     // Habitación de 15 m² × 2,5 m × 50 kcal/h·m³ = 1.875 kcal/h requeridos
-    // → con margen 15% = 2.156. La zona de 12 m² entrega 1.032 → cubre 48% ⚠.
+    // → con margen 15% = 2.156. Con habitación vinculada la entrega usa el
+    // área REAL (15 m² × 86 = 1.290), no la dibujada → cubre 60% ⚠.
     const room = {
       id: 'r1', name: 'Recámara 2', area: 15, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -257,17 +258,18 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(budget).not.toBeNull();
     if (!budget) return;
     expect(budget.zonas).toHaveLength(1);
-    expect(budget.zonas[0].potenciaKcalh).toBe(1032);
+    expect(budget.zonas[0].potenciaKcalh).toBe(1290);
     expect(budget.zonas[0].requeridoKcalh).toBe(1875);
     expect(budget.zonas[0].requeridoConMargenKcalh).toBe(2156);
-    expect(budget.zonas[0].coberturaPct).toBe(48);
+    expect(budget.zonas[0].coberturaPct).toBe(60);
     expect(budget.zonas[0].suficiente).toBe(false);
-    expect(budget.potenciaTotalKcalh).toBe(1032);
+    expect(budget.potenciaTotalKcalh).toBe(1290);
   });
 
-  it('el margen exige un 15% por encima del requerido justo', () => {
-    // Habitación chica: 5 m² × 2,5 m × 50 = 625 kcal/h → con margen 719.
-    // Zona de 12 m² a 45°C entrega 1.032 → suficiente (144%).
+  it('la zona vinculada usa el área REAL de la habitación, no la dibujada', () => {
+    // Baño de 5 m² con zona dibujada de 12 m² (imagen fuera de escala):
+    // la matemática usa los 5 m² reales → entrega 5 × 86 = 430,
+    // serpentín 5 × 6,7 = 33,5 m, carga por circuito = requerido (625).
     const room = {
       id: 'r1', name: 'Baño', area: 5, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -275,9 +277,19 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     };
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Baño' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
-    expect(budget?.zonas[0].requeridoConMargenKcalh).toBe(719);
-    expect(budget?.zonas[0].suficiente).toBe(true);
-    expect(budget?.zonas[0].coberturaPct).toBe(144);
+    expect(budget).not.toBeNull();
+    if (!budget) return;
+    expect(budget.zonas[0].potenciaKcalh).toBe(430);
+    expect(budget.zonas[0].areaM2).toBeCloseTo(5, 1);
+    expect(budget.zonas[0].requeridoConMargenKcalh).toBe(719);
+    expect(budget.zonas[0].suficiente).toBe(false);
+    // La carga de diseño del panel se reparte entre los circuitos de la zona
+    const propios = budget.circuits.filter(c => c.zoneId === 'z1');
+    const cargaTotal = propios.reduce((acc, c) => acc + (c.cargaKcalh ?? 0), 0);
+    expect(cargaTotal).toBe(625);
+    // Sin habitación vinculada no hay carga asignada
+    const sinRoom = calcularCircuitosPlanta([zona('z2', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    expect(sinRoom.every(c => c.cargaKcalh === null)).toBe(true);
   });
 
   it('sin habitación vinculada no hay comparación (requerido null)', () => {

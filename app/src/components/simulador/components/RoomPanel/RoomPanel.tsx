@@ -7,7 +7,7 @@ import {
   calculateBoilerPower,
   kcalToKw
 } from '../../utils/thermalCalculator';
-import { potenciaZonaKcalh } from '../../utils/floorHeating';
+import { potenciaZonaKcalh, emisionKcalhM2 } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 
 export const RoomPanel: React.FC = () => {
@@ -62,9 +62,19 @@ export const RoomPanel: React.FC = () => {
   // El piso aporta su entrega máxima (área × emisión a la impulsión de diseño)
   // y la caldera se dimensiona con la misma regla del 80% de capacidad.
   const boilerCalc = calculateBoilerPower(radiators);
-  const pisoTotalPower = floorHeatingZones.reduce(
-    (acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0
+  // Zonas vinculadas a una habitación: entrega según el ÁREA REAL del panel
+  // (la escala de la imagen del plano no es la del canvas). Zonas sueltas:
+  // según el área dibujada, único dato disponible.
+  const roomsConPiso = rooms.filter(room =>
+    floorHeatingZones.some(z => z.roomId === room.id)
   );
+  const pisoVinculado = roomsConPiso.reduce(
+    (acc, room) => acc + Math.round(room.area * emisionKcalhM2(floorHeatingTempC)), 0
+  );
+  const pisoSinVincular = floorHeatingZones
+    .filter(z => !z.roomId || !rooms.some(r => r.id === z.roomId))
+    .reduce((acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0);
+  const pisoTotalPower = pisoVinculado + pisoSinVincular;
   const totalEmittersPower = boilerCalc.totalRadiatorPower + pisoTotalPower;
   const recommendedBoilerPower = Math.round(totalEmittersPower / 0.80);
 
@@ -201,9 +211,11 @@ export const RoomPanel: React.FC = () => {
             // Piso radiante vinculado a la habitación (zona↔habitación del canvas):
             // su entrega máxima cuenta como potencia instalada, igual que un radiador
             const roomZones = floorHeatingZones.filter(z => z.roomId === room.id);
-            const pisoPower = roomZones.reduce(
-              (acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0
-            );
+            // Entrega del piso según el área REAL de la habitación (no la
+            // dibujada): el piso no puede cubrir más superficie que el ambiente
+            const pisoPower = roomZones.length > 0
+              ? Math.round(room.area * emisionKcalhM2(floorHeatingTempC))
+              : 0;
             const installed = powerCheck.installed + pisoPower;
             // Mismo criterio conservador que el presupuesto: la habitación
             // aprueba solo si lo instalado cubre el requerido + 15% de margen

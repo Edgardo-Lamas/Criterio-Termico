@@ -8,7 +8,9 @@ import type { Punto } from '../../../lib/pisoRadiante/serpentin';
 import type { FloorHeatingZone, PuertaZona } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
+import type { Room } from '../models/Room';
 import { rutearOrtogonal, marcarRuta, areaDeTrabajo } from './orthogonalRouter';
+import { calculateRoomPower } from './thermalCalculator';
 
 // Misma escala que usa el resto del simulador para longitudes de tubería
 // (ver useElementsStore.finishPipe / createManualPipe).
@@ -108,6 +110,7 @@ export interface FloorHeatingCircuit {
   numero: number;              // número de circuito dentro de la zona (1..n)
   colectorNumero: number | null; // índice 1..n del colector en la planta (null sin colector)
   etiqueta: string;            // "C2" = va al colector 2; "C2.1" si la zona tiene varios circuitos
+  cargaKcalh: number | null;   // carga térmica de diseño (requerido de la habitación repartido)
   patron: 'espiral' | 'meandro';
   ida: CanvasPoint[];          // px absolutos del canvas
   retorno: CanvasPoint[];      // px absolutos del canvas
@@ -215,14 +218,29 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
   return { x: interior.x, y: zone.y + zone.height + FUERA }
 }
 
+// Datos reales de la habitación vinculada a la zona: el plano de fondo es una
+// imagen cuya escala NO coincide con los 50 px/m del canvas, así que los m²
+// del dibujo distorsionan la matemática. Cuando la zona tiene habitación,
+// toda la cuenta (longitud, potencia, materiales) usa el área REAL cargada en
+// el panel, y la carga térmica calculada se reparte entre los circuitos.
+export interface DatosReales {
+  areaM2: number          // área real de la habitación (del panel)
+  cargaKcalh: number | null // requerido calculado (calculateRoomPower)
+}
+
 export function calcularCircuitosZona(
   zone: FloorHeatingZone,
   manifold: Manifold | null,
-  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
+  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT,
+  real: DatosReales | null = null
 ): FloorHeatingCircuit[] {
   const salidaColector: CanvasPoint | null = manifold
     ? puntoSalidaColector(manifold, zone)
     : null
+
+  // Factor entre el área real de la habitación y la dibujada en px
+  const areaDibujadaM2 = (zone.width / PIXELS_PER_METER) * (zone.height / PIXELS_PER_METER)
+  const escala = real && areaDibujadaM2 > 0 ? real.areaM2 / areaDibujadaM2 : 1
 
   const MAX_INTENTOS = 8
   for (let n = 1; n <= MAX_INTENTOS; n++) {
@@ -257,8 +275,9 @@ export function calcularCircuitosZona(
         )
       }
 
-      // Longitud presupuestada por densidad (regla de obra), no por el dibujo
-      const areaM2 = redondear(anchoM * altoM)
+      // Longitud presupuestada por densidad (regla de obra), no por el dibujo.
+      // Con habitación vinculada, el área de la franja se escala al área REAL.
+      const areaM2 = redondear(anchoM * altoM * escala)
       const longitudSerpentin = redondear(areaM2 * DENSIDAD_POR_PASO[zone.pasoCm])
       const longitudTotal = redondear(longitudSerpentin + longitudAcometida)
       if (longitudTotal > MAX_CIRCUIT_LENGTH_M) algunoExcede = true
@@ -278,6 +297,11 @@ export function calcularCircuitosZona(
         pasoCm: zone.pasoCm,
         areaM2,
         potenciaKcalh: Math.round(areaM2 * emisionKcalhM2(tempImpulsionC)),
+        // Carga de diseño de la habitación repartida en partes iguales
+        // (las franjas son iguales entre sí)
+        cargaKcalh: real?.cargaKcalh != null
+          ? Math.round(real.cargaKcalh / franjas.length)
+          : null,
         longitudSerpentin,
         longitudAcometida,
         longitudTotal,
@@ -390,13 +414,19 @@ function rutearAcometidas(
 export function calcularCircuitosPlanta(
   zones: FloorHeatingZone[],
   manifolds: Manifold[],
-  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT
+  tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT,
+  rooms: Room[] = []
 ): FloorHeatingCircuit[] {
   const circuits = zones.flatMap(zone => {
     // Colector asignado a mano en la zona; si no hay (o ya no existe), el más cercano
     const manual = zone.manifoldId ? manifolds.find(m => m.id === zone.manifoldId) : undefined
     const manifold = manual ?? colectorMasCercano(zone, manifolds)
-    const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC)
+    // Habitación vinculada → la matemática usa su área real y reparte su carga
+    const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined
+    const real: DatosReales | null = room
+      ? { areaM2: room.area, cargaKcalh: Math.round(calculateRoomPower(room)) }
+      : null
+    const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC, real)
 
     // Etiqueta con la numeración del colector (como leen los planos de obra):
     // "C2" = circuito del colector 2; "C2.1"/"C2.2" si la zona se divide.

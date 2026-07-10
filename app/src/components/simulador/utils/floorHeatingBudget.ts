@@ -68,7 +68,7 @@ export function calcularPresupuestoPisoRadiante(
     const zonesFloor = zones.filter(z => z.floor === floor);
     const manifoldsFloor = manifolds.filter(m => m.floor === floor);
     const boilersFloor = boilers.filter(b => !b.floor || b.floor === floor);
-    circuits.push(...calcularCircuitosPlanta(zonesFloor, manifoldsFloor, tempImpulsionC));
+    circuits.push(...calcularCircuitosPlanta(zonesFloor, manifoldsFloor, tempImpulsionC, rooms));
     montantes.push(...calcularMontantes(manifoldsFloor, boilersFloor, zonesFloor));
   }
   if (circuits.length === 0) return null;
@@ -76,15 +76,22 @@ export function calcularPresupuestoPisoRadiante(
   const longitudTotalM = Math.round(circuits.reduce((acc, c) => acc + c.longitudTotal, 0) * 100) / 100;
   const longitudMontantesM = Math.round(montantes.reduce((acc, m) => acc + m.longitudTotal, 0) * 100) / 100;
 
-  // Área y banda perimetral solo de las zonas que generaron circuitos
+  // Área y banda perimetral solo de las zonas que generaron circuitos.
+  // El área sale de los circuitos (ya escalados al área REAL de la habitación
+  // vinculada); el perímetro dibujado se corrige con √escala por zona, porque
+  // la imagen del plano no está en la escala interna del canvas (50 px/m).
   const zoneIds = new Set(circuits.map(c => c.zoneId));
   const zonasActivas = zones.filter(z => zoneIds.has(z.id));
   const areaM2 = Math.round(
-    zonasActivas.reduce((acc, z) => acc + (z.width / PIXELS_PER_METER) * (z.height / PIXELS_PER_METER), 0) * 100
+    circuits.reduce((acc, c) => acc + c.areaM2, 0) * 100
   ) / 100;
-  const perimetroM = zonasActivas.reduce(
-    (acc, z) => acc + 2 * ((z.width + z.height) / PIXELS_PER_METER), 0
-  );
+  const perimetroM = zonasActivas.reduce((acc, z) => {
+    const perimetroDibujado = 2 * ((z.width + z.height) / PIXELS_PER_METER);
+    const areaDibujada = (z.width / PIXELS_PER_METER) * (z.height / PIXELS_PER_METER);
+    const room = z.roomId ? rooms.find(r => r.id === z.roomId) : undefined;
+    const escala = room && areaDibujada > 0 ? Math.sqrt(room.area / areaDibujada) : 1;
+    return acc + perimetroDibujado * escala;
+  }, 0);
 
   // Un colector físico por cada colector dibujado; los circuitos sin colector
   // asignado (planta sin colector) igual necesitan uno: van en su propio grupo.
