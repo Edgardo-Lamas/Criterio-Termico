@@ -7,7 +7,6 @@ import type { Room } from '../models/Room';
 import type { Radiator } from '../models/Radiator';
 import type { TipoTiro } from '../data/catalog';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
 import { MAX_CIRCUIT_LENGTH_M, MAX_CIRCUITOS_POR_COLECTOR } from './floorHeating';
 import { calculateRoomPower } from './thermalCalculator';
 
@@ -212,9 +211,11 @@ export function generarConsideraciones({
   }
 
   // ── De las habitaciones con radiadores ──────────────────────────────────
-  // Habitaciones con radiadores asignados que no cubren el requerido +15%.
-  // Las que tienen piso radiante vinculado ya están cubiertas por el chequeo
-  // de zonas de arriba (otra base de cálculo).
+  // Habitaciones con radiadores asignados que no cubren el requerido. SIN
+  // margen extra del 15% (criterio de Edgardo): el factor volumétrico ya viene
+  // sobredimensionado con sus incrementos de pared exterior y ventanas. Las
+  // habitaciones con piso radiante vinculado ya están cubiertas por el chequeo
+  // de zonas de arriba (otra base de cálculo, ahí el 15% sí aplica).
   const roomsConPiso = new Set(
     (floorHeating?.zonas ?? []).map(z => z.roomId).filter(Boolean)
   );
@@ -224,14 +225,14 @@ export function generarConsideraciones({
       const rad = radiators.find(r => r.id === id);
       return sum + (rad?.power ?? 0);
     }, 0);
-    return instalado < Math.round(calculateRoomPower(room) * MARGEN_SEGURIDAD);
+    return instalado < Math.round(calculateRoomPower(room));
   });
   if (radiadoresInsuficientes.length > 0) {
     criticas.push({
       nivel: 'critica',
       titulo: `Radiadores insuficientes en: ${radiadoresInsuficientes.map(r => r.name).join(', ')}`,
       detalle:
-        'La potencia instalada no cubre el requerido con margen del 15%. Agregar elementos ' +
+        'La potencia instalada no cubre el requerido del ambiente. Agregar elementos ' +
         'o un radiador más en esos ambientes.',
     });
   }

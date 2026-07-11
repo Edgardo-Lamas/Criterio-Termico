@@ -7,10 +7,17 @@
 
 import type { Room } from '../models/Room';
 import { calculateRoomPower } from './thermalCalculator';
-import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
 
-// Regla del catálogo: elemento estándar de 200 kcal/h (Tropical 500 y equiv.)
-export const ELEMENTO_KCALH = 200;
+// Alturas estándar de elemento y su potencia (criterio de Edgardo: 500 mm =
+// 200 kcal/h; 600 y 700 proporcionales — ajustar si el catálogo indica otra
+// cosa). El valor de 200 ya es conservador de por sí.
+export type AlturaElementoMm = 500 | 600 | 700;
+export const ELEMENTOS_KCALH_POR_ALTURA: Record<AlturaElementoMm, number> = {
+  500: 200,
+  600: 240,
+  700: 280,
+};
+export const ELEMENTO_KCALH = ELEMENTOS_KCALH_POR_ALTURA[500];
 // Criterio de obra: un radiador muy largo distribuye mal — tope de elementos
 export const MAX_ELEMENTOS_POR_RADIADOR = 12;
 
@@ -33,13 +40,19 @@ export interface RadiadorPropuesto {
  * Propone los radiadores de una habitación con contorno marcado.
  * Devuelve [] si la habitación no tiene bounds.
  */
-export function autoColocarRadiadores(room: Room): RadiadorPropuesto[] {
+export function autoColocarRadiadores(
+  room: Room,
+  elementoKcalh: number = ELEMENTO_KCALH
+): RadiadorPropuesto[] {
   const bounds = room.bounds;
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return [];
 
-  // Requerido con el margen de seguridad del proyecto, en elementos enteros
-  const requerido = calculateRoomPower(room) * MARGEN_SEGURIDAD;
-  const elementosTotales = Math.max(1, Math.ceil(requerido / ELEMENTO_KCALH));
+  // SIN margen extra del 15% (criterio de Edgardo): el factor volumétrico ya
+  // viene sobredimensionado, tiene sus propios incrementos por pared exterior
+  // y ventanas, y los kcal/h por elemento también son conservadores. El
+  // redondeo a elementos enteros hacia arriba ya aporta la holgura que falta.
+  const requerido = calculateRoomPower(room);
+  const elementosTotales = Math.max(1, Math.ceil(requerido / elementoKcalh));
   const cantidad = Math.max(1, Math.ceil(elementosTotales / MAX_ELEMENTOS_POR_RADIADOR));
 
   // Repartir los elementos lo más parejo posible (los primeros llevan la sobra)
@@ -67,7 +80,7 @@ export function autoColocarRadiadores(room: Room): RadiadorPropuesto[] {
         y: bounds.y + SEPARACION_PARED_PX,
         width: frentePx,
         height: ALTO_RADIADOR_PX,
-        power: elementos * ELEMENTO_KCALH,
+        power: elementos * elementoKcalh,
         elementos,
       };
     }
@@ -78,7 +91,7 @@ export function autoColocarRadiadores(room: Room): RadiadorPropuesto[] {
       y: bounds.y + centroTramo - frentePx / 2,
       width: ALTO_RADIADOR_PX,
       height: frentePx,
-      power: elementos * ELEMENTO_KCALH,
+      power: elementos * elementoKcalh,
       elementos,
     };
   });

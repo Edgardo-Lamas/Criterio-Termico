@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { autoColocarRadiadores, ELEMENTO_KCALH, MAX_ELEMENTOS_POR_RADIADOR } from './autoLayout';
+import { autoColocarRadiadores, ELEMENTO_KCALH, ELEMENTOS_KCALH_POR_ALTURA, MAX_ELEMENTOS_POR_RADIADOR } from './autoLayout';
 import { calculateRoomPower } from './thermalCalculator';
-import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
 import type { Room } from '../models/Room';
 
 function room(area: number, bounds: Room['bounds'], extra: Partial<Room> = {}): Room {
@@ -24,32 +23,45 @@ describe('autoColocarRadiadores — borrador de radiadores por habitación', () 
     expect(autoColocarRadiadores(room(15, undefined))).toEqual([]);
   });
 
-  it('habitación de 15 m²: un radiador que cubre el requerido +15%', () => {
-    // 15 × 2,5 × 50 = 1.875 × 1,15 = 2.156 → 11 elementos → 2.200 kcal/h
+  it('habitación de 15 m²: un radiador que cubre el requerido (sin margen extra)', () => {
+    // 15 × 2,5 × 50 = 1.875 → 10 elementos de 200 → 2.000 kcal/h.
+    // Sin el 15%: el factor volumétrico ya viene sobredimensionado.
     const r = room(15, { x: 100, y: 100, width: 300, height: 200 });
     const propuestos = autoColocarRadiadores(r);
     expect(propuestos).toHaveLength(1);
-    expect(propuestos[0].power).toBe(2200);
-    expect(propuestos[0].elementos).toBe(11);
+    expect(propuestos[0].power).toBe(2000);
+    expect(propuestos[0].elementos).toBe(10);
   });
 
   it('habitación grande: divide en varios radiadores de hasta 12 elementos', () => {
-    // 40 × 2,5 × 50 = 5.000 × 1,15 = 5.750 → 29 elementos → 3 radiadores (10+10+9)
+    // 40 × 2,5 × 50 = 5.000 → 25 elementos → 3 radiadores (9+8+8)
     const r = room(40, { x: 0, y: 0, width: 600, height: 300 });
     const propuestos = autoColocarRadiadores(r);
     expect(propuestos).toHaveLength(3);
-    expect(propuestos.map(p => p.elementos)).toEqual([10, 10, 9]);
+    expect(propuestos.map(p => p.elementos)).toEqual([9, 8, 8]);
     propuestos.forEach(p => {
       expect(p.elementos).toBeLessThanOrEqual(MAX_ELEMENTOS_POR_RADIADOR);
       expect(p.power).toBe(p.elementos * ELEMENTO_KCALH);
     });
   });
 
-  it('la potencia total propuesta siempre cubre el requerido con margen', () => {
+  it('elementos de 600 y 700 mm: menos elementos por la mayor potencia unitaria', () => {
+    // 15 m² → 1.875 kcal/h: a 240 (600 mm) → 8 elementos = 1.920;
+    // a 280 (700 mm) → 7 elementos = 1.960
+    const r = room(15, { x: 0, y: 0, width: 400, height: 200 });
+    const de600 = autoColocarRadiadores(r, ELEMENTOS_KCALH_POR_ALTURA[600]);
+    expect(de600[0].elementos).toBe(8);
+    expect(de600[0].power).toBe(1920);
+    const de700 = autoColocarRadiadores(r, ELEMENTOS_KCALH_POR_ALTURA[700]);
+    expect(de700[0].elementos).toBe(7);
+    expect(de700[0].power).toBe(1960);
+  });
+
+  it('la potencia total propuesta siempre cubre el requerido', () => {
     for (const area of [6, 12, 18, 25, 40, 60]) {
       const r = room(area, { x: 0, y: 0, width: 800, height: 400 });
       const total = autoColocarRadiadores(r).reduce((acc, p) => acc + p.power, 0);
-      expect(total).toBeGreaterThanOrEqual(calculateRoomPower(r) * MARGEN_SEGURIDAD);
+      expect(total).toBeGreaterThanOrEqual(calculateRoomPower(r));
     }
   });
 

@@ -10,7 +10,8 @@ import {
 import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT } from '../../utils/floorHeating';
 import type { CalidadAislacion } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
-import { autoColocarRadiadores } from '../../utils/autoLayout';
+import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
+import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
 
 export const RoomPanel: React.FC = () => {
@@ -21,6 +22,8 @@ export const RoomPanel: React.FC = () => {
   const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  // Altura de elemento para la auto-colocación (500 estándar, 600/700 también)
+  const [elementoMm, setElementoMm] = useState<AlturaElementoMm>(500);
 
   // Desplazarse a la izquierda cuando el BudgetPanel está abierto (450px + margen)
   const rightOffset = isBudgetPanelOpen ? '490px' : '20px';
@@ -64,7 +67,7 @@ export const RoomPanel: React.FC = () => {
 
   const handleAutoColocar = () => {
     roomsAutoColocables.forEach(room => {
-      const propuestos = autoColocarRadiadores(room);
+      const propuestos = autoColocarRadiadores(room, ELEMENTOS_KCALH_POR_ALTURA[elementoMm]);
       const ids: string[] = [];
       propuestos.forEach(p => {
         const rad: Radiator = {
@@ -224,23 +227,39 @@ export const RoomPanel: React.FC = () => {
             + Nueva Habitación
           </button>
           {roomsAutoColocables.length > 0 && (
-            <button
-              onClick={handleAutoColocar}
-              title="Calcula cuántos radiadores necesita cada habitación con contorno marcado y los apoya contra la pared más larga — después acomodalos arrastrando"
-              style={{
-                width: '100%',
-                marginTop: '6px',
-                padding: '8px',
-                backgroundColor: '#3F51B5',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '13px'
-              }}
-            >
-              ⚡ Auto-colocar radiadores ({roomsAutoColocables.length} hab.)
-            </button>
+            <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
+              <button
+                onClick={handleAutoColocar}
+                title="Calcula cuántos radiadores necesita cada habitación con contorno marcado y los apoya contra la pared más larga — después acomodalos arrastrando"
+                style={{
+                  flex: 1,
+                  padding: '8px',
+                  backgroundColor: '#3F51B5',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                ⚡ Auto-colocar radiadores ({roomsAutoColocables.length} hab.)
+              </button>
+              <select
+                value={elementoMm}
+                onChange={(e) => setElementoMm(Number(e.target.value) as AlturaElementoMm)}
+                title="Altura del elemento a usar en la auto-colocación"
+                style={{
+                  padding: '4px',
+                  fontSize: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '4px'
+                }}
+              >
+                <option value={500}>500 mm · {ELEMENTOS_KCALH_POR_ALTURA[500]}</option>
+                <option value={600}>600 mm · {ELEMENTOS_KCALH_POR_ALTURA[600]}</option>
+                <option value={700}>700 mm · {ELEMENTOS_KCALH_POR_ALTURA[700]}</option>
+              </select>
+            </div>
           )}
         </div>
       </div>
@@ -278,9 +297,13 @@ export const RoomPanel: React.FC = () => {
             // que el piso puede entregar físicamente (tope 86 kcal/h·m²)
             const usaBasePiso = roomZones.length > 0;
             const required = usaBasePiso ? cargaPisoKcalh(room) : powerCheck.required;
-            // Mismo criterio conservador que el presupuesto: la habitación
-            // aprueba solo si lo instalado cubre el requerido + 15% de margen
-            const requeridoConMargen = Math.round(required * MARGEN_SEGURIDAD);
+            // Margen del 15% SOLO para piso radiante (su base W/m² es
+            // realista). Para radiadores no: el factor volumétrico ya viene
+            // sobredimensionado con sus incrementos de pared y ventanas
+            // (criterio de Edgardo).
+            const requeridoConMargen = usaBasePiso
+              ? Math.round(required * MARGEN_SEGURIDAD)
+              : required;
             const sufficient = installed >= requeridoConMargen;
             const percentage = requeridoConMargen > 0
               ? Math.round((installed / requeridoConMargen) * 100)
@@ -362,9 +385,11 @@ export const RoomPanel: React.FC = () => {
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
                     <strong>Requerido:</strong> {required.toLocaleString()} Kcal/h
                   </div>
-                  <div>
-                    <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
-                  </div>
+                  {usaBasePiso && (
+                    <div>
+                      <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
+                    </div>
+                  )}
                   {hasEmitters ? (
                     <>
                       {room.radiatorIds.length > 0 && (

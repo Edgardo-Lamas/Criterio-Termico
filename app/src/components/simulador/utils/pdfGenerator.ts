@@ -200,7 +200,7 @@ export const generateQuotePDF = (
     const cols = [
       { texto: 'Ambiente', x: M + 2 },
       { texto: 'Área', x: 96, align: 'right' as const },
-      { texto: 'Requerido +15%', x: 130, align: 'right' as const },
+      { texto: 'Requerido', x: 130, align: 'right' as const },
       { texto: 'Instalado', x: 160, align: 'right' as const },
       { texto: 'Cobertura', x: tableRight - 2, align: 'right' as const },
     ];
@@ -223,11 +223,13 @@ export const generateQuotePDF = (
         ? Math.round(room.area * floorHeating.emisionKcalhM2)
         : 0;
       const instalado = radPower + pisoPower;
-      // Base del requerido: carga de piso (W/m² según aislación) si el
-      // ambiente tiene piso radiante; si no, el factor volumétrico
-      const requerido = Math.round(
-        (tienePiso ? cargaPisoKcalh(room) : calculateRoomPower(room)) * MARGEN_SEGURIDAD
-      );
+      // Base del requerido: carga de piso (W/m² según aislación) + 15% de
+      // margen si el ambiente tiene piso radiante; con radiadores, el factor
+      // volumétrico SIN margen extra (ya viene sobredimensionado — criterio
+      // de Edgardo)
+      const requerido = tienePiso
+        ? Math.round(cargaPisoKcalh(room) * MARGEN_SEGURIDAD)
+        : Math.round(calculateRoomPower(room));
       const tieneEmisores = instalado > 0;
       const pct = tieneEmisores && requerido > 0
         ? Math.round((instalado / requerido) * 100)
@@ -263,7 +265,7 @@ export const generateQuotePDF = (
       doc.setFont('helvetica', 'italic');
       doc.setTextColor(...GRIS_TEXTO);
       doc.text(
-        '* Ambientes con piso radiante: carga de diseño en W/m² según aislación (EN 1264). Resto: factor volumétrico.',
+        '* Ambientes con piso radiante: carga de diseño en W/m² según aislación (EN 1264) + margen 15%. Resto: factor volumétrico sin margen extra.',
         M, yPosition
       );
       doc.setTextColor(0, 0, 0);

@@ -318,13 +318,11 @@ export const Canvas = () => {
       }
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
-      // Etiqueta del circuito: solo en hover sostenido sobre el serpentín o
-      // con la zona seleccionada, para no empapelar el plano. Con habitación
-      // vinculada muestra la CARGA de diseño (lo que el circuito debe
-      // cubrir); sin vínculo, la entrega máxima del piso. "C2" = colector 2.
-      const conEtiqueta = hoveredCircuitKey === `${c.zoneId}:${c.numero}`
-        || c.zoneId === selectedElementId;
-      if (!conEtiqueta) return;
+      // Etiqueta del circuito: SOLO en hover sostenido sobre el serpentín —
+      // ninguna etiqueta queda fija sobre el plano (pedido de Edgardo). Con
+      // habitación vinculada muestra la CARGA de diseño (lo que el circuito
+      // debe cubrir); sin vínculo, la entrega máxima. "C2" = colector 2.
+      if (hoveredCircuitKey !== `${c.zoneId}:${c.numero}`) return;
       const potenciaTxt = c.cargaKcalh != null
         ? `carga ${c.cargaKcalh.toLocaleString('es-AR')}`
         : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
@@ -1283,6 +1281,17 @@ export const Canvas = () => {
     }
   };
 
+  // Al salir del canvas, la etiqueta en hover se oculta y se cancela la
+  // espera pendiente — si no, queda pegada sobre el plano
+  const handleMouseLeaveCanvas = () => {
+    hoverCandidateRef.current = null;
+    if (hoverTimerRef.current !== null) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHoveredCircuitKey(null);
+  };
+
   const handleMouseUp = () => {
     // Finalizar el dibujo de una zona de piso radiante
     if (zoneDraft) {
@@ -1367,7 +1376,7 @@ export const Canvas = () => {
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => setIsPanning(false)}
+        onMouseLeave={() => { setIsPanning(false); handleMouseLeaveCanvas(); }}
         onContextMenu={handleContextMenu}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

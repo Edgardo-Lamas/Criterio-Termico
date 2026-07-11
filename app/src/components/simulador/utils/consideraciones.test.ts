@@ -140,8 +140,8 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     expect(critica?.detalle).not.toContain('complementar con un radiador');
   });
 
-  it('radiadores que no cubren el requerido +15% generan una crítica', () => {
-    // 15 m² × 2,5 × 50 = 1.875 × 1,15 = 2.156 > 1.000 instalados
+  it('radiadores que no cubren el requerido generan una crítica (sin margen extra)', () => {
+    // 15 m² × 2,5 × 50 = 1.875 > 1.000 instalados → crítica
     const r = room('r1', 15, { radiatorIds: ['rad1'] });
     const cons = generarConsideraciones({
       rooms: [r],
@@ -151,6 +151,15 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     const critica = cons.find(c => c.nivel === 'critica');
     expect(critica?.titulo).toContain('Radiadores insuficientes');
     expect(critica?.titulo).toContain('Hab r1');
+
+    // 2.000 ≥ 1.875 alcanza: el factor volumétrico ya trae su propio margen,
+    // no se exige un 15% adicional (criterio de Edgardo)
+    const consOk = generarConsideraciones({
+      rooms: [r],
+      radiators: [radiador('rad1', 2000)],
+      floorHeating: null,
+    });
+    expect(consOk.some(c => c.titulo.includes('Radiadores insuficientes'))).toBe(false);
   });
 
   it('la habitación con piso radiante no se chequea por la regla de radiadores', () => {
