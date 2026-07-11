@@ -78,6 +78,8 @@ export const RoomPanel: React.FC = () => {
           width: p.width,
           height: p.height,
           power: p.power,
+          elementos: p.elementos,
+          alturaElementoMm: elementoMm,
         };
         addRadiator(rad);
         ids.push(rad.id);

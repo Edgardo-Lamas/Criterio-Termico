@@ -11,6 +11,7 @@ import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { calculateBoilerPower, calculateRoomPower } from './thermalCalculator';
 import { cargaPisoKcalh } from './floorHeating';
 import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
+import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import type { Consideracion } from './consideraciones';
 import type { SelectedBudget } from '../services/budgetService';
@@ -801,7 +802,10 @@ export const generateFloorPlanPDF = (
     doc.text('COLECTOR', mx + mw / 2, my + mh / 2 + 1, { align: 'center' });
   });
 
-  // --- 3. Radiators ---
+  // --- 3. Radiators — con su identificación de planilla ("R3"), no la
+  // potencia: los datos completos van en la planilla de radiadores ---
+  const planilla = planillaRadiadores(radiators, rooms);
+  const filaPorId = new Map(planilla.map(f => [f.radiatorId, f]));
   const currentFloorRadiators = radiators.filter(r => r.floor === currentFloor);
   currentFloorRadiators.forEach(rad => {
     const rx = toPdfX(rad.x);
@@ -814,11 +818,12 @@ export const generateFloorPlanPDF = (
     doc.setLineWidth(0.3);
     doc.rect(rx, ry, rw, rh, 'FD');
 
-    if (rad.power > 0) {
+    const etiqueta = filaPorId.get(rad.id)?.etiqueta ?? '';
+    if (etiqueta) {
       doc.setFontSize(5);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(255, 255, 255);
-      doc.text(`${Math.round(rad.power)}`, rx + rw / 2, ry + rh / 2 + 1.5, { align: 'center' });
+      doc.text(etiqueta, rx + rw / 2, ry + rh / 2 + 1.5, { align: 'center' });
     }
   });
 
@@ -841,30 +846,8 @@ export const generateFloorPlanPDF = (
     doc.text('CAL', bx + bw / 2, by + bh / 2 + 1.5, { align: 'center' });
   });
 
-  // --- 5. Room labels (centroid of assigned radiators) ---
-  rooms.forEach(room => {
-    const assigned = currentFloorRadiators.filter(r => room.radiatorIds.includes(r.id));
-    if (assigned.length === 0) return;
-
-    const cx = assigned.reduce((s, r) => s + r.x + r.width / 2, 0) / assigned.length;
-    const cy = assigned.reduce((s, r) => s + r.y + r.height / 2, 0) / assigned.length;
-    const px = toPdfX(cx);
-    const py = toPdfY(cy);
-
-    const totalPower = assigned.reduce((s, r) => s + r.power, 0);
-
-    doc.setFontSize(6.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 15, 15);
-    doc.text(room.name, px, py - 8, { align: 'center' });
-
-    if (totalPower > 0) {
-      doc.setFontSize(5.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      doc.text(`${Math.round(totalPower)} Kcal/h`, px, py - 4.5, { align: 'center' });
-    }
-  });
+  // --- 5. (Sin etiquetas de ambiente sobre el plano: la imagen de fondo ya
+  // trae los nombres, y los datos de cada radiador van en la planilla) ---
 
   // --- 6. Legend (top-right) ---
   const legX = pageW - mH - 50;
@@ -897,7 +880,67 @@ export const generateFloorPlanPDF = (
   doc.setLineWidth(0.3);
   doc.rect(legX + 2, legY + 16.5, 7, 3.5, 'FD');
   doc.setTextColor(0, 0, 0);
-  doc.text('Radiador (Kcal/h)', legX + 11, legY + 19);
+  doc.text('Radiador (ver planilla)', legX + 11, legY + 19);
+
+  // --- 6.5 Planilla de radiadores (como en los planos de obra): el plano
+  // muestra solo "R1, R2, ..." y acá van los datos de cada uno ---
+  const filasPlanta = planilla.filter(f => f.floor === currentFloor);
+  if (filasPlanta.length > 0) {
+    const MAX_FILAS = 14;
+    const visibles = filasPlanta.slice(0, MAX_FILAS);
+    const ocultas = filasPlanta.length - visibles.length;
+    const totalPlanilla = filasPlanta.reduce((acc, f) => acc + f.potenciaKcalh, 0);
+
+    const plW = 64;
+    const plX = pageW - mH - plW;
+    const plY = legY + 26;
+    const filaH = 3.4;
+    const plH = 8.5 + (visibles.length + 1) * filaH + (ocultas > 0 ? filaH : 0);
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(160, 25, 25);
+    doc.setLineWidth(0.3);
+    doc.rect(plX, plY, plW, plH, 'FD');
+
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(160, 25, 25);
+    doc.text('PLANILLA DE RADIADORES', plX + plW / 2, plY + 4, { align: 'center' });
+
+    let py = plY + 8.5;
+    doc.setFontSize(5);
+    doc.text('ID', plX + 2, py);
+    doc.text('Ambiente', plX + 9, py);
+    doc.text('Elem.', plX + 42, py, { align: 'right' });
+    doc.text('Kcal/h', plX + plW - 2, py, { align: 'right' });
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.15);
+    doc.line(plX + 1, py + 1, plX + plW - 1, py + 1);
+    py += filaH;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(40, 40, 40);
+    visibles.forEach(f => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(f.etiqueta, plX + 2, py);
+      doc.setFont('helvetica', 'normal');
+      const amb = f.ambiente.length > 18 ? f.ambiente.substring(0, 18) + '…' : f.ambiente;
+      doc.text(amb, plX + 9, py);
+      doc.text(f.elementos !== null ? `${f.elementos}` : '—', plX + 42, py, { align: 'right' });
+      doc.text(f.potenciaKcalh.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
+      py += filaH;
+    });
+    if (ocultas > 0) {
+      doc.setTextColor(120, 120, 120);
+      doc.text(`+${ocultas} más (ver presupuesto)`, plX + 2, py);
+      py += filaH;
+      doc.setTextColor(40, 40, 40);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.line(plX + 1, py - 2.6, plX + plW - 1, py - 2.6);
+    doc.text('Total', plX + 2, py);
+    doc.text(totalPlanilla.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
+  }
 
   // --- 7. Title block ---
   const tbY = pageH - titleH;

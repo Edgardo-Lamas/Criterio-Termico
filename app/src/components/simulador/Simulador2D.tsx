@@ -4,6 +4,7 @@ import { Canvas } from './components/Canvas/Canvas'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { PropertiesPanel } from './components/PropertiesPanel/PropertiesPanel'
 import { RoomPanel } from './components/RoomPanel/RoomPanel'
+import { RadiatorSchedule } from './components/RadiatorSchedule/RadiatorSchedule'
 import { ConfigPanel } from './components/ConfigPanel/ConfigPanel'
 import { BudgetPanel } from './components/BudgetPanel/BudgetPanel'
 import { PriceConfigPanel } from './components/PriceConfigPanel/PriceConfigPanel'
@@ -110,6 +111,7 @@ export function Simulador2D() {
                     <Canvas />
                     <PropertiesPanel />
                     <RoomPanel />
+                    <RadiatorSchedule />
                     <ConfigPanel />
                     <BudgetPanel isOpen={isBudgetPanelOpen} onClose={() => setBudgetPanelOpen(false)} />
                     <PriceConfigPanel isOpen={isPriceConfigOpen} onClose={() => setIsPriceConfigOpen(false)} />

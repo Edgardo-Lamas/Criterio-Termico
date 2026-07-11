@@ -9,6 +9,7 @@ import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
 import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, cargaPisoKcalh, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
+import { etiquetasRadiadores } from '../../utils/planilla';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
@@ -81,6 +82,9 @@ export const Canvas = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [floorHeatingZones, manifolds, currentFloor, floorHeatingTempC, rooms]
   );
+
+  // Identificación "R1..Rn" de cada radiador (los datos van en la planilla)
+  const radiatorLabels = useMemo(() => etiquetasRadiadores(radiators), [radiators]);
 
   // Montantes caldera→colector (primaria Ø32, capa inferior)
   const floorHeatingMontantes = useMemo<Montante[]>(
@@ -523,44 +527,26 @@ export const Canvas = () => {
         ctx.fill();
       }
 
-      // Mostrar potencia y nombre de habitación
-      const assignedRoom = currentFloorRooms.find(r => r.radiatorIds.includes(radiator.id));
+      // Identificación compacta "R3" (como en los planos de obra): los datos
+      // completos —ambiente, elementos, potencia— van en la planilla
+      const etiqueta = radiatorLabels.get(radiator.id) ?? '';
+      ctx.font = 'bold 9px Arial';
+      const etWidth = ctx.measureText(etiqueta).width;
+      const etX = radiator.x + radiator.width + 4;
+      const etY = radiator.y + radiator.height / 2;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(etX - 2, etY - 7, etWidth + 4, 12);
+      ctx.fillStyle = '#B71C1C';
+      ctx.fillText(etiqueta, etX, etY + 2);
 
-      if (assignedRoom) {
-        // Mostrar nombre de habitación
-        ctx.fillStyle = '#1976D2';
-        ctx.font = 'bold 11px Arial';
-        const roomNameText = assignedRoom.name;
-        const textWidth = ctx.measureText(roomNameText).width;
-
-        // Posición del texto (al lado derecho del radiador)
-        const textX = radiator.x + radiator.width + 8;
-        const textY = radiator.y + radiator.height / 2 - 5;
-
-        // Fondo blanco semitransparente para el texto
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        ctx.fillRect(textX - 2, textY - 10, textWidth + 4, 14);
-
-        // Texto del nombre
-        ctx.fillStyle = '#1976D2';
-        ctx.fillText(roomNameText, textX, textY);
-
-        // Mostrar potencia debajo del nombre
-        ctx.fillStyle = '#666';
-        ctx.font = '9px Arial';
-        ctx.fillText(
-          `${radiator.power.toLocaleString()} Kcal/h`,
-          textX,
-          textY + 12
-        );
-      } else if (radiator.id === selectedElementId) {
-        // Si no está asignado, solo mostrar potencia cuando está seleccionado
+      // Con el radiador seleccionado, la potencia al lado de la etiqueta
+      if (radiator.id === selectedElementId) {
         ctx.fillStyle = '#333';
         ctx.font = '9px Arial';
         ctx.fillText(
-          `${radiator.power} Kcal/h`,
-          radiator.x + radiator.width + 5,
-          radiator.y + radiator.height / 2
+          `${radiator.power.toLocaleString()} Kcal/h`,
+          etX + etWidth + 6,
+          etY + 2
         );
       }
     });
