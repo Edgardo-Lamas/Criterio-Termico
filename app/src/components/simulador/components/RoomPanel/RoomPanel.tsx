@@ -12,12 +12,14 @@ import type { CalidadAislacion } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
+import { rutearTuberiasRadiadores } from '../../utils/pipeAutoRouter';
 import type { Radiator } from '../../models/Radiator';
 
 export const RoomPanel: React.FC = () => {
   const {
     rooms, radiators, floorHeatingZones, floorHeatingTempC,
-    currentFloor, addRoom, updateRoom, removeRoom, addRadiator
+    currentFloor, addRoom, updateRoom, removeRoom, addRadiator,
+    boilers, pipes, setPipes
   } = useElementsStore();
   const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -88,6 +90,26 @@ export const RoomPanel: React.FC = () => {
         updateRoom(room.id, { radiatorIds: ids });
       }
     });
+  };
+
+  // Ruteo automático de tuberías (Etapa 2): radiadores de la planta actual
+  // sin tubería conectada, con al menos una caldera en la planta
+  const boilersPlanta = boilers.filter(b => !b.floor || b.floor === currentFloor);
+  const radiadoresConectados = new Set(
+    pipes.flatMap(p => [p.fromElementId, p.toElementId]).filter(Boolean)
+  );
+  const radiadoresSinTuberia = radiators.filter(
+    r => r.floor === currentFloor && !radiadoresConectados.has(r.id)
+  );
+  const puedeRutear = boilersPlanta.length > 0 && radiadoresSinTuberia.length > 0;
+
+  const handleRutearTuberias = () => {
+    const nuevas = rutearTuberiasRadiadores(
+      radiators, boilers, floorHeatingZones, currentFloor, pipes
+    );
+    if (nuevas.length > 0) {
+      setPipes([...pipes, ...nuevas]);
+    }
   };
 
   const handleDeleteRoom = (roomId: string) => {
@@ -262,6 +284,25 @@ export const RoomPanel: React.FC = () => {
                 <option value={700}>700 mm · {ELEMENTOS_KCALH_POR_ALTURA[700]}</option>
               </select>
             </div>
+          )}
+          {puedeRutear && (
+            <button
+              onClick={handleRutearTuberias}
+              title="Traza ida y retorno desde la caldera más cercana a cada radiador sin conectar, esquivando las zonas de piso radiante"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                padding: '8px',
+                backgroundColor: '#00695C',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              🔧 Rutear tuberías ({radiadoresSinTuberia.length} rad.)
+            </button>
           )}
         </div>
       </div>
