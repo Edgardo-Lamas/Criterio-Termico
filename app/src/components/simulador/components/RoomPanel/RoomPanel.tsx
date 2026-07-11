@@ -7,7 +7,8 @@ import {
   calculateBoilerPower,
   kcalToKw
 } from '../../utils/thermalCalculator';
-import { potenciaZonaKcalh, emisionKcalhM2 } from '../../utils/floorHeating';
+import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT } from '../../utils/floorHeating';
+import type { CalidadAislacion } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 
 export const RoomPanel: React.FC = () => {
@@ -217,9 +218,15 @@ export const RoomPanel: React.FC = () => {
               ? Math.round(room.area * emisionKcalhM2(floorHeatingTempC))
               : 0;
             const installed = powerCheck.installed + pisoPower;
+            // Base del requerido: con piso radiante la carga de diseño es la
+            // real del ambiente (W/m² según aislación, criterio EN 1264); el
+            // factor volumétrico es la regla de radiadores y pide más de lo
+            // que el piso puede entregar físicamente (tope 86 kcal/h·m²)
+            const usaBasePiso = roomZones.length > 0;
+            const required = usaBasePiso ? cargaPisoKcalh(room) : powerCheck.required;
             // Mismo criterio conservador que el presupuesto: la habitación
             // aprueba solo si lo instalado cubre el requerido + 15% de margen
-            const requeridoConMargen = Math.round(powerCheck.required * MARGEN_SEGURIDAD);
+            const requeridoConMargen = Math.round(required * MARGEN_SEGURIDAD);
             const sufficient = installed >= requeridoConMargen;
             const percentage = requeridoConMargen > 0
               ? Math.round((installed / requeridoConMargen) * 100)
@@ -266,9 +273,16 @@ export const RoomPanel: React.FC = () => {
 
                 <div style={{ fontSize: '12px', color: '#666' }}>
                   <div>Área: {room.area} m² × {room.height} m = {(room.area * room.height).toFixed(1)} m³</div>
-                  <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
+                  {usaBasePiso ? (
+                    <div>
+                      Base piso radiante: {CARGA_PISO_WM2[room.aislacion ?? AISLACION_DEFAULT]} W/m²
+                      {' '}(aislación {room.aislacion ?? AISLACION_DEFAULT})
+                    </div>
+                  ) : (
+                    <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
+                  )}
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
-                    <strong>Requerido:</strong> {powerCheck.required.toLocaleString()} Kcal/h
+                    <strong>Requerido:</strong> {required.toLocaleString()} Kcal/h
                   </div>
                   <div>
                     <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
@@ -400,6 +414,30 @@ export const RoomPanel: React.FC = () => {
               <option value={50}>50 Kcal/h·m³ (Normal)</option>
               <option value={60}>60 Kcal/h·m³ (Frío intenso)</option>
             </select>
+          </div>
+
+          <div style={{ marginBottom: '10px' }}>
+            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#555' }}>
+              Aislación (para piso radiante):
+            </label>
+            <select
+              value={selectedRoom.aislacion ?? AISLACION_DEFAULT}
+              onChange={(e) => updateRoom(selectedRoom.id, { aislacion: e.target.value as CalidadAislacion })}
+              style={{
+                width: '100%',
+                padding: '6px',
+                fontSize: '13px',
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+              }}
+            >
+              <option value="buena">Buena — {CARGA_PISO_WM2.buena} W/m² (DVH, muros aislados)</option>
+              <option value="media">Media — {CARGA_PISO_WM2.media} W/m² (construcción tradicional)</option>
+              <option value="mala">Mala — {CARGA_PISO_WM2.mala} W/m² (precaria o zona muy fría)</option>
+            </select>
+            <div style={{ color: '#999', fontSize: '10px', marginTop: '4px' }}>
+              Define la carga de diseño cuando el ambiente se calefacciona por piso radiante
+            </div>
           </div>
 
           <div style={{ marginBottom: '10px' }}>

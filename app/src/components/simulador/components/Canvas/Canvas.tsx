@@ -8,13 +8,16 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
-import { calculateRoomPower } from '../../utils/thermalCalculator';
+import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, cargaPisoKcalh, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
 
+
+// Las etiquetas de circuito aparecen recién después de mantener el cursor
+// sobre el serpentín este tiempo: el plano queda limpio mientras se recorre.
+const HOVER_ETIQUETA_MS = 2000;
 
 export const Canvas = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,6 +29,11 @@ export const Canvas = () => {
   const [zoneDraft, setZoneDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   // Zona a la que se le está marcando la puerta (modo "click en el borde")
   const [placingDoorZoneId, setPlacingDoorZoneId] = useState<string | null>(null);
+  // Circuito con la etiqueta visible por hover ("zoneId:numero"); el candidato
+  // y su timer viven en refs para no redibujar mientras corre la espera
+  const [hoveredCircuitKey, setHoveredCircuitKey] = useState<string | null>(null);
+  const hoverCandidateRef = useRef<string | null>(null);
+  const hoverTimerRef = useRef<number | null>(null);
 
   // NOTE: Zoom/pan state and handlers are now in useCanvasZoom hook (initialized below after filtering elements)
 
@@ -294,9 +302,13 @@ export const Canvas = () => {
       }
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
-      // Etiqueta del circuito: con habitación vinculada muestra la CARGA de
-      // diseño del panel (lo que el circuito debe cubrir); sin vínculo, la
-      // entrega máxima del piso. "C2" = colector 2.
+      // Etiqueta del circuito: solo en hover sostenido sobre el serpentín o
+      // con la zona seleccionada, para no empapelar el plano. Con habitación
+      // vinculada muestra la CARGA de diseño (lo que el circuito debe
+      // cubrir); sin vínculo, la entrega máxima del piso. "C2" = colector 2.
+      const conEtiqueta = hoveredCircuitKey === `${c.zoneId}:${c.numero}`
+        || c.zoneId === selectedElementId;
+      if (!conEtiqueta) return;
       const potenciaTxt = c.cargaKcalh != null
         ? `carga ${c.cargaKcalh.toLocaleString('es-AR')}`
         : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
@@ -327,7 +339,9 @@ export const Canvas = () => {
       if (propios.length === 0) return;
 
       const entrega = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
-      const requerido = Math.round(calculateRoomPower(room) * MARGEN_SEGURIDAD);
+      // Carga de diseño de piso radiante (W/m² según aislación de la
+      // habitación), la misma base que el presupuesto y el panel
+      const requerido = Math.round(cargaPisoKcalh(room) * MARGEN_SEGURIDAD);
       const pct = requerido > 0 ? Math.round((entrega / requerido) * 100) : 0;
       const ok = entrega >= requerido;
       // Compacto para no tapar los circuitos; el detalle completo aparece
@@ -779,7 +793,12 @@ export const Canvas = () => {
   // Redibujar cuando cambien los radiadores, calderas, pipes, zonas PR, colectores, conexiones, backgroundImage, selección, tool, pipeStart o PLANTA ACTUAL
   useEffect(() => {
     draw();
-  }, [radiators, boilers, pipes, rooms, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor, floorHeatingTempC, visibleLayers]);
+  }, [radiators, boilers, pipes, rooms, manifolds, floorHeatingZones, zoneDraft, selectedElementId, zoom, panOffset, backgroundImage, tool, pipeStartElement, currentFloor, floorHeatingTempC, visibleLayers, hoveredCircuitKey]);
+
+  // Cancelar la espera de la etiqueta en hover si el componente se desmonta
+  useEffect(() => () => {
+    if (hoverTimerRef.current !== null) window.clearTimeout(hoverTimerRef.current);
+  }, []);
 
   // Redibujar solo cuando cambia mousePos y estamos creando una tubería o dibujando zona (para preview)
   useEffect(() => {
@@ -1212,6 +1231,32 @@ export const Canvas = () => {
         floorHeatingZones.some(z => z.id === selectedElementId);
       if (isManifoldOrZone) {
         updateElement(selectedElementId, { x: newX, y: newY });
+      }
+      return;
+    }
+
+    // Hover sobre un circuito de piso radiante: la etiqueta aparece tras
+    // sostener el cursor HOVER_ETIQUETA_MS sobre el serpentín. Salir del
+    // circuito la oculta al instante y cancela la espera pendiente.
+    if (visibleLayers.circuitos && floorHeatingCircuits.length > 0) {
+      const hit = floorHeatingCircuits.find(c =>
+        isPointNearPipe(coords, c.ida, 8) || isPointNearPipe(coords, c.retorno, 8)
+      );
+      const key = hit ? `${hit.zoneId}:${hit.numero}` : null;
+      if (key !== hoverCandidateRef.current) {
+        hoverCandidateRef.current = key;
+        if (hoverTimerRef.current !== null) {
+          window.clearTimeout(hoverTimerRef.current);
+          hoverTimerRef.current = null;
+        }
+        if (key === null) {
+          setHoveredCircuitKey(null);
+        } else {
+          hoverTimerRef.current = window.setTimeout(
+            () => setHoveredCircuitKey(key),
+            HOVER_ETIQUETA_MS
+          );
+        }
       }
     }
   };

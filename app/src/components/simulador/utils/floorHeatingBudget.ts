@@ -3,7 +3,7 @@
 // circuitos generados (serpentín + acometidas ruteadas) y de las montantes
 // caldera→colector (Ø32), no estimaciones.
 
-import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, TEMP_IMPULSION_DEFAULT } from './floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, cargaPisoKcalh, TEMP_IMPULSION_DEFAULT } from './floorHeating';
 import type { FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
 import { calcularMaterialesPisoRadiante } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { ResumenPresupuesto } from '../../../lib/pisoRadiante/types';
@@ -11,7 +11,6 @@ import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
 import type { Room } from '../models/Room';
-import { calculateRoomPower } from './thermalCalculator';
 
 // Margen de seguridad del proyecto: los resultados deben ser conservadores,
 // el piso tiene que entregar el requerido MÁS un 15% (misma regla que las
@@ -114,7 +113,9 @@ export function calcularPresupuestoPisoRadiante(
     const propios = circuits.filter(c => c.zoneId === zone.id);
     const potenciaKcalh = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined;
-    const requeridoKcalh = room ? Math.round(calculateRoomPower(room)) : null;
+    // Carga de diseño de piso radiante (W/m² según aislación), no el factor
+    // volumétrico de radiadores: contra ese el piso nunca llega (tope 86)
+    const requeridoKcalh = room ? cargaPisoKcalh(room) : null;
     const requeridoConMargenKcalh = requeridoKcalh === null
       ? null
       : Math.round(requeridoKcalh * MARGEN_SEGURIDAD);
