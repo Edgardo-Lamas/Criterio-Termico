@@ -57,6 +57,22 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     expect(titulos.some(t => t.includes('Puesta en marcha gradual'))).toBe(true);
     expect(titulos.some(t => t.includes('Vaso de expansión'))).toBe(true);
     expect(titulos.some(t => t.includes('Llenado y presión'))).toBe(true);
+    expect(titulos.some(t => t.includes('Cronotermostato'))).toBe(true);
+    // Protocolo de obra: presurizado con manómetro y by-pass + registro del tendido
+    expect(titulos.some(t => t.includes('presurizada hasta el fin de obra'))).toBe(true);
+    expect(titulos.some(t => t.includes('Registro del tendido'))).toBe(true);
+  });
+
+  it('con varios circuitos recomienda equilibrar caudalímetros; con uno solo no', () => {
+    // Zona 4×3 (12 m² → 1 circuito): sin equilibrado
+    const chico = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    const consChico = generarConsideraciones({ rooms: [], radiators: [], floorHeating: chico });
+    expect(consChico.some(c => c.titulo.includes('Equilibrado'))).toBe(false);
+
+    // Zona 5×4 (20 m² × 6,7 = 134 m > 120 → se divide): con equilibrado
+    const grande = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 5, 4)], [colector('m1', 1, 1)]);
+    const consGrande = generarConsideraciones({ rooms: [], radiators: [], floorHeating: grande });
+    expect(consGrande.some(c => c.titulo.includes('Equilibrado'))).toBe(true);
   });
 
   it('zona con cobertura insuficiente genera una crítica y va primera', () => {
@@ -81,6 +97,18 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     const mixto = cons.find(c => c.titulo.includes('Sistema mixto'));
     expect(mixto?.nivel).toBe('atencion');
     expect(mixto?.detalle).toContain('mezcladora');
+    // Debe justificar el costo del doble circuito, no solo lo técnico
+    expect(mixto?.detalle).toContain('encarecen');
+  });
+
+  it('la cobertura insuficiente no empuja a un sistema mixto hidráulico', () => {
+    const r = room('r1', 15, { aislacion: 'mala' });
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
+    const critica = cons.find(c => c.titulo.includes('Cobertura térmica insuficiente'));
+    expect(critica?.detalle).toContain('eléctrico');
+    expect(critica?.detalle).not.toContain('complementar con un radiador');
   });
 
   it('radiadores que no cubren el requerido +15% generan una crítica', () => {

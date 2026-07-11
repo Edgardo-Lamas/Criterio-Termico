@@ -55,8 +55,9 @@ export function generarConsideraciones({
         titulo: `Cobertura térmica insuficiente: ${lista}`,
         detalle:
           'El piso radiante no alcanza el requerido con margen del 15% en esos ambientes. ' +
-          'Opciones: complementar con un radiador o toallero, subir la temperatura de ' +
-          'impulsión (si la caldera lo permite), reducir el paso a 15 cm o mejorar la aislación.',
+          'Opciones que no agregan otro circuito hidráulico: reducir el paso a 15 cm, subir ' +
+          'la temperatura de impulsión (si la caldera lo permite), mejorar la aislación del ' +
+          'ambiente, o cubrir el faltante con un toallero o panel eléctrico.',
       });
     }
 
@@ -94,15 +95,22 @@ export function generarConsideraciones({
       });
     }
 
-    // Sistema mixto: radiadores (70-80°C) + piso radiante (35-45°C)
+    // Sistema mixto: radiadores (70-80°C) + piso radiante (35-45°C). En
+    // vivienda es la excepción, no la regla: son dos circuitos con costo y
+    // complejidad que la mayoría de los clientes no paga. Si el diseño lo
+    // tiene, la advertencia justifica técnicamente qué implica sostenerlo.
     if (radiators.length > 0) {
       atencion.push({
         nivel: 'atencion',
         titulo: 'Sistema mixto: radiadores y piso radiante en la misma instalación',
         detalle:
-          `Trabajan a temperaturas distintas (radiadores 70-80°C, piso ${floorHeating.tempImpulsionC}°C): ` +
-          'el colector de piso debe alimentarse con válvula mezcladora termostática y bomba ' +
-          'propia. Nunca mandar el agua de radiadores directo a los circuitos de piso.',
+          `Son dos circuitos a temperaturas distintas (radiadores 70-80°C, piso ${floorHeating.tempImpulsionC}°C): ` +
+          'exige válvula mezcladora termostática, bomba propia para el piso y regulación ' +
+          'independiente — más materiales y puesta en marcha, que encarecen la obra. En ' +
+          'vivienda conviene evaluar resolver todo con un solo sistema; si el mixto se ' +
+          'justifica (una ampliación, un ambiente puntual), presupuestar la mezcladora y ' +
+          'explicar al cliente el porqué del costo. Nunca mandar el agua de radiadores ' +
+          'directo a los circuitos de piso.',
       });
     }
 
@@ -132,6 +140,27 @@ export function generarConsideraciones({
       detalle:
         'No calefaccionar hasta que el contrapiso cure (mínimo 21 días). Arrancar con agua ' +
         'a 20-25°C y subir de a 5°C por día hasta la temperatura de diseño.',
+    });
+
+    // Equilibrado: con circuitos de longitudes distintas, el corto roba caudal
+    if (floorHeating.circuits.length > 1) {
+      recomendaciones.push({
+        nivel: 'recomendacion',
+        titulo: 'Equilibrado de circuitos en la puesta en marcha',
+        detalle:
+          'Los circuitos tienen longitudes distintas (ver tabla): ajustar los caudalímetros ' +
+          'del colector para que cada uno reciba su caudal. Sin equilibrar, el circuito corto ' +
+          'roba caudal al largo y ese ambiente queda frío aunque el diseño esté bien.',
+      });
+    }
+
+    recomendaciones.push({
+      nivel: 'recomendacion',
+      titulo: 'Cronotermostato: el piso tiene inercia',
+      detalle:
+        'El piso radiante tarda horas en entrar en régimen y en enfriarse. Un cronotermostato ' +
+        'programable (arrancar antes de que se necesite, cortar antes de acostarse) mejora el ' +
+        'confort y baja el consumo — vale la pena ofrecerlo en la instalación.',
     });
 
     const litrosPiso = Math.round(floorHeating.longitudTotalM * LITROS_POR_METRO_PEX20);
@@ -184,8 +213,31 @@ export function generarConsideraciones({
     });
   }
 
-  // Buenas prácticas generales de llenado y presión (casos de obra frecuentes)
+  // Buenas prácticas generales de obra (casos y protocolo de Criterio Térmico)
   if (radiators.length > 0 || floorHeating) {
+    // Protocolo de obra: la tubería queda cargada y vigilada hasta la entrega.
+    // Diferencial profesional: cualquier daño de otro gremio se detecta en el
+    // momento y el cliente recibe la red garantizada.
+    recomendaciones.push({
+      nivel: 'recomendacion',
+      titulo: 'Tubería presurizada hasta el fin de obra',
+      detalle:
+        'Protocolo sugerido: dejar un manómetro montado en la posición de la caldera, unir ' +
+        'ida y retorno con un by-pass y mantener toda la tubería cargada a 3 bar hasta ' +
+        'terminar la obra. Si otro gremio daña un caño por accidente, el manómetro lo ' +
+        'delata en el momento — y en la entrega se demuestra al cliente que la red quedó ' +
+        'intacta de punta a punta.',
+    });
+
+    recomendaciones.push({
+      nivel: 'recomendacion',
+      titulo: 'Registro del tendido antes de tapar',
+      detalle:
+        'Fotografiar todo el tendido antes del contrapiso o cierre de paredes y archivarlo ' +
+        'junto con el plano técnico de esta app. Ante una reforma futura o un reclamo se ' +
+        'sabe exactamente por dónde pasa cada caño — evita perforaciones y discusiones.',
+    });
+
     recomendaciones.push({
       nivel: 'recomendacion',
       titulo: 'Llenado y presión del sistema',
