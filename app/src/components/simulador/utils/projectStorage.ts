@@ -3,6 +3,7 @@ import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { Room } from '../models/Room';
 
 export interface Project {
   projectName: string;
@@ -15,6 +16,8 @@ export interface Project {
   // Piso radiante — opcionales para poder leer proyectos guardados antes de v1.1
   manifolds?: Manifold[];
   floorHeatingZones?: FloorHeatingZone[];
+  // Habitaciones (v1.2): datos térmicos, aislación y contorno sobre el plano
+  rooms?: Room[];
   scale: number; // píxeles por metro
 }
 
@@ -30,11 +33,12 @@ export const saveToLocalStorage = (
   pipes: PipeSegment[],
   projectName?: string,
   manifolds: Manifold[] = [],
-  floorHeatingZones: FloorHeatingZone[] = []
+  floorHeatingZones: FloorHeatingZone[] = [],
+  rooms: Room[] = []
 ): void => {
   const project: Project = {
     projectName: projectName || 'Proyecto sin nombre',
-    version: '1.1',
+    version: '1.2',
     createdAt: new Date().toISOString(),
     lastModified: new Date().toISOString(),
     radiators,
@@ -42,6 +46,7 @@ export const saveToLocalStorage = (
     pipes,
     manifolds,
     floorHeatingZones,
+    rooms,
     scale: 50, // Por ahora fijo, después será configurable
   };
 

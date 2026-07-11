@@ -37,7 +37,7 @@ export const Canvas = () => {
 
   // NOTE: Zoom/pan state and handlers are now in useCanvasZoom hook (initialized below after filtering elements)
 
-  const { tool, setTool, visibleLayers, toggleLayer } = useToolsStore();
+  const { tool, setTool, visibleLayers, toggleLayer, roomBoundsTargetId, setRoomBoundsTarget } = useToolsStore();
   const {
     radiators,
     boilers,
@@ -53,6 +53,7 @@ export const Canvas = () => {
     addManifold,
     addFloorHeatingZone,
     updateElement,
+    updateRoom,
     selectedElementId,
     setSelectedElement,
     updateRadiatorPosition,
@@ -247,6 +248,21 @@ export const Canvas = () => {
       ctx.fillText(texto, m.labelPos.x, m.labelPos.y);
       ctx.textAlign = 'start';
       ctx.textBaseline = 'alphabetic';
+    });
+
+    // Contornos de habitaciones marcados sobre el plano (Room.bounds):
+    // trazo índigo discontinuo + nombre, debajo de zonas y elementos
+    currentFloorRooms.forEach((room) => {
+      if (!room.bounds) return;
+      const b = room.bounds;
+      ctx.strokeStyle = 'rgba(63, 81, 181, 0.75)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3, 3]);
+      ctx.strokeRect(b.x, b.y, b.width, b.height);
+      ctx.setLineDash([]);
+      ctx.font = 'bold 9px Arial';
+      ctx.fillStyle = 'rgba(63, 81, 181, 0.9)';
+      ctx.fillText(room.name, b.x + 4, b.y + 10);
     });
 
     // Zonas (rectángulo de fondo, debajo del serpentín)
@@ -1012,6 +1028,12 @@ export const Canvas = () => {
       setZoneDraft({ startX: coords.x, startY: coords.y, endX: coords.x, endY: coords.y });
     }
 
+    // Contorno de habitación sobre el plano: mismo gesto de arrastre que las
+    // zonas (el destino es la habitación elegida en el RoomPanel)
+    if (tool === 'room-rect' && roomBoundsTargetId) {
+      setZoneDraft({ startX: coords.x, startY: coords.y, endX: coords.x, endY: coords.y });
+    }
+
     // Si la herramienta es "select", intentar seleccionar o arrastrar
     if (tool === 'select') {
       // Buscar si hicimos click en algún radiador de la planta actual (recorrer en orden inverso para priorizar los últimos)
@@ -1269,6 +1291,19 @@ export const Canvas = () => {
       const zw = Math.abs(zoneDraft.endX - zoneDraft.startX);
       const zh = Math.abs(zoneDraft.endY - zoneDraft.startY);
 
+      // Contorno de habitación: guarda bounds en la habitación destino y
+      // termina — no crea una zona de piso radiante
+      if (roomBoundsTargetId) {
+        if (zw >= 30 && zh >= 30) {
+          updateRoom(roomBoundsTargetId, { bounds: { x: zx, y: zy, width: zw, height: zh } });
+        }
+        setRoomBoundsTarget(null);
+        setZoneDraft(null);
+        setIsDragging(false);
+        setIsPanning(false);
+        return;
+      }
+
       // Mínimo 1×1 m (50×50 px): evita zonas creadas por un click accidental
       if (zw >= 50 && zh >= 50) {
         const newZone: FloorHeatingZone = {
@@ -1315,7 +1350,7 @@ export const Canvas = () => {
       return 'default';
     }
     if (tool === 'radiator' || tool === 'boiler' || tool === 'manifold') return 'copy';
-    if (tool === 'vertical-pipe' || tool === 'floor-heating-zone') return 'crosshair';
+    if (tool === 'vertical-pipe' || tool === 'floor-heating-zone' || tool === 'room-rect') return 'crosshair';
 
     return 'default';
   };
@@ -1732,6 +1767,11 @@ export const Canvas = () => {
         {tool === 'floor-heating-zone' && (
           <span style={{ color: '#E67E22', fontWeight: 'bold' }}>
             {' '}— Arrastrá un rectángulo sobre la habitación del plano: los circuitos se generan solos
+          </span>
+        )}
+        {tool === 'room-rect' && (
+          <span style={{ color: '#3F51B5', fontWeight: 'bold' }}>
+            {' '}— Arrastrá un rectángulo sobre el contorno de {rooms.find(r => r.id === roomBoundsTargetId)?.name ?? 'la habitación'} en el plano
           </span>
         )}
         {placingDoorZoneId && (

@@ -10,13 +10,15 @@ import {
 import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT } from '../../utils/floorHeating';
 import type { CalidadAislacion } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
+import { autoColocarRadiadores } from '../../utils/autoLayout';
+import type { Radiator } from '../../models/Radiator';
 
 export const RoomPanel: React.FC = () => {
   const {
     rooms, radiators, floorHeatingZones, floorHeatingTempC,
-    currentFloor, addRoom, updateRoom, removeRoom
+    currentFloor, addRoom, updateRoom, removeRoom, addRadiator
   } = useElementsStore();
-  const { isBudgetPanelOpen } = useToolsStore();
+  const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -48,6 +50,39 @@ export const RoomPanel: React.FC = () => {
 
     addRoom(newRoom);
     setSelectedRoomId(newRoom.id);
+  };
+
+  // Auto-colocación (Etapa 1 del auto-diseño): habitaciones de la planta
+  // actual con contorno marcado, sin radiadores asignados y sin piso radiante
+  // vinculado — nunca pisa trabajo manual ni ambientes ya calefaccionados
+  const roomsAutoColocables = rooms.filter(r =>
+    r.floor === currentFloor &&
+    r.bounds &&
+    r.radiatorIds.length === 0 &&
+    !floorHeatingZones.some(z => z.roomId === r.id)
+  );
+
+  const handleAutoColocar = () => {
+    roomsAutoColocables.forEach(room => {
+      const propuestos = autoColocarRadiadores(room);
+      const ids: string[] = [];
+      propuestos.forEach(p => {
+        const rad: Radiator = {
+          id: crypto.randomUUID(),
+          type: 'radiator',
+          x: p.x,
+          y: p.y,
+          width: p.width,
+          height: p.height,
+          power: p.power,
+        };
+        addRadiator(rad);
+        ids.push(rad.id);
+      });
+      if (ids.length > 0) {
+        updateRoom(room.id, { radiatorIds: ids });
+      }
+    });
   };
 
   const handleDeleteRoom = (roomId: string) => {
@@ -188,6 +223,25 @@ export const RoomPanel: React.FC = () => {
           >
             + Nueva Habitación
           </button>
+          {roomsAutoColocables.length > 0 && (
+            <button
+              onClick={handleAutoColocar}
+              title="Calcula cuántos radiadores necesita cada habitación con contorno marcado y los apoya contra la pared más larga — después acomodalos arrastrando"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                padding: '8px',
+                backgroundColor: '#3F51B5',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              ⚡ Auto-colocar radiadores ({roomsAutoColocables.length} hab.)
+            </button>
+          )}
         </div>
       </div>
 
@@ -252,23 +306,47 @@ export const RoomPanel: React.FC = () => {
                   marginBottom: '8px'
                 }}>
                   <strong style={{ fontSize: '14px', color: '#333' }}>{room.name}</strong>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteRoom(room.id);
-                    }}
-                    style={{
-                      padding: '2px 8px',
-                      fontSize: '12px',
-                      border: 'none',
-                      background: '#f44336',
-                      color: 'white',
-                      borderRadius: '3px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ✕
-                  </button>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRoomBoundsTarget(roomBoundsTargetId === room.id ? null : room.id);
+                      }}
+                      title={room.bounds
+                        ? 'Volver a marcar el contorno de esta habitación en el plano'
+                        : 'Marcar el contorno de esta habitación en el plano (arrastrá un rectángulo)'}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '12px',
+                        border: 'none',
+                        background: roomBoundsTargetId === room.id
+                          ? '#3F51B5'
+                          : room.bounds ? '#C5CAE9' : '#E0E0E0',
+                        color: roomBoundsTargetId === room.id ? 'white' : '#333',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📐{room.bounds ? '✓' : ''}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRoom(room.id);
+                      }}
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: '12px',
+                        border: 'none',
+                        background: '#f44336',
+                        color: 'white',
+                        borderRadius: '3px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ fontSize: '12px', color: '#666' }}>

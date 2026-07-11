@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useElementsStore } from './useElementsStore';
 
-type Tool = 'select' | 'radiator' | 'boiler' | 'vertical-pipe' | 'floor-heating-zone' | 'manifold';
+type Tool = 'select' | 'radiator' | 'boiler' | 'vertical-pipe' | 'floor-heating-zone' | 'manifold' | 'room-rect';
 
 // Capas visuales del canvas, estilo AutoCAD: se prenden/apagan sin afectar
 // los datos. 'plano' es la imagen de fondo, 'circuitos' los serpentines Ø20
@@ -13,15 +13,20 @@ interface ToolsStore {
   tool: Tool;
   isBudgetPanelOpen: boolean;
   visibleLayers: Record<CanvasLayer, boolean>;
+  // Habitación a la que se le está marcando el contorno sobre el plano
+  // (herramienta 'room-rect', se dispara desde el RoomPanel)
+  roomBoundsTargetId: string | null;
   setTool: (tool: Tool) => void;
   setBudgetPanelOpen: (isOpen: boolean) => void;
   toggleLayer: (layer: CanvasLayer) => void;
+  setRoomBoundsTarget: (roomId: string | null) => void;
 }
 
 export const useToolsStore = create<ToolsStore>((set) => ({
   tool: 'select',
   isBudgetPanelOpen: false,
   visibleLayers: { plano: true, circuitos: true, montantes: true },
+  roomBoundsTargetId: null,
 
   setTool: (tool) => {
     // Cancelar tubería temporal si existe al cambiar de herramienta
@@ -38,4 +43,9 @@ export const useToolsStore = create<ToolsStore>((set) => ({
   toggleLayer: (layer) => set((state) => ({
     visibleLayers: { ...state.visibleLayers, [layer]: !state.visibleLayers[layer] },
   })),
+
+  setRoomBoundsTarget: (roomId) => set({
+    roomBoundsTargetId: roomId,
+    tool: roomId ? 'room-rect' : 'select',
+  }),
 }));
