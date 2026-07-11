@@ -60,7 +60,9 @@ export function generarConsideraciones({
           'El piso radiante no alcanza el requerido con margen del 15% en esos ambientes. ' +
           'Opciones que no agregan otro circuito hidráulico: reducir el paso a 15 cm, subir ' +
           'la temperatura de impulsión (si la caldera lo permite), mejorar la aislación del ' +
-          'ambiente, o cubrir el faltante con un toallero o panel eléctrico.',
+          'ambiente, o cubrir el faltante con un panel eléctrico. OJO con confiar en el ' +
+          'toallero para un baño: su potencia no suele cubrir la demanda, y con los toallones ' +
+          'colgados encima pierde la convección — en ese caso, reforzar con un radiador.',
       });
     }
 

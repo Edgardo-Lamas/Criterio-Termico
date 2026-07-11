@@ -18,7 +18,11 @@ export const ELEMENTOS_KCALH_POR_ALTURA: Record<AlturaElementoMm, number> = {
   700: 280,
 };
 export const ELEMENTO_KCALH = ELEMENTOS_KCALH_POR_ALTURA[500];
-// Criterio de obra: un radiador muy largo distribuye mal — tope de elementos
+// Tope de elementos por batería — criterio HIDRÁULICO de Edgardo: las bombas
+// circuladoras que traen las calderas no mueven bien baterías más grandes
+// (mucha pérdida de carga). Se puede superar con equilibrado fino, bomba más
+// grande o una segunda bomba en serie, pero es un gasto que no conviene
+// generar si no es estrictamente necesario.
 export const MAX_ELEMENTOS_POR_RADIADOR = 12;
 
 // Vista superior del canvas: 1 px = 10 mm (misma convención que la caldera).
