@@ -5,6 +5,7 @@
 
 import type { Room } from '../models/Room';
 import type { Radiator } from '../models/Radiator';
+import type { TipoTiro } from '../data/catalog';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
 import { MAX_CIRCUIT_LENGTH_M, MAX_CIRCUITOS_POR_COLECTOR } from './floorHeating';
@@ -29,12 +30,15 @@ export interface ConsideracionesInput {
   rooms: Room[];
   radiators: Radiator[];
   floorHeating: FloorHeatingBudget | null;
+  // Tipo de tiro de la caldera elegida en el presupuesto (si hay una elegida)
+  boilerTipo?: TipoTiro | null;
 }
 
 export function generarConsideraciones({
   rooms,
   radiators,
   floorHeating,
+  boilerTipo = null,
 }: ConsideracionesInput): Consideracion[] {
   const criticas: Consideracion[] = [];
   const atencion: Consideracion[] = [];
@@ -95,6 +99,19 @@ export function generarConsideraciones({
       });
     }
 
+    // La caldera elegida no admite piso radiante: tiro natural con retornos
+    // fríos condensa los gases de combustión y corroe el equipo.
+    if (boilerTipo === 'natural') {
+      criticas.push({
+        nivel: 'critica',
+        titulo: 'La caldera elegida es de tiro natural — no usar con piso radiante',
+        detalle:
+          'El piso devuelve el agua fría y eso hace condensar los gases de combustión dentro ' +
+          'del equipo, que se corroe. Elegir una caldera de condensación (ideal: aprovecha ' +
+          'ese retorno frío para rendir su máximo) o, como segunda opción, una de tiro forzado.',
+      });
+    }
+
     // Sistema mixto: radiadores (70-80°C) + piso radiante (35-45°C). En
     // vivienda es la excepción, no la regla: son dos circuitos con costo y
     // complejidad que la mayoría de los clientes no paga. Si el diseño lo
@@ -128,16 +145,19 @@ export function generarConsideraciones({
 
     // Caldera para piso radiante: el retorno frío del piso es justo lo que
     // la condensación aprovecha; en tiro natural ese mismo retorno condensa
-    // los gases y corroe el equipo.
-    recomendaciones.push({
-      nivel: 'recomendacion',
-      titulo: 'Caldera para piso radiante: condensación primero',
-      detalle:
-        'El piso trabaja con retornos fríos, y eso es exactamente lo que la caldera de ' +
-        'condensación aprovecha para rendir su máximo: es la opción IDEAL. Segunda opción: ' +
-        'tiro forzado (estanca). NUNCA una caldera de tiro natural: el retorno frío hace ' +
-        'condensar los gases de combustión dentro del equipo y lo corroe.',
-    });
+    // los gases y corroe el equipo. Se omite si ya hay condensación elegida
+    // (redundante) o si es tiro natural (ya disparó la crítica de arriba).
+    if (boilerTipo !== 'condensacion' && boilerTipo !== 'natural') {
+      recomendaciones.push({
+        nivel: 'recomendacion',
+        titulo: 'Caldera para piso radiante: condensación primero',
+        detalle:
+          'El piso trabaja con retornos fríos, y eso es exactamente lo que la caldera de ' +
+          'condensación aprovecha para rendir su máximo: es la opción IDEAL. Segunda opción: ' +
+          'tiro forzado (estanca). NUNCA una caldera de tiro natural: el retorno frío hace ' +
+          'condensar los gases de combustión dentro del equipo y lo corroe.',
+      });
+    }
 
     // Buenas prácticas de obra — siempre que haya piso radiante
     recomendaciones.push({

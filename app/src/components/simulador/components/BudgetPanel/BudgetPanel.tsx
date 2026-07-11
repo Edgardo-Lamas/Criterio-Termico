@@ -7,6 +7,7 @@ import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator
 import { calcularPresupuestoPisoRadiante } from '../../utils/floorHeatingBudget';
 import { generarConsideraciones } from '../../utils/consideraciones';
 import type { Consideracion } from '../../utils/consideraciones';
+import { TIPO_TIRO_LABEL } from '../../data/catalog';
 import { useCompanyStore } from '../../store/companyStore';
 import { useLeadStore } from '../../store/useLeadStore';
 import { loadLogoAsBase64 } from '../../utils/logoHelper';
@@ -52,13 +53,6 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         [floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC]
     );
 
-    // Consideraciones técnicas del diseño: alertas de cobertura/circuitos y
-    // buenas prácticas de obra. Van al panel y al PDF del presupuesto.
-    const consideraciones = useMemo(
-        () => generarConsideraciones({ rooms, radiators, floorHeating: floorHeatingBudget }),
-        [rooms, radiators, floorHeatingBudget]
-    );
-
     // Pre-load logo when panel opens (so download can stay synchronous).
     // Solo el caso async (URL remota) necesita el efecto; el caso data: URL
     // ya está disponible sincrónicamente y se deriva más abajo con useMemo.
@@ -80,14 +74,38 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         return generateBudgetOptions(totalPowerKcal);
     }, [isOpen, totalPowerKcal]);
 
+    // Con piso radiante, la lista de calderas ordena por compatibilidad:
+    // condensación (ideal) → tiro forzado → tiro natural (nunca con piso)
+    const boilersOrdenadas = useMemo(() => {
+        const lista = options?.suggestedBoilers ?? [];
+        if (!floorHeatingBudget) return lista;
+        const prioridad: Record<string, number> = { condensacion: 0, forzado: 1, natural: 2 };
+        return [...lista].sort((a, b) => prioridad[a.tipoTiro] - prioridad[b.tipoTiro]);
+    }, [options, floorHeatingBudget]);
+
+    const selectedBoilerTipo = useMemo(
+        () => options?.suggestedBoilers.find(b => b.id === selectedBoilerId)?.tipoTiro ?? null,
+        [options, selectedBoilerId]
+    );
+
+    // Consideraciones técnicas del diseño: alertas de cobertura/circuitos/caldera
+    // y buenas prácticas de obra. Van al panel y al PDF del presupuesto.
+    const consideraciones = useMemo(
+        () => generarConsideraciones({
+            rooms, radiators, floorHeating: floorHeatingBudget, boilerTipo: selectedBoilerTipo
+        }),
+        [rooms, radiators, floorHeatingBudget, selectedBoilerTipo]
+    );
+
     // Set defaults solo la primera vez que hay opciones y todavía no hay selección.
     // Depende de selectedBoilerId/selectedRadiatorId pero a propósito no están en las
     // deps — son "set once if unset", no una sincronización continua.
     useEffect(() => {
         if (!options) return;
-        if (!selectedBoilerId && options.suggestedBoilers.length > 0) {
+        if (!selectedBoilerId && boilersOrdenadas.length > 0) {
+            // Con piso radiante, boilersOrdenadas ya trae condensación primero
             // eslint-disable-next-line react-hooks/set-state-in-effect
-            setSelectedBoilerId(options.suggestedBoilers[0].id);
+            setSelectedBoilerId(boilersOrdenadas[0].id);
         }
         if (!selectedRadiatorId && options.allRadiators.length > 0) {
             setSelectedRadiatorId(options.allRadiators[0].id);
@@ -207,25 +225,64 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 {/* Boiler Selection */}
                 <div className="budget-section">
                     <h4>🔥 Selección de Caldera</h4>
+                    {floorHeatingBudget && (
+                        <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '6px' }}>
+                            Con piso radiante: condensación (ideal) → tiro forzado. Tiro natural no admite piso.
+                        </div>
+                    )}
                     <div className="product-grid">
-                        {options?.suggestedBoilers.map(b => (
-                            <div
-                                key={b.id}
-                                className={`product-card ${selectedBoilerId === b.id ? 'selected' : ''}`}
-                                onClick={() => setSelectedBoilerId(b.id)}
-                            >
-                                <div className="product-icon">🔥</div>
-                                <div className="product-info">
-                                    <div className="product-name">{b.brand} {b.model}</div>
-                                    <div className="product-spec">{b.maxPowerKcal.toLocaleString()} Kcal/h ({b.maxPowerKw} kW)</div>
+                        {boilersOrdenadas.map(b => {
+                            // Con piso dibujado, el tipo de tiro define la compatibilidad
+                            const badgeColor = b.tipoTiro === 'condensacion' ? '#2E7D32'
+                                : b.tipoTiro === 'forzado' ? '#607D8B'
+                                : floorHeatingBudget ? '#D32F2F' : '#8D6E63';
+                            return (
+                                <div
+                                    key={b.id}
+                                    className={`product-card ${selectedBoilerId === b.id ? 'selected' : ''}`}
+                                    onClick={() => setSelectedBoilerId(b.id)}
+                                >
+                                    <div className="product-icon">🔥</div>
+                                    <div className="product-info">
+                                        <div className="product-name">{b.brand} {b.model}</div>
+                                        <div className="product-spec">{b.maxPowerKcal.toLocaleString()} Kcal/h ({b.maxPowerKw} kW)</div>
+                                        <span style={{
+                                            display: 'inline-block',
+                                            fontSize: '0.65rem',
+                                            fontWeight: 600,
+                                            color: 'white',
+                                            backgroundColor: badgeColor,
+                                            borderRadius: '3px',
+                                            padding: '1px 6px',
+                                            marginTop: '3px'
+                                        }}>
+                                            {TIPO_TIRO_LABEL[b.tipoTiro]}
+                                            {floorHeatingBudget && b.tipoTiro === 'condensacion' ? ' · ideal piso' : ''}
+                                            {floorHeatingBudget && b.tipoTiro === 'natural' ? ' · no admite piso' : ''}
+                                        </span>
+                                    </div>
+                                    <div className="product-price-col">
+                                        <div className="product-price">${(prices.boilers[b.id] || b.cost).toLocaleString()}</div>
+                                    </div>
+                                    <div className="check-mark">✔</div>
                                 </div>
-                                <div className="product-price-col">
-                                    <div className="product-price">${(prices.boilers[b.id] || b.cost).toLocaleString()}</div>
-                                </div>
-                                <div className="check-mark">✔</div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
+                    {floorHeatingBudget && selectedBoilerTipo === 'natural' && (
+                        <div style={{
+                            marginTop: '8px',
+                            padding: '8px 10px',
+                            backgroundColor: '#FDECEA',
+                            borderLeft: '3px solid #D32F2F',
+                            borderRadius: '4px',
+                            fontSize: '0.78rem',
+                            color: '#B71C1C'
+                        }}>
+                            ⚠ Elegiste una caldera de tiro natural con piso radiante dibujado: el retorno
+                            frío condensa los gases y corroe el equipo. Elegí condensación o tiro forzado.
+                        </div>
+                    )}
                 </div>
 
                 {/* Radiator Selection */}

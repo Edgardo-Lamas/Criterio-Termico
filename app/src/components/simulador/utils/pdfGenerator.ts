@@ -533,6 +533,7 @@ export const generateQuotePDF = (
     rooms,
     radiators,
     floorHeating: floorHeating ?? null,
+    boilerTipo: selectedBudget?.breakdown.boiler?.model.tipoTiro ?? null,
   });
 
   if (consideraciones.length > 0) {

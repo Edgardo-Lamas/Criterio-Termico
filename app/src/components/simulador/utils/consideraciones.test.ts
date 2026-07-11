@@ -67,6 +67,31 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     expect(caldera?.detalle).toContain('NUNCA');
   });
 
+  it('caldera de tiro natural con piso radiante genera una crítica', () => {
+    const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    const cons = generarConsideraciones({
+      rooms: [], radiators: [], floorHeating: budget, boilerTipo: 'natural',
+    });
+    const critica = cons.find(c => c.titulo.includes('tiro natural'));
+    expect(critica?.nivel).toBe('critica');
+    // La recomendación genérica de calderas no se duplica
+    expect(cons.some(c => c.titulo.includes('condensación primero'))).toBe(false);
+  });
+
+  it('con caldera de condensación elegida no repite la recomendación de calderas', () => {
+    const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
+    const cons = generarConsideraciones({
+      rooms: [], radiators: [], floorHeating: budget, boilerTipo: 'condensacion',
+    });
+    expect(cons.some(c => c.titulo.includes('tiro natural'))).toBe(false);
+    expect(cons.some(c => c.titulo.includes('condensación primero'))).toBe(false);
+    // Con tiro forzado sí sugiere que el ideal es condensación
+    const consForzado = generarConsideraciones({
+      rooms: [], radiators: [], floorHeating: budget, boilerTipo: 'forzado',
+    });
+    expect(consForzado.some(c => c.titulo.includes('condensación primero'))).toBe(true);
+  });
+
   it('con varios circuitos recomienda equilibrar caudalímetros; con uno solo no', () => {
     // Zona 4×3 (12 m² → 1 circuito): sin equilibrado
     const chico = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);

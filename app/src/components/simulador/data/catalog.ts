@@ -1,7 +1,19 @@
+// Tipo de salida de gases de la caldera. Define la compatibilidad con piso
+// radiante: condensación IDEAL (aprovecha el retorno frío), forzado aceptable,
+// natural NUNCA (el retorno frío condensa los gases y corroe el equipo).
+export type TipoTiro = 'condensacion' | 'forzado' | 'natural';
+
+export const TIPO_TIRO_LABEL: Record<TipoTiro, string> = {
+    condensacion: 'Condensación',
+    forzado: 'Tiro forzado',
+    natural: 'Tiro natural',
+};
+
 export interface BoilerModel {
     id: string;
     brand: 'BAXI' | 'PEISA' | 'Generic';
     model: string;
+    tipoTiro: TipoTiro;
     maxPowerKcal: number;
     maxPowerKw: number;
     cost: number;
@@ -40,6 +52,7 @@ export const CATALOG = {
             id: 'peisa-diva-ds',
             brand: 'PEISA',
             model: 'Diva DS',
+            tipoTiro: 'natural', // VERIFICAR con catálogo del fabricante
             maxPowerKcal: 20640, // ~24kW
             maxPowerKw: 24,
             cost: 850000,
@@ -52,9 +65,22 @@ export const CATALOG = {
             id: 'baxi-main-5',
             brand: 'BAXI',
             model: 'Main 5',
+            tipoTiro: 'forzado', // cámara estanca — VERIFICAR con catálogo
             maxPowerKcal: 20640,
             maxPowerKw: 24,
             cost: 920000,
+            width: 400,
+            height: 700,
+            depth: 300
+        },
+        {
+            id: 'baxi-duotec-compact-24',
+            brand: 'BAXI',
+            model: 'Duo-tec Compact 24',
+            tipoTiro: 'condensacion', // PRECIO DE REFERENCIA — ajustar
+            maxPowerKcal: 20640,
+            maxPowerKw: 24,
+            cost: 1900000,
             width: 400,
             height: 700,
             depth: 300
