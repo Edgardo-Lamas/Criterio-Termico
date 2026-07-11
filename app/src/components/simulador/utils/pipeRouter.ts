@@ -1,10 +1,20 @@
 import type { Radiator } from '../models/Radiator';
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
+import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 
 interface Point {
   x: number;
   y: number;
+}
+
+// Rectángulo a esquivar por el ruteo: radiadores y también zonas de piso
+// radiante (una troncal no debe atravesar un panel de serpentines)
+interface Obstaculo {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
 }
 
 interface RadiatorZone {
@@ -76,11 +86,11 @@ export function groupRadiatorsIntoZones(radiators: Radiator[], maxDistance: numb
  * EVITANDO pasar por encima de radiadores
  * Intenta múltiples opciones y elige la que no cruza radiadores
  */
-function findShortestPath(start: Point, end: Point, radiators?: Radiator[]): Point[] {
+function findShortestPath(start: Point, end: Point, radiators?: Obstaculo[]): Point[] {
   const margin = 40; // Margen de seguridad alrededor del radiador
 
-  // Función para verificar si un segmento de línea cruza un radiador
-  const segmentIntersectsRadiator = (p1: Point, p2: Point): Radiator | undefined => {
+  // Función para verificar si un segmento de línea cruza un obstáculo
+  const segmentIntersectsRadiator = (p1: Point, p2: Point): Obstaculo | undefined => {
     if (!radiators) return undefined;
     return radiators.find(rad => {
       const radLeft = rad.x - margin;
@@ -190,7 +200,7 @@ function findShortestPath(start: Point, end: Point, radiators?: Radiator[]): Poi
 }
 
 /**
- * Calcula la longitud total de un path en metros (100px = 1m)
+ * Calcula la longitud total de un path en metros (50px = 1m)
  */
 function calculatePathLength(points: Point[]): number {
   let length = 0;
@@ -199,7 +209,10 @@ function calculatePathLength(points: Point[]): number {
     const dy = points[i + 1].y - points[i].y;
     length += Math.sqrt(dx * dx + dy * dy);
   }
-  return length / 100; // Convertir pixels a metros
+  // Escala del canvas: 50 px = 1 m (la misma que usa TODO el simulador —
+  // finishPipe, createManualPipe, piso radiante). OJO: acá decía /100 y las
+  // tuberías del Conectar Auto se presupuestaban con la MITAD de los metros.
+  return length / 50;
 }
 
 
@@ -268,8 +281,12 @@ function generateCircuitPipes(
   originPoint: Point,
   originElementId: string,
   floor: 'ground' | 'first',
-  circuitId: string
+  circuitId: string,
+  floorHeatingZones: FloorHeatingZone[] = []
 ): PipeSegment[] {
+  // Obstáculos del ruteo: los radiadores del circuito + las zonas de piso
+  // radiante de la planta (una troncal no atraviesa un panel de serpentines)
+  const zonasPlanta = floorHeatingZones.filter(z => z.floor === floor);
   const pipes: PipeSegment[] = [];
   let pipeIdCounter = Date.now();
   const PARALLEL_OFFSET = 8;
@@ -338,7 +355,7 @@ function generateCircuitPipes(
 
     // === TRONCAL: desde punto actual hasta punto de derivación ===
     if (currentTrunkPoint.x !== derivationPoint.x || currentTrunkPoint.y !== derivationPoint.y) {
-      const trunkPath = findShortestPath(currentTrunkPoint, derivationPoint, radiators);
+      const trunkPath = findShortestPath(currentTrunkPoint, derivationPoint, [...radiators, ...zonasPlanta]);
       const trunkId = `${circuitId}-supply-trunk-${pipeIdCounter++}`;
 
       pipes.push({
@@ -372,7 +389,11 @@ function generateCircuitPipes(
     }
 
     // === RAMAL: desde punto de derivación hasta el radiador ===
-    const branchPath = findShortestPath(derivationPoint, radiatorConnection, radiators.filter(r => r.id !== radiator.id));
+    const branchPath = findShortestPath(
+      derivationPoint,
+      radiatorConnection,
+      [...radiators.filter(r => r.id !== radiator.id), ...zonasPlanta]
+    );
     const branchId = `${circuitId}-supply-branch-${pipeIdCounter++}`;
 
     // Diámetro del ramal: solo la potencia de ESTE radiador
@@ -417,7 +438,8 @@ function generateCircuitPipes(
  */
 export function generateAutoPipes(
   radiators: Radiator[],
-  boilers: Boiler[]
+  boilers: Boiler[],
+  floorHeatingZones: FloorHeatingZone[] = []
 ): {
   pipes: PipeSegment[];
   repositionedRadiators: Array<{ id: string; x: number; y: number; width?: number; height?: number }>;
@@ -432,7 +454,6 @@ export function generateAutoPipes(
     y: boiler.y + boiler.height / 2
   };
   const floor = boiler.floor as 'ground' | 'first';
-  console.log(`   Caldera en (${boilerCenter.x.toFixed(0)}, ${boilerCenter.y.toFixed(0)})`);
   // Dividir en circuitos
   const circuits = divideIntoCircuits(radiators, boilerCenter);
   const allPipes: PipeSegment[] = [];
@@ -445,7 +466,8 @@ export function generateAutoPipes(
       boilerCenter,
       boiler.id,
       floor,
-      circuitId
+      circuitId,
+      floorHeatingZones
     );
 
     allPipes.push(...circuitPipes);
@@ -460,7 +482,8 @@ export function generateAutoPipes(
 export function generateMultiFloorPipes(
   allRadiators: Radiator[],
   allBoilers: Boiler[],
-  riserPosition?: Point // Posición del montante (opcional, se calcula automáticamente)
+  riserPosition?: Point, // Posición del montante (opcional, se calcula automáticamente)
+  floorHeatingZones: FloorHeatingZone[] = []
 ): {
   pipes: PipeSegment[];
   riserPoint: Point | null;
@@ -515,7 +538,6 @@ export function generateMultiFloorPipes(
 
     riserId = `riser-${Date.now()}`;
 
-    console.log(`🔼 Creando montante vertical en (${riserPoint.x.toFixed(0)}, ${riserPoint.y.toFixed(0)})`);
     // TRAMO CALDERA → MONTANTE (conexión horizontal en la planta de la caldera)
     const boilerToRiserPath = findShortestPath(boilerCenter, riserPoint, allRadiators.filter(r => r.floor === boilerFloor));
     const boilerToRiserId = `${riserId}-boiler-connection`;
@@ -587,7 +609,8 @@ export function generateMultiFloorPipes(
         boilerCenter,
         mainBoiler.id,
         'ground',
-        `ground-c${idx + 1}`
+        `ground-c${idx + 1}`,
+        floorHeatingZones
       );
       pipes.push(...circuitPipes);
     });
@@ -599,7 +622,8 @@ export function generateMultiFloorPipes(
         boilerCenter,
         mainBoiler.id,
         'first',
-        `first-c${idx + 1}`
+        `first-c${idx + 1}`,
+        floorHeatingZones
       );
       pipes.push(...circuitPipes);
     });
@@ -671,7 +695,8 @@ export function generateMultiFloorPipes(
           distributionEndPoint,
           distributionTrunkId, // Conectar al troncal de distribución
           'first',
-          circuitId
+          circuitId,
+          floorHeatingZones
         );
         pipes.push(...circuitPipes);
       });
@@ -739,7 +764,8 @@ export function generateMultiFloorPipes(
           distributionEndPoint,
           distributionTrunkId,
           'ground',
-          circuitId
+          circuitId,
+          floorHeatingZones
         );
         pipes.push(...circuitPipes);
       });

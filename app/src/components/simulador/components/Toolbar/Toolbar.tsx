@@ -95,8 +95,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
       return;
     }
 
-    // Execute directly without confirmation dialog
-    const result = generateAutoPipes(currentFloorRadiators, currentFloorBoilers);
+    // Execute directly without confirmation dialog (las zonas de piso
+    // radiante son obstáculo: las troncales no atraviesan un panel)
+    const result = generateAutoPipes(currentFloorRadiators, currentFloorBoilers, floorHeatingZones);
 
     const otherFloorPipes = pipes.filter(p => p.floor !== currentFloor && p.floor !== 'vertical');
     const verticalPipes = pipes.filter(p => p.floor === 'vertical');
@@ -129,7 +130,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
   // NUEVO: Conexión automática multi-planta
   const handleMultiFloorConnect = () => {
     // Execute directly without confirmation
-    const result = generateMultiFloorPipes(radiators, boilers);
+    const result = generateMultiFloorPipes(radiators, boilers, undefined, floorHeatingZones);
     setPipes(result.pipes);
 
     // Auto-dimensionar
