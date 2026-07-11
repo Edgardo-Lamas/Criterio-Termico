@@ -61,6 +61,10 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     // Protocolo de obra: presurizado con manómetro y by-pass + registro del tendido
     expect(titulos.some(t => t.includes('presurizada hasta el fin de obra'))).toBe(true);
     expect(titulos.some(t => t.includes('Registro del tendido'))).toBe(true);
+    // Caldera: condensación ideal, tiro forzado segunda, tiro natural nunca
+    const caldera = cons.find(c => c.titulo.includes('condensación'));
+    expect(caldera?.detalle).toContain('tiro forzado');
+    expect(caldera?.detalle).toContain('NUNCA');
   });
 
   it('con varios circuitos recomienda equilibrar caudalímetros; con uno solo no', () => {

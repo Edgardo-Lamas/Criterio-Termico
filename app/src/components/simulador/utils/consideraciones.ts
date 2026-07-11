@@ -104,7 +104,7 @@ export function generarConsideraciones({
         nivel: 'atencion',
         titulo: 'Sistema mixto: radiadores y piso radiante en la misma instalación',
         detalle:
-          `Son dos circuitos a temperaturas distintas (radiadores 70-80°C, piso ${floorHeating.tempImpulsionC}°C): ` +
+          `Son dos circuitos con agua de impulsión incompatible (radiadores a más de 60°C, piso ${floorHeating.tempImpulsionC}°C como máximo): ` +
           'exige válvula mezcladora termostática, bomba propia para el piso y regulación ' +
           'independiente — más materiales y puesta en marcha, que encarecen la obra. En ' +
           'vivienda conviene evaluar resolver todo con un solo sistema; si el mixto se ' +
@@ -125,6 +125,19 @@ export function generarConsideraciones({
           'de tubería) para que no fisure con los ciclos térmicos.',
       });
     }
+
+    // Caldera para piso radiante: el retorno frío del piso es justo lo que
+    // la condensación aprovecha; en tiro natural ese mismo retorno condensa
+    // los gases y corroe el equipo.
+    recomendaciones.push({
+      nivel: 'recomendacion',
+      titulo: 'Caldera para piso radiante: condensación primero',
+      detalle:
+        'El piso trabaja con retornos fríos, y eso es exactamente lo que la caldera de ' +
+        'condensación aprovecha para rendir su máximo: es la opción IDEAL. Segunda opción: ' +
+        'tiro forzado (estanca). NUNCA una caldera de tiro natural: el retorno frío hace ' +
+        'condensar los gases de combustión dentro del equipo y lo corroe.',
+    });
 
     // Buenas prácticas de obra — siempre que haya piso radiante
     recomendaciones.push({
@@ -148,9 +161,10 @@ export function generarConsideraciones({
         nivel: 'recomendacion',
         titulo: 'Equilibrado de circuitos en la puesta en marcha',
         detalle:
-          'Los circuitos tienen longitudes distintas (ver tabla): ajustar los caudalímetros ' +
-          'del colector para que cada uno reciba su caudal. Sin equilibrar, el circuito corto ' +
-          'roba caudal al largo y ese ambiente queda frío aunque el diseño esté bien.',
+          'El equilibrado hidráulico es fundamental: con longitudes distintas (ver tabla), el ' +
+          'circuito corto roba caudal al largo y ese ambiente queda frío aunque el diseño esté ' +
+          'bien. Los colectores de calidad ya traen los caudalímetros incorporados — elegir uno ' +
+          'de esos y ajustarlos en la puesta en marcha.',
       });
     }
 
@@ -160,7 +174,8 @@ export function generarConsideraciones({
       detalle:
         'El piso radiante tarda horas en entrar en régimen y en enfriarse. Un cronotermostato ' +
         'programable (arrancar antes de que se necesite, cortar antes de acostarse) mejora el ' +
-        'confort y baja el consumo — vale la pena ofrecerlo en la instalación.',
+        'confort y baja el consumo — vale la pena ofrecerlo. Las calderas nuevas suman sonda ' +
+        'exterior para anticipar los saltos térmicos: si el equipo la admite, instalarla.',
     });
 
     const litrosPiso = Math.round(floorHeating.longitudTotalM * LITROS_POR_METRO_PEX20);
@@ -224,9 +239,10 @@ export function generarConsideraciones({
       detalle:
         'Protocolo sugerido: dejar un manómetro montado en la posición de la caldera, unir ' +
         'ida y retorno con un by-pass y mantener toda la tubería cargada a 3 bar hasta ' +
-        'terminar la obra. Si otro gremio daña un caño por accidente, el manómetro lo ' +
-        'delata en el momento — y en la entrega se demuestra al cliente que la red quedó ' +
-        'intacta de punta a punta.',
+        'terminar la obra. Si cualquier gremio daña un caño por accidente, el manómetro lo ' +
+        'delata en el momento, y el control queda en manos del arquitecto o dueño de obra: ' +
+        'la etapa de obra es cuando las reparaciones se pueden hacer. En la entrega se ' +
+        'demuestra al cliente que la red quedó intacta de punta a punta.',
     });
 
     recomendaciones.push({
