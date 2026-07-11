@@ -8,22 +8,23 @@ import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { calculateBoilerPower } from './thermalCalculator';
+import { calculateBoilerPower, calculateRoomPower } from './thermalCalculator';
+import { cargaPisoKcalh } from './floorHeating';
+import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
+import { generarConsideraciones } from './consideraciones';
+import type { Consideracion } from './consideraciones';
 import type { SelectedBudget } from '../services/budgetService';
 
-interface MaterialSummary {
-  radiatorCount: number;
-  boilerPower: number;
-}
-
-const calculateMaterials = (radiators: Radiator[]): MaterialSummary => {
-  const boilerData = calculateBoilerPower(radiators);
-
-  return {
-    radiatorCount: radiators.length,
-    boilerPower: boilerData.recommendedBoilerPower,
-  };
-};
+// Paleta del presupuesto (impresión): encabezados en azul noche, acento de
+// marca Criterio Térmico, zebra sutil en tablas. Los símbolos se limitan a
+// Latin-1 (helvetica estándar de jsPDF no tiene ✓/⚠/emoji).
+const NAVY: [number, number, number] = [26, 32, 66];
+const ACCENT: [number, number, number] = [233, 69, 96];
+const ZEBRA: [number, number, number] = [245, 246, 248];
+const GRIS_TEXTO: [number, number, number] = [95, 99, 110];
+const OK_VERDE: [number, number, number] = [46, 125, 50];
+const ROJO: [number, number, number] = [198, 40, 40];
+const AMBAR: [number, number, number] = [230, 126, 34];
 
 export const generateQuotePDF = (
   canvasElement: HTMLCanvasElement,
@@ -40,424 +41,579 @@ export const generateQuotePDF = (
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  let yPosition = 20;
+  const M = 15;               // margen horizontal
+  const tableRight = pageWidth - M;
+  let yPosition = 18;
 
-  // === HEADER CON LOGO Y DATOS DE EMPRESA ===
+  // ── Helpers de maquetación ────────────────────────────────────────────────
+  const ensureSpace = (needed: number) => {
+    if (yPosition + needed > pageHeight - 24) {
+      doc.addPage();
+      yPosition = 20;
+    }
+  };
+
+  // Título de sección: barrita de acento + texto en azul noche
+  const sectionTitle = (texto: string) => {
+    ensureSpace(16);
+    doc.setFillColor(...ACCENT);
+    doc.rect(M, yPosition - 4, 1.6, 5.5, 'F');
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...NAVY);
+    doc.text(texto, M + 4.5, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 8;
+  };
+
+  // Fila de encabezado de tabla: banda azul noche con texto blanco
+  const tableHead = (cols: { texto: string; x: number; align?: 'left' | 'right' }[]) => {
+    ensureSpace(10);
+    doc.setFillColor(...NAVY);
+    doc.rect(M, yPosition - 4.5, tableRight - M, 6.5, 'F');
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    cols.forEach(c => doc.text(c.texto, c.x, yPosition, c.align === 'right' ? { align: 'right' } : undefined));
+    doc.setTextColor(0, 0, 0);
+    yPosition += 6;
+  };
+
+  // Fondo zebra de la fila actual (llamar antes de escribir el texto)
+  let zebraToggle = false;
+  const zebraRow = (alto = 5.5) => {
+    ensureSpace(alto + 3);
+    if (zebraToggle) {
+      doc.setFillColor(...ZEBRA);
+      doc.rect(M, yPosition - 4, tableRight - M, alto, 'F');
+    }
+    zebraToggle = !zebraToggle;
+  };
+  const resetZebra = () => { zebraToggle = false; };
+
+  // === ENCABEZADO: LOGO + EMPRESA ===
   const logoBase64 = preloadedLogo || companyDetails.logo || '';
+  const headerTop = yPosition;
 
   if (logoBase64) {
     try {
-      doc.addImage(logoBase64, 'JPEG', 15, yPosition, 40, 25);
+      doc.addImage(logoBase64, 'JPEG', M, headerTop, 38, 24);
     } catch {
       // Logo inválido o corrupto — continuar sin logo en el PDF
     }
   }
 
+  // Datos de la empresa alineados a la derecha (el logo queda solo a la izquierda)
+  let yEmpresa = headerTop + 5;
   if (companyDetails.companyName) {
-    doc.setFontSize(16);
+    doc.setFontSize(15);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyDetails.companyName, companyDetails.logo ? 60 : 15, yPosition + 5);
-    yPosition += 8;
+    doc.setTextColor(...NAVY);
+    doc.text(companyDetails.companyName, tableRight, yEmpresa, { align: 'right' });
+    yEmpresa += 6;
   }
-
-  if (companyDetails.address || companyDetails.phone || companyDetails.email) {
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    if (companyDetails.address) {
-      doc.text(companyDetails.address, companyDetails.logo ? 60 : 15, yPosition);
-      yPosition += 4;
-    }
-    if (companyDetails.phone) {
-      doc.text(`Tel: ${companyDetails.phone}`, companyDetails.logo ? 60 : 15, yPosition);
-      yPosition += 4;
-    }
-    if (companyDetails.email) {
-      doc.text(`Email: ${companyDetails.email}`, companyDetails.logo ? 60 : 15, yPosition);
-      yPosition += 4;
-    }
-    if (companyDetails.website) {
-      doc.text(companyDetails.website, companyDetails.logo ? 60 : 15, yPosition);
-    }
-  }
-
-  yPosition += 15;
-
-  // === DATOS DEL CLIENTE (NUEVO) ===
-  doc.setDrawColor(200);
-  doc.line(15, yPosition, pageWidth - 15, yPosition);
-  yPosition += 10;
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text('SOLICITADO POR:', 15, yPosition);
-
+  doc.setFontSize(8.5);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
-
-  const clientText = clientDetails.name || 'Cliente Particular';
-  const projectText = clientDetails.projectName ? `Proyecto: ${clientDetails.projectName}` : 'Proyecto Residencial';
-
-  doc.text(clientText, 60, yPosition);
-  yPosition += 5;
-
-  doc.text(projectText, 60, yPosition);
-  if (clientDetails.email || clientDetails.phone) {
-    yPosition += 5;
-    const contactInfo = [clientDetails.phone, clientDetails.email].filter(Boolean).join(' | ');
-    doc.text(contactInfo, 60, yPosition);
+  doc.setTextColor(...GRIS_TEXTO);
+  for (const linea of [
+    companyDetails.address,
+    [companyDetails.phone && `Tel: ${companyDetails.phone}`, companyDetails.email]
+      .filter(Boolean).join('  ·  '),
+    companyDetails.website,
+  ].filter(Boolean) as string[]) {
+    doc.text(linea, tableRight, yEmpresa, { align: 'right' });
+    yEmpresa += 4.2;
   }
+  doc.setTextColor(0, 0, 0);
 
+  yPosition = Math.max(yEmpresa, headerTop + (logoBase64 ? 26 : 0)) + 4;
+
+  // Línea de acento que separa el encabezado
+  doc.setDrawColor(...ACCENT);
+  doc.setLineWidth(1);
+  doc.line(M, yPosition, tableRight, yPosition);
+  yPosition += 8;
+
+  // === BANDA DE TÍTULO: PRESUPUESTO + Nº, FECHA Y VALIDEZ ===
+  const hoy = new Date();
+  const nroPresupuesto = `P-${hoy.getFullYear()}${String(hoy.getMonth() + 1).padStart(2, '0')}${String(hoy.getDate()).padStart(2, '0')}`;
+  const vencimiento = new Date(hoy.getTime() + 15 * 24 * 60 * 60 * 1000);
+
+  doc.setFillColor(...NAVY);
+  doc.rect(M, yPosition - 5, tableRight - M, 13, 'F');
+  doc.setFontSize(15);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('PRESUPUESTO', M + 4, yPosition + 3.5);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text(
+    `N° ${nroPresupuesto}  ·  Fecha: ${hoy.toLocaleDateString('es-AR')}  ·  Válido hasta: ${vencimiento.toLocaleDateString('es-AR')}`,
+    tableRight - 4, yPosition + 3.5, { align: 'right' }
+  );
+  doc.setTextColor(0, 0, 0);
   yPosition += 15;
 
-  // === TÍTULO DEL PRESUPUESTO ===
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('PRESUPUESTO', pageWidth / 2, yPosition, { align: 'center' });
-  yPosition += 10;
+  // === DATOS DEL CLIENTE ===
+  const clientText = clientDetails.name || 'Cliente Particular';
+  const projectText = clientDetails.projectName || 'Proyecto Residencial';
+  const contactInfo = [clientDetails.phone, clientDetails.email].filter(Boolean).join('  ·  ');
 
+  const altoCliente = contactInfo ? 21 : 17;
+  doc.setFillColor(...ZEBRA);
+  doc.roundedRect(M, yPosition - 4, tableRight - M, altoCliente, 1.5, 1.5, 'F');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...GRIS_TEXTO);
+  doc.text('PREPARADO PARA', M + 4, yPosition);
+  doc.setFontSize(11);
+  doc.setTextColor(...NAVY);
+  doc.text(clientText, M + 4, yPosition + 6);
   doc.setFontSize(9);
-  const today = new Date().toLocaleDateString('es-AR');
-  doc.text(`Fecha: ${today}`, pageWidth / 2, yPosition, { align: 'center' });
-  yPosition += 12;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  doc.text(`Proyecto: ${projectText}`, M + 4, yPosition + 11);
+  if (contactInfo) {
+    doc.text(contactInfo, M + 4, yPosition + 15.5);
+  }
+  doc.setTextColor(0, 0, 0);
+  yPosition += altoCliente + 6;
 
   // === IMAGEN DEL PLANO ===
   const canvasImage = canvasElement.toDataURL('image/png');
-  const imgWidth = pageWidth - 30;
+  const imgWidth = pageWidth - 2 * M;
   const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
 
-  if (yPosition + imgHeight > pageHeight - 20) {
-    doc.addPage();
-    yPosition = 20;
-  }
-
-  doc.addImage(canvasImage, 'PNG', 15, yPosition, imgWidth, imgHeight);
+  ensureSpace(imgHeight + 4);
+  doc.setDrawColor(210, 212, 218);
+  doc.setLineWidth(0.3);
+  doc.rect(M - 0.5, yPosition - 0.5, imgWidth + 1, imgHeight + 1);
+  doc.addImage(canvasImage, 'PNG', M, yPosition, imgWidth, imgHeight);
   yPosition += imgHeight + 10;
 
-  // === RESUMEN DE HABITACIONES ===
-  if (yPosition + 40 > pageHeight - 20) {
-    doc.addPage();
-    yPosition = 20;
-  }
+  // === RESUMEN TÉRMICO POR AMBIENTE ===
+  // La misma verificación del panel: requerido +15% de margen contra lo
+  // instalado (radiadores + piso radiante con su base de cálculo propia).
+  if (rooms.length > 0) {
+    sectionTitle('RESUMEN TÉRMICO POR AMBIENTE');
 
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RESUMEN DE HABITACIONES', 15, yPosition);
-  yPosition += 8;
+    const cols = [
+      { texto: 'Ambiente', x: M + 2 },
+      { texto: 'Área', x: 96, align: 'right' as const },
+      { texto: 'Requerido +15%', x: 130, align: 'right' as const },
+      { texto: 'Instalado', x: 160, align: 'right' as const },
+      { texto: 'Cobertura', x: tableRight - 2, align: 'right' as const },
+    ];
+    tableHead(cols);
+    resetZebra();
 
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
+    let hayAmbientesConPiso = false;
+    doc.setFontSize(8.5);
+    rooms.forEach((room) => {
+      const zonasDelRoom = (floorHeating?.zonas ?? []).filter(z => z.roomId === room.id);
+      const tienePiso = zonasDelRoom.length > 0;
+      if (tienePiso) hayAmbientesConPiso = true;
 
-  rooms.forEach((room) => {
-    if (yPosition > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    }
-
-    const volume = room.area * room.height;
-    const radiatorCount = room.radiatorIds.length;
-    const installedPower = radiatorCount > 0
-      ? room.radiatorIds.reduce((sum, id) => {
+      const radPower = room.radiatorIds.reduce((sum, id) => {
         const rad = radiators.find((r) => r.id === id);
         return sum + (rad?.power || 0);
-      }, 0)
-      : 0;
+      }, 0);
+      // Piso: entrega máxima con el área real (misma cuenta que el panel)
+      const pisoPower = tienePiso && floorHeating
+        ? Math.round(room.area * floorHeating.emisionKcalhM2)
+        : 0;
+      const instalado = radPower + pisoPower;
+      // Base del requerido: carga de piso (W/m² según aislación) si el
+      // ambiente tiene piso radiante; si no, el factor volumétrico
+      const requerido = Math.round(
+        (tienePiso ? cargaPisoKcalh(room) : calculateRoomPower(room)) * MARGEN_SEGURIDAD
+      );
+      const tieneEmisores = instalado > 0;
+      const pct = tieneEmisores && requerido > 0
+        ? Math.round((instalado / requerido) * 100)
+        : null;
+      const ok = pct !== null && instalado >= requerido;
 
-    doc.text(`• ${room.name}`, 20, yPosition);
-    yPosition += 5;
-    doc.text(`  Área: ${room.area} m² × ${room.height} m = ${volume.toFixed(1)} m³`, 25, yPosition);
-    yPosition += 4;
-    doc.text(`  Factor térmico: ${room.thermalFactor} Kcal/h·m³`, 25, yPosition);
-    yPosition += 4;
-    doc.text(`  Radiadores instalados: ${radiatorCount} (${installedPower.toLocaleString('es-AR')} Kcal/h)`, 25, yPosition);
-    yPosition += 7;
-  });
+      zebraRow();
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 40);
+      const nombre = room.name.length > 32 ? room.name.substring(0, 32) + '...' : room.name;
+      doc.text(`${nombre}${tienePiso ? ' *' : ''}`, M + 2, yPosition);
+      doc.text(`${room.area.toLocaleString('es-AR')} m²`, 96, yPosition, { align: 'right' });
+      doc.text(`${requerido.toLocaleString('es-AR')} kcal/h`, 130, yPosition, { align: 'right' });
+      doc.text(
+        tieneEmisores ? `${instalado.toLocaleString('es-AR')} kcal/h` : '—',
+        160, yPosition, { align: 'right' }
+      );
+      if (pct === null) {
+        doc.setTextColor(...GRIS_TEXTO);
+        doc.text('sin emisores', tableRight - 2, yPosition, { align: 'right' });
+      } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...(ok ? OK_VERDE : ROJO));
+        doc.text(`${pct}% ${ok ? 'OK' : 'REVISAR'}`, tableRight - 2, yPosition, { align: 'right' });
+      }
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5.5;
+    });
 
-  // === LISTADO DE MATERIALES ===
-  if (yPosition + 40 > pageHeight - 20) {
-    doc.addPage();
-    yPosition = 20;
+    if (hayAmbientesConPiso) {
+      ensureSpace(6);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(...GRIS_TEXTO);
+      doc.text(
+        '* Ambientes con piso radiante: carga de diseño en W/m² según aislación (EN 1264). Resto: factor volumétrico.',
+        M, yPosition
+      );
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5;
+    }
+    yPosition += 4;
   }
 
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'bold');
-  doc.text('LISTADO DE MATERIALES', 15, yPosition);
-  yPosition += 8;
-
-  const materials = calculateMaterials(radiators);
-
-  if (yPosition > pageHeight - 20) {
-    doc.addPage();
-    yPosition = 20;
-  }
-
-  doc.setFontSize(10);
+  // === EQUIPAMIENTO PRINCIPAL ===
+  sectionTitle('EQUIPAMIENTO PRINCIPAL');
+  const potenciaEmisores =
+    calculateBoilerPower(radiators).totalRadiatorPower +
+    (floorHeating?.potenciaTotalKcalh ?? 0);
+  const calderaRecomendada = Math.round(potenciaEmisores / 0.80);
+  doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(`• Radiadores: ${materials.radiatorCount} unidades`, 20, yPosition);
-  yPosition += 5;
-
-  doc.text(`• Caldera recomendada: ${materials.boilerPower.toLocaleString('es-AR')} Kcal/h`, 20, yPosition);
-  yPosition += 10;
-
-  // === PRESUPUESTO DETALLADO DE INSTALACIÓN ===
-
-  if (yPosition + 60 > pageHeight - 20) {
-    doc.addPage();
-    yPosition = 20;
-  } else {
-    yPosition += 15;
-  }
-
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
+  doc.text(`• Radiadores: ${radiators.length} unidades`, M + 2, yPosition);
+  yPosition += 5.5;
+  doc.text(
+    `• Caldera recomendada: ${calderaRecomendada.toLocaleString('es-AR')} Kcal/h ` +
+    `(dimensionada para trabajar al 80% de su capacidad)`,
+    M + 2, yPosition
+  );
   doc.setTextColor(0, 0, 0);
-  doc.text('PRESUPUESTO ESTIMADO DE INSTALACIÓN', 15, yPosition);
   yPosition += 10;
+
+  // === PRESUPUESTO ESTIMADO DE INSTALACIÓN ===
+  ensureSpace(50);
+  sectionTitle('PRESUPUESTO ESTIMADO DE INSTALACIÓN');
 
   if (selectedBudget) {
-    // Header
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Concepto', 15, yPosition);
-    doc.text('Cantidad', 110, yPosition);
-    doc.text('Subtotal', 160, yPosition);
-
-    doc.line(15, yPosition + 2, 195, yPosition + 2);
-    yPosition += 8;
-    doc.setFont('helvetica', 'normal');
+    tableHead([
+      { texto: 'Concepto', x: M + 2 },
+      { texto: 'Cantidad', x: 128, align: 'right' },
+      { texto: 'Subtotal', x: tableRight - 2, align: 'right' },
+    ]);
+    resetZebra();
 
     const addRow = (concepto: string, cantidad: string, precio: number) => {
-      if (yPosition > pageHeight - 20) {
-        doc.addPage();
-        yPosition = 20;
-      }
-      const cleanConcepto = concepto.length > 55 ? concepto.substring(0, 55) + '...' : concepto;
-      doc.text(cleanConcepto, 15, yPosition);
-      doc.text(cantidad, 110, yPosition);
-      doc.text(`$${precio.toFixed(2)}`, 160, yPosition);
-      yPosition += 6;
+      zebraRow();
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 40);
+      const cleanConcepto = concepto.length > 60 ? concepto.substring(0, 60) + '...' : concepto;
+      doc.text(cleanConcepto, M + 2, yPosition);
+      doc.text(cantidad, 128, yPosition, { align: 'right' });
+      doc.text(
+        `$ ${precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+        tableRight - 2, yPosition, { align: 'right' }
+      );
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5.5;
     };
 
     const { breakdown, totalCost } = selectedBudget;
 
-    // Boiler
     if (breakdown.boiler) {
-      addRow(`Caldera: ${breakdown.boiler.model.brand} ${breakdown.boiler.model.model}`, '1 un', breakdown.boiler.cost);
+      addRow(`Caldera ${breakdown.boiler.model.brand} ${breakdown.boiler.model.model}`, '1 un', breakdown.boiler.cost);
     }
-
-    // Radiators
     if (breakdown.radiators) {
       const { model, count, totalCost: radCost } = breakdown.radiators;
-      addRow(`Radiadores: ${model.brand} ${model.model} (${model.heightMm}mm)`, `${count} elem`, radCost);
+      addRow(`Radiadores ${model.brand} ${model.model} (${model.heightMm}mm)`, `${count} elem`, radCost);
     }
-
-    // Accessories
     if (breakdown.accessories && breakdown.accessories.length > 0) {
       breakdown.accessories.forEach(acc => {
         addRow(acc.model.name, `${acc.count} un`, acc.totalCost);
       });
     }
 
-    yPosition += 4;
-    doc.line(110, yPosition, 195, yPosition);
-    yPosition += 6;
-
-    // Total
-    doc.setFontSize(12);
+    // Caja de total con el color de acento
+    ensureSpace(14);
+    yPosition += 2;
+    doc.setFillColor(...NAVY);
+    doc.rect(M, yPosition - 4.5, tableRight - M, 9, 'F');
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('TOTAL FINAL ESTIMADO:', 80, yPosition, { align: 'right' });
-    doc.text(`$${totalCost.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`, 160, yPosition);
-
+    doc.setTextColor(255, 255, 255);
+    doc.text('TOTAL ESTIMADO (instalación por radiadores)', M + 3, yPosition + 1);
+    doc.text(
+      `$ ${totalCost.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+      tableRight - 3, yPosition + 1, { align: 'right' }
+    );
+    doc.setTextColor(0, 0, 0);
+    yPosition += 10;
   } else {
-    // FALLBACK message
-    doc.setFontSize(10);
+    doc.setFontSize(9.5);
     doc.setFont('helvetica', 'italic');
-    doc.text('Detalle de costos no disponible en esta vista preliminar.', 15, yPosition);
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text('Detalle de costos no disponible en esta vista preliminar.', M, yPosition);
+    doc.setTextColor(0, 0, 0);
     yPosition += 10;
   }
 
   // === PISO RADIANTE — CIRCUITOS REALES Y MATERIALES ===
   if (floorHeating && floorHeating.circuits.length > 0) {
-    if (yPosition + 60 > pageHeight - 20) {
-      doc.addPage();
-      yPosition = 20;
-    } else {
-      yPosition += 14;
-    }
+    ensureSpace(60);
+    yPosition += 4;
+    sectionTitle('PISO RADIANTE');
 
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text(
+      `Superficie: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  ·  ` +
+      `Circuitos: ${floorHeating.circuits.length}  ·  ` +
+      `Tubería: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m  ·  ` +
+      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h (impulsión ${floorHeating.tempImpulsionC}°C)`,
+      M, yPosition
+    );
     doc.setTextColor(0, 0, 0);
-    doc.text('PISO RADIANTE', 15, yPosition);
     yPosition += 7;
 
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text(
-      `Superficie cubierta: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  —  ` +
-      `Circuitos: ${floorHeating.circuits.length}  —  ` +
-      `Tubería total: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m  —  ` +
-      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h (impulsión ${floorHeating.tempImpulsionC}°C)`,
-      15, yPosition
-    );
-    yPosition += 8;
-
     // --- Tabla de circuitos (como los planos de obra) ---
-    const ensureSpace = (needed: number) => {
-      if (yPosition + needed > pageHeight - 20) {
-        doc.addPage();
-        yPosition = 20;
-      }
-    };
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Circuito', 15, yPosition);
-    doc.text('Paso', 80, yPosition);
-    doc.text('Serpentín', 105, yPosition);
-    doc.text('Acometida', 135, yPosition);
-    doc.text('Total', 168, yPosition);
-    doc.line(15, yPosition + 2, 195, yPosition + 2);
-    yPosition += 8;
-    doc.setFont('helvetica', 'normal');
+    tableHead([
+      { texto: 'Circuito', x: M + 2 },
+      { texto: 'Paso', x: 92, align: 'right' },
+      { texto: 'Serpentín', x: 122, align: 'right' },
+      { texto: 'Acometida', x: 155, align: 'right' },
+      { texto: 'Total', x: tableRight - 2, align: 'right' },
+    ]);
+    resetZebra();
 
     let hayExcedidos = false;
     floorHeating.circuits.forEach((c: FloorHeatingCircuit) => {
-      ensureSpace(6);
+      zebraRow();
       if (c.excedeLimite) hayExcedidos = true;
-      doc.text(`${c.zoneName} — ${c.etiqueta}`, 15, yPosition);
-      doc.text(`c/c ${c.pasoCm * 10} mm`, 80, yPosition);
-      doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 105, yPosition);
-      doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 135, yPosition);
-      doc.text(`${c.longitudTotal.toLocaleString('es-AR')} m${c.excedeLimite ? ' (*)' : ''}`, 168, yPosition);
-      yPosition += 6;
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 40);
+      doc.text(`${c.zoneName} — ${c.etiqueta}`, M + 2, yPosition);
+      doc.text(`c/c ${c.pasoCm * 10} mm`, 92, yPosition, { align: 'right' });
+      doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 122, yPosition, { align: 'right' });
+      doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 155, yPosition, { align: 'right' });
+      if (c.excedeLimite) {
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...ROJO);
+      }
+      doc.text(
+        `${c.longitudTotal.toLocaleString('es-AR')} m${c.excedeLimite ? ' (*)' : ''}`,
+        tableRight - 2, yPosition, { align: 'right' }
+      );
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5.5;
     });
 
     if (hayExcedidos) {
       ensureSpace(6);
-      doc.setFontSize(8);
+      doc.setFontSize(7.5);
       doc.setFont('helvetica', 'italic');
-      doc.setTextColor(180, 30, 30);
-      doc.text('(*) El circuito supera los 120 m recomendados para PE-X 20mm — revisar el diseño.', 15, yPosition);
+      doc.setTextColor(...ROJO);
+      doc.text(`(*) El circuito supera los 120 m recomendados para PE-X 20mm — revisar el diseño.`, M, yPosition);
       doc.setTextColor(0, 0, 0);
       yPosition += 6;
     }
 
     // --- Potencia térmica por zona/habitación ---
     ensureSpace(20);
-    yPosition += 4;
-    doc.setFontSize(11);
+    yPosition += 3;
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('Potencia térmica por habitación', 15, yPosition);
-    yPosition += 7;
-    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text('Potencia térmica por habitación', M, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 6;
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     floorHeating.zonas.forEach(z => {
       ensureSpace(5);
       const requerido = z.requeridoConMargenKcalh !== null
-        ? ` — requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h (incluye margen 15%) — cubre ${z.coberturaPct}% ` +
-          `${z.suficiente ? '(OK)' : '(INSUFICIENTE: subir impulsión, paso 15, ampliar zona o revisar aislación)'}`
+        ? ` — requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h (margen 15% incluido) — cubre ${z.coberturaPct}% ` +
+          `${z.suficiente ? '(OK)' : '(INSUFICIENTE: ver consideraciones)'}`
         : '';
-      if (z.suficiente === false) doc.setTextColor(180, 30, 30);
+      doc.setTextColor(...(z.suficiente === false ? ROJO : z.suficiente === true ? OK_VERDE : GRIS_TEXTO));
       doc.text(
         `• ${z.zoneName}: ${z.areaM2.toLocaleString('es-AR')} m² — entrega hasta ${z.potenciaKcalh.toLocaleString('es-AR')} kcal/h${requerido}`,
-        18, yPosition
+        M + 2, yPosition
       );
       doc.setTextColor(0, 0, 0);
       yPosition += 5;
     });
     ensureSpace(5);
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(110, 110, 110);
+    doc.setTextColor(...GRIS_TEXTO);
     doc.text(
       `Cálculo con agua de impulsión a ${floorHeating.tempImpulsionC}°C (suelo pétreo, EN 1264): el piso entrega ${floorHeating.emisionKcalhM2} kcal/h·m² — ` +
       `aprox. ${Math.round(floorHeating.emisionKcalhM2 / 5)} kcal/h por metro de tubo a paso 20 y ${Math.round(floorHeating.emisionKcalhM2 / 6.7)} a paso 15.`,
-      15, yPosition
+      M, yPosition
     );
     doc.setTextColor(0, 0, 0);
-    doc.setFontSize(10);
     yPosition += 7;
 
     // --- Montantes caldera → colector (primaria Ø32) ---
     if (floorHeating.montantes.length > 0) {
-      doc.setFontSize(10);
+      doc.setFontSize(8.5);
       floorHeating.montantes.forEach((m: Montante) => {
         ensureSpace(6);
         doc.setFont('helvetica', 'normal');
-        doc.text(`Montante caldera - colector (Ø${m.diametroMm} mm, aislada por contrapiso)`, 15, yPosition);
-        doc.text(`${m.longitudTotal.toLocaleString('es-AR')} m`, 168, yPosition);
-        yPosition += 6;
+        doc.setTextColor(40, 40, 40);
+        doc.text(`Montante caldera - colector (Ø${m.diametroMm} mm, aislada por contrapiso)`, M + 2, yPosition);
+        doc.text(`${m.longitudTotal.toLocaleString('es-AR')} m`, tableRight - 2, yPosition, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+        yPosition += 5.5;
       });
     }
 
     // --- Materiales de piso radiante ---
-    ensureSpace(30);
-    yPosition += 4;
-    doc.setFontSize(11);
+    ensureSpace(34);
+    yPosition += 3;
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('Materiales de piso radiante', 15, yPosition);
-    yPosition += 7;
+    doc.setTextColor(...NAVY);
+    doc.text('Materiales de piso radiante', M, yPosition);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 6;
 
-    doc.setFontSize(10);
-    doc.text('Concepto', 15, yPosition);
-    doc.text('Cantidad', 110, yPosition);
-    doc.text('Subtotal', 160, yPosition);
-    doc.line(15, yPosition + 2, 195, yPosition + 2);
-    yPosition += 8;
-    doc.setFont('helvetica', 'normal');
+    tableHead([
+      { texto: 'Concepto', x: M + 2 },
+      { texto: 'Cantidad', x: 128, align: 'right' },
+      { texto: 'Subtotal', x: tableRight - 2, align: 'right' },
+    ]);
+    resetZebra();
 
     floorHeating.resumen.items.forEach(item => {
-      ensureSpace(6);
-      const nombre = item.nombre.length > 55 ? item.nombre.substring(0, 55) + '...' : item.nombre;
-      doc.text(nombre, 15, yPosition);
-      doc.text(`${item.cantidad} ${item.unidad}`, 110, yPosition);
-      doc.text(`$${item.subtotal.toFixed(2)}`, 160, yPosition);
-      yPosition += 6;
+      zebraRow();
+      doc.setFontSize(8.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(40, 40, 40);
+      const nombre = item.nombre.length > 60 ? item.nombre.substring(0, 60) + '...' : item.nombre;
+      doc.text(nombre, M + 2, yPosition);
+      doc.text(`${item.cantidad} ${item.unidad}`, 128, yPosition, { align: 'right' });
+      doc.text(
+        `USD ${item.subtotal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+        tableRight - 2, yPosition, { align: 'right' }
+      );
+      doc.setTextColor(0, 0, 0);
+      yPosition += 5.5;
     });
 
-    ensureSpace(12);
+    ensureSpace(16);
     yPosition += 2;
-    doc.line(110, yPosition, 195, yPosition);
-    yPosition += 6;
-    doc.setFontSize(11);
+    doc.setFillColor(...NAVY);
+    doc.rect(M, yPosition - 4.5, tableRight - M, 9, 'F');
+    doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
-    doc.text('SUBTOTAL PISO RADIANTE (USD):', 105, yPosition, { align: 'right' });
+    doc.setTextColor(255, 255, 255);
+    doc.text('SUBTOTAL PISO RADIANTE (USD)', M + 3, yPosition + 1);
     doc.text(
-      `$${floorHeating.resumen.totalFinal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
-      160, yPosition
+      `USD ${floorHeating.resumen.totalFinal.toLocaleString('es-AR', { minimumFractionDigits: 2 })}`,
+      tableRight - 3, yPosition + 1, { align: 'right' }
     );
-    yPosition += 5;
-    doc.setFontSize(7.5);
+    doc.setTextColor(0, 0, 0);
+    yPosition += 8;
+    doc.setFontSize(7);
     doc.setFont('helvetica', 'italic');
-    doc.setTextColor(110, 110, 110);
-    doc.text('Precios de catálogo de referencia en USD — no incluidos en el total de instalación por radiadores.', 15, yPosition);
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text('Precios de catálogo de referencia en USD — no incluidos en el total de instalación por radiadores.', M, yPosition);
     doc.setTextColor(0, 0, 0);
     yPosition += 5;
   }
 
-  // === LEYENDA DE CIERRE (Fase 3 - Pruebas de Confianza) ===
-  const pageHeightFinal = doc.internal.pageSize.getHeight();
+  // === CONSIDERACIONES TÉCNICAS DEL DISEÑO ===
+  // Generadas automáticamente desde el diseño real (cobertura, circuitos,
+  // sistema mixto) más las buenas prácticas de obra de Criterio Térmico.
+  const consideraciones = generarConsideraciones({
+    rooms,
+    radiators,
+    floorHeating: floorHeating ?? null,
+  });
 
-  // Asegurar que estamos al final o pie de página
-  if (yPosition < pageHeightFinal - 40) {
-    yPosition = pageHeightFinal - 40;
-  } else {
-    doc.addPage();
-    yPosition = pageHeightFinal - 40;
+  if (consideraciones.length > 0) {
+    ensureSpace(40);
+    yPosition += 4;
+    sectionTitle('CONSIDERACIONES TÉCNICAS DEL DISEÑO');
+
+    const colorNivel: Record<Consideracion['nivel'], [number, number, number]> = {
+      critica: ROJO,
+      atencion: AMBAR,
+      recomendacion: NAVY,
+    };
+    const etiquetaNivel: Record<Consideracion['nivel'], string> = {
+      critica: 'RESOLVER',
+      atencion: 'ATENCIÓN',
+      recomendacion: 'BUENA PRÁCTICA',
+    };
+
+    consideraciones.forEach(c => {
+      const detalle = doc.splitTextToSize(c.detalle, pageWidth - 2 * M - 6);
+      const alto = 6 + detalle.length * 3.8 + 3;
+      ensureSpace(alto);
+
+      // Marcador lateral del nivel
+      doc.setFillColor(...colorNivel[c.nivel]);
+      doc.rect(M, yPosition - 3, 1.2, alto - 4, 'F');
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...colorNivel[c.nivel]);
+      doc.text(`[${etiquetaNivel[c.nivel]}]`, M + 4, yPosition);
+      const anchoEtiqueta = doc.getTextWidth(`[${etiquetaNivel[c.nivel]}]`);
+      doc.setTextColor(...NAVY);
+      doc.text(c.titulo, M + 4 + anchoEtiqueta + 2, yPosition, { maxWidth: pageWidth - 2 * M - anchoEtiqueta - 10 });
+      yPosition += 4.5;
+
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(70, 70, 70);
+      doc.text(detalle, M + 4, yPosition);
+      doc.setTextColor(0, 0, 0);
+      yPosition += detalle.length * 3.8 + 4;
+    });
   }
 
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.5);
-  doc.line(15, yPosition, pageWidth - 15, yPosition);
+  // === LEYENDA DE CIERRE ===
+  ensureSpace(18);
+  yPosition += 3;
+  doc.setDrawColor(200, 202, 210);
+  doc.setLineWidth(0.3);
+  doc.line(M, yPosition, pageWidth - M, yPosition);
   yPosition += 5;
 
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
-  doc.setTextColor(100);
+  doc.setTextColor(...GRIS_TEXTO);
+  const closingText = 'Este presupuesto preliminar es el resultado de un cálculo de ingeniería basado en el plano provisto. ' +
+    'Los valores definitivos se confirman con el relevamiento en obra. Ante cualquier consulta sobre las consideraciones ' +
+    'técnicas indicadas, contacte a nuestro equipo.';
+  const splitText = doc.splitTextToSize(closingText, pageWidth - 2 * M);
+  doc.text(splitText, M, yPosition);
+  doc.setTextColor(0, 0, 0);
 
-  const closingText = "Este presupuesto preliminar es el resultado de un cálculo de ingeniería avanzado. Para iniciar la fase de diseño definitivo y validar las eficiencias, por favor, póngase en contacto con nuestro equipo de especialistas.";
-  const splitText = doc.splitTextToSize(closingText, pageWidth - 30);
-  doc.text(splitText, 15, yPosition);
+  // === PIE DE PÁGINA EN TODAS LAS HOJAS ===
+  const totalPaginas = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPaginas; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(...ACCENT);
+    doc.setLineWidth(0.5);
+    doc.line(M, pageHeight - 13, pageWidth - M, pageHeight - 13);
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text(
+      [companyDetails.companyName, companyDetails.phone].filter(Boolean).join('  ·  ') || 'Presupuesto de calefacción',
+      M, pageHeight - 8.5
+    );
+    doc.text('Generado con Criterio Térmico', pageWidth / 2, pageHeight - 8.5, { align: 'center' });
+    doc.text(`Página ${i} de ${totalPaginas}`, pageWidth - M, pageHeight - 8.5, { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+  }
 
 
   // === DESCARGA (100% SINCRÓNICA — probada en diagnóstico) ===

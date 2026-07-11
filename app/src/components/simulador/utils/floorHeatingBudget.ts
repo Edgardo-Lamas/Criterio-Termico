@@ -23,6 +23,7 @@ export const MARGEN_SEGURIDAD = 1.15;
 export interface ZonaPotencia {
   zoneId: string;
   zoneName: string;
+  roomId: string | null;      // habitación vinculada (null si no hay)
   areaM2: number;
   longitudM: number;          // m de tubo Ø20 de la zona
   potenciaKcalh: number;      // entrega máxima
@@ -122,6 +123,7 @@ export function calcularPresupuestoPisoRadiante(
     return {
       zoneId: zone.id,
       zoneName: zone.name,
+      roomId: room?.id ?? null,
       areaM2: Math.round(propios.reduce((acc, c) => acc + c.areaM2, 0) * 100) / 100,
       longitudM: Math.round(propios.reduce((acc, c) => acc + c.longitudTotal, 0) * 100) / 100,
       potenciaKcalh,

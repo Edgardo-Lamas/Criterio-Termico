@@ -5,6 +5,8 @@ import { generateBudgetOptions, calculateTotalBudget } from '../../services/budg
 import type { BudgetOptions, SelectedBudget, PipeQuantities } from '../../services/budgetService';
 import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator';
 import { calcularPresupuestoPisoRadiante } from '../../utils/floorHeatingBudget';
+import { generarConsideraciones } from '../../utils/consideraciones';
+import type { Consideracion } from '../../utils/consideraciones';
 import { useCompanyStore } from '../../store/companyStore';
 import { useLeadStore } from '../../store/useLeadStore';
 import { loadLogoAsBase64 } from '../../utils/logoHelper';
@@ -48,6 +50,13 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     const floorHeatingBudget = useMemo(
         () => calcularPresupuestoPisoRadiante(floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC),
         [floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC]
+    );
+
+    // Consideraciones técnicas del diseño: alertas de cobertura/circuitos y
+    // buenas prácticas de obra. Van al panel y al PDF del presupuesto.
+    const consideraciones = useMemo(
+        () => generarConsideraciones({ rooms, radiators, floorHeating: floorHeatingBudget }),
+        [rooms, radiators, floorHeatingBudget]
     );
 
     // Pre-load logo when panel opens (so download can stay synchronous).
@@ -342,6 +351,44 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#888', marginTop: '4px' }}>
                             Precios de catálogo en USD — no se suma al total de radiadores.
+                        </div>
+                    </div>
+                )}
+
+                {/* Consideraciones técnicas del diseño */}
+                {consideraciones.length > 0 && (
+                    <div className="budget-section">
+                        <h4>📋 Consideraciones técnicas</h4>
+                        {consideraciones.map((c: Consideracion, i: number) => {
+                            const color = c.nivel === 'critica' ? '#D32F2F'
+                                : c.nivel === 'atencion' ? '#E67E22'
+                                : '#1A2042';
+                            const fondo = c.nivel === 'critica' ? '#FDECEA'
+                                : c.nivel === 'atencion' ? '#FDF3E7'
+                                : '#F0F2F7';
+                            return (
+                                <div
+                                    key={i}
+                                    style={{
+                                        borderLeft: `3px solid ${color}`,
+                                        backgroundColor: fondo,
+                                        borderRadius: '4px',
+                                        padding: '8px 10px',
+                                        marginBottom: '6px'
+                                    }}
+                                >
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color, marginBottom: '2px' }}>
+                                        {c.nivel === 'critica' ? '⚠ ' : c.nivel === 'atencion' ? '❗ ' : '✓ '}
+                                        {c.titulo}
+                                    </div>
+                                    <div style={{ fontSize: '0.75rem', color: '#555', lineHeight: 1.4 }}>
+                                        {c.detalle}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        <div style={{ fontSize: '0.7rem', color: '#999', marginTop: '4px' }}>
+                            Estas consideraciones también se incluyen en el PDF del presupuesto.
                         </div>
                     </div>
                 )}
