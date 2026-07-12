@@ -12,6 +12,7 @@ import { errorPresionVasoMembrana, ErrorPresionVasoMembranaDetalle } from './pre
 import { errorPresionSubeAguaRed, ErrorPresionSubeAguaRedDetalle } from './presion-sube-agua-red'
 import { errorAnticongelante, ErrorAnticongelanteDetalle } from './anticongelante'
 import { errorCalidadAgua, ErrorCalidadAguaDetalle } from './calidad-agua'
+import { errorRamalRobado, ErrorRamalRobadoDetalle } from './ramal-robado'
 
 export type ErrorTier = 'free' | 'pro' | 'premium'
 
@@ -38,6 +39,7 @@ export const erroresList: ErrorMeta[] = [
     errorPresionSubeAguaRed,
     errorAnticongelante,
     errorCalidadAgua,
+    errorRamalRobado,
 ]
 
 // Componentes de detalle mapeados por ID
@@ -54,6 +56,7 @@ const erroresContent: Record<string, ComponentType> = {
     'presion-sube-agua-red': ErrorPresionSubeAguaRedDetalle,
     'anticongelante': ErrorAnticongelanteDetalle,
     'calidad-agua': ErrorCalidadAguaDetalle,
+    'ramal-robado': ErrorRamalRobadoDetalle,
 }
 
 export function getErrorMeta(id: string): ErrorMeta | null {
