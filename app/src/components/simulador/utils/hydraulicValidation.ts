@@ -60,6 +60,8 @@ function diamInterior(diamExtMm: number | undefined): number {
   return DIAM_INTERIOR_MM[diamExtMm] ?? diamExtMm * 0.82;
 }
 
+const r1 = (n: number) => Math.round(n * 10) / 10;
+
 /**
  * Pérdida de carga por fricción de un tramo recto, en metros de columna de
  * agua (mca), por Hazen-Williams (unidades SI).
@@ -147,13 +149,21 @@ function analizarRadiadores(
   return peor ? [peor] : [];
 }
 
+// ΔP de un circuito de piso identificado (para mostrar dato por dato en la
+// tabla de circuitos). Incluye zoneId + etiqueta para poder cruzarlo con la fila.
+export interface CircuitoPisoHidraulico {
+  zoneId: string;
+  etiqueta: string;
+  deltaPMca: number;
+}
+
 /**
  * ΔP de cada circuito de piso radiante. El serpentín es el tramo más largo y de
  * menor diámetro → suele ser el circuito índice de toda la instalación. A la
  * pérdida del propio circuito se le suma la de la primaria caldera→colector
  * (montante Ø32, compartida) prorrateada al caudal total del piso.
  */
-function analizarPiso(fh: FloorHeatingBudget | null): CircuitoHidraulico[] {
+function analizarPisoDetalle(fh: FloorHeatingBudget | null): CircuitoPisoHidraulico[] {
   if (!fh || fh.circuits.length === 0) return [];
 
   const caudalTotalPiso = fh.potenciaTotalKcalh / DELTA_T_PISO; // L/h
@@ -170,14 +180,50 @@ function analizarPiso(fh: FloorHeatingBudget | null): CircuitoHidraulico[] {
       perdidaFriccionMca(c.longitudTotal, caudal, DIAM_INTERIOR_MM[20]) *
       FACTOR_PERDIDAS_LOCALES;
     return {
-      etiqueta: `${c.zoneName} ${c.etiqueta}`.trim(),
-      tipo: 'piso' as const,
+      zoneId: c.zoneId,
+      etiqueta: c.etiqueta,
       deltaPMca: dpLoop + DP_COLECTOR_PISO_MCA + dpMontante,
     };
   });
 }
 
-const r1 = (n: number) => Math.round(n * 10) / 10;
+function analizarPiso(fh: FloorHeatingBudget | null): CircuitoHidraulico[] {
+  const nombrePorZona = new Map((fh?.circuits ?? []).map((c) => [c.zoneId, c.zoneName]));
+  return analizarPisoDetalle(fh).map((d) => ({
+    etiqueta: `${nombrePorZona.get(d.zoneId) ?? ''} ${d.etiqueta}`.trim(),
+    tipo: 'piso' as const,
+    deltaPMca: d.deltaPMca,
+  }));
+}
+
+/** Veredicto de un circuito según su ΔP y la altura útil de la bomba. */
+export function estadoCircuito(
+  deltaPMca: number,
+  alturaBombaMca: number,
+): VeredictoHidraulico {
+  const ratio = deltaPMca / alturaBombaMca;
+  if (ratio <= MARGEN_BOMBA) return 'ok';
+  if (ratio <= 1) return 'limite';
+  return 'insuficiente';
+}
+
+/**
+ * ΔP y veredicto por circuito de piso, para incluir como dato en la tabla de
+ * circuitos (panel y PDF). Clave: `${zoneId}#${etiqueta}`.
+ */
+export function validarCircuitosPiso(
+  fh: FloorHeatingBudget | null,
+  alturaBombaMca: number = ALTURA_BOMBA_DEFAULT_MCA,
+): Map<string, { deltaPMca: number; estado: VeredictoHidraulico }> {
+  const map = new Map<string, { deltaPMca: number; estado: VeredictoHidraulico }>();
+  for (const d of analizarPisoDetalle(fh)) {
+    map.set(`${d.zoneId}#${d.etiqueta}`, {
+      deltaPMca: r1(d.deltaPMca),
+      estado: estadoCircuito(d.deltaPMca, alturaBombaMca),
+    });
+  }
+  return map;
+}
 
 /**
  * Valida si la bomba de la caldera mueve la instalación. Devuelve null si no

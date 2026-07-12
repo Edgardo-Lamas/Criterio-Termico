@@ -13,6 +13,7 @@ import { cargaPisoKcalh } from './floorHeating';
 import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
+import { validarCircuitosPiso } from './hydraulicValidation';
 import type { Consideracion } from './consideraciones';
 import type { SelectedBudget } from '../services/budgetService';
 
@@ -382,13 +383,17 @@ export const generateQuotePDF = (
     doc.setTextColor(0, 0, 0);
     yPosition += 7;
 
+    // Empuje de la bomba por circuito: ¿la caldera lo mueve? (ΔP vs altura útil)
+    const hidraulicaPorCircuito = validarCircuitosPiso(floorHeating, bombaMca);
+
     // --- Tabla de circuitos (como los planos de obra) ---
     tableHead([
       { texto: 'Circuito', x: M + 2 },
-      { texto: 'Paso', x: 92, align: 'right' },
-      { texto: 'Serpentín', x: 122, align: 'right' },
-      { texto: 'Acometida', x: 155, align: 'right' },
-      { texto: 'Total', x: tableRight - 2, align: 'right' },
+      { texto: 'Paso', x: 84, align: 'right' },
+      { texto: 'Serpentín', x: 110, align: 'right' },
+      { texto: 'Acometida', x: 138, align: 'right' },
+      { texto: 'Total', x: 165, align: 'right' },
+      { texto: 'Bomba', x: tableRight - 2, align: 'right' },
     ]);
     resetZebra();
 
@@ -400,18 +405,28 @@ export const generateQuotePDF = (
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(40, 40, 40);
       doc.text(`${c.zoneName} — ${c.etiqueta}`, M + 2, yPosition);
-      doc.text(`c/c ${c.pasoCm * 10} mm`, 92, yPosition, { align: 'right' });
-      doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 122, yPosition, { align: 'right' });
-      doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 155, yPosition, { align: 'right' });
+      doc.text(`c/c ${c.pasoCm * 10} mm`, 84, yPosition, { align: 'right' });
+      doc.text(`${c.longitudSerpentin.toLocaleString('es-AR')} m`, 110, yPosition, { align: 'right' });
+      doc.text(`${c.longitudAcometida.toLocaleString('es-AR')} m`, 138, yPosition, { align: 'right' });
       if (c.excedeLimite) {
         doc.setFont('helvetica', 'bold');
         doc.setTextColor(...ROJO);
       }
       doc.text(
         `${c.longitudTotal.toLocaleString('es-AR')} m${c.excedeLimite ? ' (*)' : ''}`,
-        tableRight - 2, yPosition, { align: 'right' }
+        165, yPosition, { align: 'right' }
       );
       doc.setTextColor(0, 0, 0);
+      // Columna Bomba: ✓ la mueve / ~ al límite / ⚠ no llega, con la ΔP del circuito
+      const h = hidraulicaPorCircuito.get(`${c.zoneId}#${c.etiqueta}`);
+      if (h) {
+        doc.setFont('helvetica', h.estado === 'ok' ? 'normal' : 'bold');
+        doc.setTextColor(...(h.estado === 'insuficiente' ? ROJO : h.estado === 'limite' ? AMBAR : OK_VERDE));
+        // Sin emojis: jsPDF/helvetica no los renderiza. El color ya comunica.
+        const marca = h.estado === 'insuficiente' ? 'NO' : h.estado === 'limite' ? '~' : 'OK';
+        doc.text(`${marca} ${h.deltaPMca} m`, tableRight - 2, yPosition, { align: 'right' });
+        doc.setTextColor(0, 0, 0);
+      }
       yPosition += 5.5;
     });
 
@@ -424,6 +439,19 @@ export const generateQuotePDF = (
       doc.setTextColor(0, 0, 0);
       yPosition += 6;
     }
+
+    // Nota sobre la columna Bomba (lenguaje de obra)
+    ensureSpace(6);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text(
+      'Columna Bomba: pérdida de carga estimada del circuito. OK = la bomba de la caldera lo mueve; ' +
+      '~ = al límite (conviene subir un diámetro o dividir); NO = la bomba no llega.',
+      M, yPosition, { maxWidth: tableRight - M }
+    );
+    doc.setTextColor(0, 0, 0);
+    yPosition += 8;
 
     // --- Potencia térmica por zona/habitación ---
     ensureSpace(20);

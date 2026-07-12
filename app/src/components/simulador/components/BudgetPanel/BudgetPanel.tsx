@@ -6,6 +6,7 @@ import type { BudgetOptions, SelectedBudget, PipeQuantities } from '../../servic
 import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator';
 import { calcularPresupuestoPisoRadiante } from '../../utils/floorHeatingBudget';
 import { generarConsideraciones } from '../../utils/consideraciones';
+import { validarCircuitosPiso } from '../../utils/hydraulicValidation';
 import type { Consideracion } from '../../utils/consideraciones';
 import { TIPO_TIRO_LABEL } from '../../data/catalog';
 import { useCompanyStore } from '../../store/companyStore';
@@ -109,6 +110,13 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
             pipes, bombaMca: selectedBombaMca,
         }),
         [rooms, radiators, floorHeatingBudget, selectedBoilerTipo, pipes, selectedBombaMca]
+    );
+
+    // Empuje de la bomba por circuito de piso: dato que se muestra en cada fila
+    // de la tabla de circuitos (✓ la mueve / ≈ al límite / ⚠ no llega).
+    const circuitosHidraulica = useMemo(
+        () => validarCircuitosPiso(floorHeatingBudget, selectedBombaMca),
+        [floorHeatingBudget, selectedBombaMca]
     );
 
     // Set defaults solo la primera vez que hay opciones y todavía no hay selección.
@@ -386,15 +394,24 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                             Impulsión {floorHeatingBudget.tempImpulsionC}°C → {floorHeatingBudget.emisionKcalhM2} kcal/h·m² (piso pétreo) · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 5)} kcal/h por metro a paso 20 · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 6.7)} a paso 15
                         </div>
                         <div className="breakdown-list">
-                            {floorHeatingBudget.circuits.map((c) => (
-                                <div className="breakdown-item" key={`${c.zoneId}-${c.numero}`}>
-                                    <span className="breakdown-label">
-                                        {c.zoneName} — {c.etiqueta}
-                                        <small> (c/c {c.pasoCm * 10} mm{c.excedeLimite ? ' · ⚠ excede 120 m' : ''})</small>
-                                    </span>
-                                    <span className="breakdown-cost">{c.longitudTotal.toLocaleString('es-AR')} m</span>
-                                </div>
-                            ))}
+                            {floorHeatingBudget.circuits.map((c) => {
+                                // Empuje de la bomba por circuito: ¿la caldera lo mueve?
+                                const h = circuitosHidraulica.get(`${c.zoneId}#${c.etiqueta}`);
+                                const colorBomba = h?.estado === 'insuficiente' ? '#D32F2F'
+                                    : h?.estado === 'limite' ? '#E67E22' : '#2E7D32';
+                                const iconoBomba = h?.estado === 'insuficiente' ? '⚠'
+                                    : h?.estado === 'limite' ? '≈' : '✓';
+                                return (
+                                    <div className="breakdown-item" key={`${c.zoneId}-${c.numero}`}>
+                                        <span className="breakdown-label">
+                                            {c.zoneName} — {c.etiqueta}
+                                            <small> (c/c {c.pasoCm * 10} mm{c.excedeLimite ? ' · ⚠ excede 120 m' : ''}
+                                                {h ? <> · <span style={{ color: colorBomba }}>bomba {iconoBomba} {h.deltaPMca} m</span></> : null})</small>
+                                        </span>
+                                        <span className="breakdown-cost">{c.longitudTotal.toLocaleString('es-AR')} m</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                         {floorHeatingBudget.montantes.length > 0 && (
                             <div className="breakdown-list" style={{ marginTop: '10px' }}>

@@ -1,13 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
   validarHidraulica,
+  validarCircuitosPiso,
   perdidaFriccionMca,
   ALTURA_BOMBA_DEFAULT_MCA,
 } from './hydraulicValidation';
+import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
+import { PIXELS_PER_METER } from './floorHeating';
 import type { FloorHeatingCircuit } from './floorHeating';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { Radiator } from '../models/Radiator';
+import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { Manifold } from '../models/Manifold';
+import type { Room } from '../models/Room';
+import type { Boiler } from '../models/Boiler';
 
 // FloorHeatingBudget mínimo con UN circuito de longitud y carga controladas,
 // para probar la validación sin depender del cálculo geométrico completo.
@@ -120,5 +127,66 @@ describe('validarHidraulica', () => {
     expect(validarHidraulica([], [], piso, 6.0)!.veredicto).not.toBe('insuficiente');
     const floja = validarHidraulica([], [], piso, 2.0);
     expect(floja!.veredicto).toBe('insuficiente');
+  });
+});
+
+// Verificación de integración: ejercita el pipeline REAL de geometría
+// (zona dibujada → circuitos con longitudes reales → ΔP) para confirmar que los
+// números salen sanos sobre un diseño realista, no solo sobre fixtures a mano.
+describe('integración: validación sobre el pipeline real de piso radiante', () => {
+  function zona(id: string, xM: number, yM: number, anchoM: number, altoM: number, roomId: string): FloorHeatingZone {
+    return {
+      id, type: 'floor-heating-zone', name: `Zona ${id}`,
+      x: xM * PIXELS_PER_METER, y: yM * PIXELS_PER_METER,
+      width: anchoM * PIXELS_PER_METER, height: altoM * PIXELS_PER_METER,
+      pasoCm: 20, floor: 'ground', roomId,
+    };
+  }
+  const manifold: Manifold = { id: 'col1', type: 'manifold', x: 0, y: 0, width: 60, height: 24, floor: 'ground' };
+  const boiler: Boiler = { id: 'b1', type: 'boiler', x: 100, y: 0, power: 20640, width: 40, height: 30, floor: 'ground' };
+  const room: Room = {
+    id: 'living', name: 'Living', area: 25, height: 2.5, thermalFactor: 50,
+    hasExteriorWall: true, windowsLevel: 'normales', radiatorIds: [],
+  };
+
+  it('un Living de 25 m² dibujado: ΔP sano y la bomba de una mural lo mueve', () => {
+    const budget = calcularPresupuestoPisoRadiante(
+      [zona('z', 1, 1, 5, 5, 'living')], [manifold], [boiler], [room], 45,
+    );
+    expect(budget).not.toBeNull();
+    expect(budget!.circuits.length).toBeGreaterThanOrEqual(1);
+
+    const porCircuito = validarCircuitosPiso(budget);
+    expect(porCircuito.size).toBe(budget!.circuits.length);
+    for (const { deltaPMca, estado } of porCircuito.values()) {
+      expect(deltaPMca).toBeGreaterThan(0);
+      expect(deltaPMca).toBeLessThan(20); // rango físico plausible, no un número absurdo
+      expect(['ok', 'limite', 'insuficiente']).toContain(estado);
+    }
+
+    const v = validarHidraulica([], [], budget);
+    expect(v).not.toBeNull();
+    // Un ambiente normal con la mural típica no debería reprobar
+    expect(v!.veredicto).not.toBe('insuficiente');
+    expect(v!.indiceMca).toBeGreaterThan(0);
+  });
+});
+
+describe('validarCircuitosPiso — dato por circuito para la tabla', () => {
+  it('devuelve ΔP y estado por circuito, clave zoneId#etiqueta', () => {
+    const m = validarCircuitosPiso(pisoBudget(80, 1200));
+    const h = m.get('z1#C1');
+    expect(h).toBeDefined();
+    expect(h!.deltaPMca).toBeGreaterThan(0);
+    expect(h!.estado).toBe('ok');
+  });
+
+  it('un serpentín exigente da estado insuficiente', () => {
+    const m = validarCircuitosPiso(pisoBudget(120, 3200));
+    expect(m.get('z1#C1')!.estado).toBe('insuficiente');
+  });
+
+  it('mapa vacío si no hay piso', () => {
+    expect(validarCircuitosPiso(null).size).toBe(0);
   });
 });
