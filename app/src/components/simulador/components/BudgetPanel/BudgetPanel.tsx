@@ -6,7 +6,7 @@ import type { BudgetOptions, SelectedBudget, PipeQuantities } from '../../servic
 import { generateQuotePDF, generateFloorPlanPDF } from '../../utils/pdfGenerator';
 import { calcularPresupuestoPisoRadiante } from '../../utils/floorHeatingBudget';
 import { generarConsideraciones } from '../../utils/consideraciones';
-import { validarCircuitosPiso } from '../../utils/hydraulicValidation';
+import { validarCircuitosPiso, validarHidraulica } from '../../utils/hydraulicValidation';
 import type { Consideracion } from '../../utils/consideraciones';
 import { TIPO_TIRO_LABEL } from '../../data/catalog';
 import { useCompanyStore } from '../../store/companyStore';
@@ -117,6 +117,13 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
     const circuitosHidraulica = useMemo(
         () => validarCircuitosPiso(floorHeatingBudget, selectedBombaMca),
         [floorHeatingBudget, selectedBombaMca]
+    );
+
+    // Veredicto hidráulico global (radiadores + piso): ¿la bomba mueve la
+    // instalación? Se muestra arriba, siempre visible, en lenguaje de oficio.
+    const validacionHidraulica = useMemo(
+        () => validarHidraulica(pipes, radiators, floorHeatingBudget, selectedBombaMca),
+        [pipes, radiators, floorHeatingBudget, selectedBombaMca]
     );
 
     // Set defaults solo la primera vez que hay opciones y todavía no hay selección.
@@ -244,6 +251,31 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                             <span className="summary-value">{radiators.length} Unidades</span>
                         </div>
                     </div>
+
+                    {/* Empuje de la bomba: ¿la caldera mueve la instalación? Siempre
+                        visible arriba, para radiadores y/o piso, en lenguaje de oficio. */}
+                    {validacionHidraulica && (() => {
+                        const v = validacionHidraulica;
+                        const bg = v.veredicto === 'insuficiente' ? '#FDECEA'
+                            : v.veredicto === 'limite' ? '#FEF5E7' : '#EAF6EC';
+                        const border = v.veredicto === 'insuficiente' ? '#D32F2F'
+                            : v.veredicto === 'limite' ? '#E67E22' : '#2E7D32';
+                        const icono = v.veredicto === 'insuficiente' ? '⚠'
+                            : v.veredicto === 'limite' ? '≈' : '✓';
+                        return (
+                            <div style={{
+                                marginTop: '10px', padding: '10px 12px', borderRadius: '8px',
+                                background: bg, borderLeft: `4px solid ${border}`,
+                            }}>
+                                <div style={{ fontWeight: 700, color: border, fontSize: '0.9rem' }}>
+                                    {icono} Empuje de la bomba — {v.mensaje}
+                                </div>
+                                <div style={{ fontSize: '0.78rem', color: '#444', marginTop: '4px' }}>
+                                    {v.detalle}
+                                </div>
+                            </div>
+                        );
+                    })()}
                 </div>
 
                 {/* Boiler Selection */}
