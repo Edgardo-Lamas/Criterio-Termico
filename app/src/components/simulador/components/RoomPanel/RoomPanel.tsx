@@ -114,9 +114,15 @@ export const RoomPanel: React.FC = () => {
 
       let actualizados = 0;
       let creados = 0;
+      let sinArea = 0;
       const norm = (s: string) => s.trim().toLowerCase();
 
       ambientes.forEach(amb => {
+        // Área leída de las cotas del plano; si la IA no la pudo leer, se
+        // mantiene el default (15 m²) y se cuenta para avisar al instalador
+        const tieneArea = typeof amb.areaM2 === 'number' && amb.areaM2 > 0;
+        if (!tieneArea) sinArea++;
+
         const existente = rooms.find(
           r => r.floor === currentFloor && norm(r.name) === norm(amb.nombre)
         );
@@ -124,6 +130,7 @@ export const RoomPanel: React.FC = () => {
           updateRoom(existente.id, {
             hasExteriorWall: amb.paredExterior,
             windowsLevel: amb.ventanas,
+            ...(tieneArea ? { area: amb.areaM2! } : {}),
           });
           actualizados++;
           // Si el ambiente tiene una zona de piso vinculada, setear la puerta
@@ -135,7 +142,7 @@ export const RoomPanel: React.FC = () => {
           const nueva: Room = {
             id: `room-${Date.now()}-${creados}`,
             name: amb.nombre,
-            area: 15,
+            area: tieneArea ? amb.areaM2! : 15,
             height: 2.5,
             thermalFactor: 50,
             hasExteriorWall: amb.paredExterior,
@@ -148,12 +155,12 @@ export const RoomPanel: React.FC = () => {
         }
       });
 
-      const bajaConfianza = ambientes.filter(a => a.confianza === 'baja').length;
       setAnalisisMsg(
         `Listo: ${actualizados} actualizado${actualizados !== 1 ? 's' : ''}` +
         (creados > 0 ? `, ${creados} creado${creados !== 1 ? 's' : ''}` : '') +
-        `. Revisá el área de cada uno` +
-        (bajaConfianza > 0 ? ` (${bajaConfianza} con baja confianza).` : '.')
+        (sinArea > 0
+          ? `. ${sinArea} sin cota legible quedó en 15 m² — cargá su área a mano.`
+          : `. Verificá las áreas leídas del plano.`)
       );
     } catch (err) {
       setAnalisisMsg(err instanceof Error ? err.message : 'No se pudo analizar el plano.');

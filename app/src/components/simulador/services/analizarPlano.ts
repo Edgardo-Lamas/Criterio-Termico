@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase';
 
 export interface AmbienteAnalizado {
   nombre: string;
+  areaM2: number | null;
   paredExterior: boolean;
   ventanas: 'sin-ventanas' | 'pocas' | 'normales' | 'muchas';
   puertaLado: 'arriba' | 'abajo' | 'izquierda' | 'derecha' | null;

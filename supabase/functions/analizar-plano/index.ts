@@ -15,6 +15,7 @@ type Tier = 'free' | 'pro' | 'premium'
 // Estructura que devuelve el análisis (alineada con el modelo Room del frontend)
 interface AmbienteAnalizado {
     nombre: string
+    areaM2: number | null
     paredExterior: boolean
     ventanas: 'sin-ventanas' | 'pocas' | 'normales' | 'muchas'
     puertaLado: 'arriba' | 'abajo' | 'izquierda' | 'derecha' | null
@@ -47,26 +48,28 @@ function buildSystemPrompt(nombresConocidos: string[]): string {
 
 Para CADA ambiente identificá:
 
-1. **paredExterior** (boolean): ¿el ambiente linda con al menos una pared del perímetro exterior de la vivienda? Las paredes exteriores se dibujan más gruesas y están en el borde del plano. Un ambiente interno (baño, pasillo, vestidor sin ventana al exterior) suele NO tener pared exterior.
+1. **areaM2** (número o null): la superficie del ambiente en metros cuadrados. La MAYORÍA de los planos traen LÍNEAS DE COTA — cadenas de medidas en metros a lo largo de los bordes (ej: "6.00", "2.55", "3.00", "1.30") y a veces la medida directamente dentro del ambiente. Usá esas cotas para calcular el área de cada ambiente (ancho en metros × largo en metros). El título del plano también puede dar la medida total (ej: "6X12 METROS"). Redondeá a un decimal. Si un ambiente NO tiene cotas legibles que te permitan calcular su superficie con confianza, devolvé null — NO inventes un número.
 
-2. **ventanas**: nivel de superficie vidriada según los símbolos de ventana (líneas dobles/triples interrumpiendo el muro, a veces con el rótulo de la abertura):
+2. **paredExterior** (boolean): ¿el ambiente linda con al menos una pared del perímetro exterior de la vivienda? Las paredes exteriores se dibujan más gruesas y están en el borde del plano. Un ambiente interno (baño, pasillo, vestidor sin ventana al exterior) suele NO tener pared exterior.
+
+3. **ventanas**: nivel de superficie vidriada según los símbolos de ventana (líneas dobles/triples interrumpiendo el muro, a veces con el rótulo de la abertura):
    - "sin-ventanas": no se ve ninguna ventana
    - "pocas": una ventana chica
    - "normales": una ventana estándar o dos chicas
    - "muchas": ventanal grande, varias ventanas, o paño vidriado importante
 
-3. **puertaLado**: el lado del ambiente donde está la puerta de acceso principal (el símbolo de arco de puerta). Valores: "arriba", "abajo", "izquierda", "derecha", o null si no se distingue. Es el lado por donde entrarían las cañerías al ambiente.
+4. **puertaLado**: el lado del ambiente donde está la puerta de acceso principal (el símbolo de arco de puerta). Valores: "arriba", "abajo", "izquierda", "derecha", o null si no se distingue. Es el lado por donde entrarían las cañerías al ambiente.
 
-4. **confianza**: "alta" si el ambiente y sus símbolos se ven claros; "media" si algo es dudoso; "baja" si tuviste que inferir mucho.
+5. **confianza**: "alta" si el ambiente y sus símbolos se ven claros Y pudiste leer sus cotas; "media" si algo es dudoso; "baja" si tuviste que inferir mucho o no había cotas.
 ${listaAmbientes}
 
 IMPORTANTE:
-- Basate SOLO en lo que se ve en el plano. No inventes ventanas ni puertas que no distingas.
-- Si un dato no se ve, usá el valor más conservador ("sin-ventanas", paredExterior según la posición, puertaLado null) y bajá la confianza.
+- Basate SOLO en lo que se ve en el plano. No inventes ventanas, puertas ni medidas que no distingas.
+- Si un dato no se ve, usá el valor más conservador ("sin-ventanas", paredExterior según la posición, puertaLado null, areaM2 null) y bajá la confianza.
 - Los rótulos de ambientes suelen estar en español (Cocina, Comedor, Baño, Dormitorio, Sala, Lavandería, Pasillo, etc.).
 
 Respondé ÚNICAMENTE con un objeto JSON válido, sin texto adicional ni markdown, con esta forma exacta:
-{"ambientes": [{"nombre": "...", "paredExterior": true, "ventanas": "normales", "puertaLado": "abajo", "confianza": "alta"}]}`
+{"ambientes": [{"nombre": "...", "areaM2": 12.5, "paredExterior": true, "ventanas": "normales", "puertaLado": "abajo", "confianza": "alta"}]}`
 }
 
 // Extrae el JSON de la respuesta del modelo de forma robusta (por si viniera
@@ -250,10 +253,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // Sanitizar y normalizar cada ambiente antes de devolverlo
         const nivelesValidos = ['sin-ventanas', 'pocas', 'normales', 'muchas']
         const ladosValidos = ['arriba', 'abajo', 'izquierda', 'derecha']
+        // Área: solo aceptar un número finito y razonable (0,5 a 200 m²);
+        // cualquier otra cosa se descarta para que el instalador la cargue.
+        const areaValida = (v: unknown): number | null => {
+            const n = typeof v === 'number' ? v : Number(v)
+            return Number.isFinite(n) && n >= 0.5 && n <= 200 ? Math.round(n * 10) / 10 : null
+        }
         const ambientes: AmbienteAnalizado[] = resultado.ambientes
             .filter(a => a && typeof a.nombre === 'string' && a.nombre.trim().length > 0)
             .map(a => ({
                 nombre: String(a.nombre).trim().slice(0, 60),
+                areaM2: areaValida(a.areaM2),
                 paredExterior: a.paredExterior === true,
                 ventanas: nivelesValidos.includes(a.ventanas) ? a.ventanas : 'sin-ventanas',
                 puertaLado: ladosValidos.includes(a.puertaLado as string) ? a.puertaLado : null,
