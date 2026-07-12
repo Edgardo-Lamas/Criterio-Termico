@@ -16,7 +16,7 @@ interface ToolbarProps {
 }
 
 export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
-  const { tool, setTool, setBudgetPanelOpen } = useToolsStore();
+  const { tool, setTool, setBudgetPanelOpen, isBudgetPanelOpen } = useToolsStore();
   const {
     radiators,
     boilers,
@@ -321,8 +321,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
 
         <button
           type="button"
-          className="toolbar-btn accent"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBudgetPanelOpen(true); }}
+          className={`toolbar-btn accent ${isBudgetPanelOpen ? 'active' : ''}`}
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBudgetPanelOpen(!isBudgetPanelOpen); }}
+          title={isBudgetPanelOpen ? 'Cerrar el panel de presupuesto' : 'Abrir el panel de presupuesto'}
         >
           <span>💰</span> Presupuesto
         </button>

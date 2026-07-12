@@ -53,6 +53,16 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         [floorHeatingZones, manifolds, boilers, rooms, floorHeatingTempC]
     );
 
+    // Cerrar el panel con la tecla Escape
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [isOpen, onClose]);
+
     // Pre-load logo when panel opens (so download can stay synchronous).
     // Solo el caso async (URL remota) necesita el efecto; el caso data: URL
     // ya está disponible sincrónicamente y se deriva más abajo con useMemo.
@@ -203,7 +213,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         <div className={`budget-panel ${isOpen ? '' : 'hidden'}`}>
             <div className="budget-header">
                 <h3>💰 Presupuesto Profesional</h3>
-                <button className="close-btn" onClick={onClose}>✕</button>
+                <button className="close-btn" onClick={onClose} title="Cerrar (Esc)">✕</button>
             </div>
 
             <div className="budget-content">
@@ -531,6 +541,23 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 </button>
                 <button className="floorplan-btn" onClick={handleDownloadFloorPlan}>
                     📐 Exportar Plano Técnico A4
+                </button>
+                <button
+                    onClick={onClose}
+                    title="También cierra con Esc o con el botón 💰 Presupuesto de la barra"
+                    style={{
+                        width: '100%',
+                        marginTop: '8px',
+                        padding: '10px',
+                        backgroundColor: 'transparent',
+                        color: '#7F8C8D',
+                        border: '1px solid #E0E0E0',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                    }}
+                >
+                    ✕ Cerrar presupuesto
                 </button>
             </div>
         </div>
