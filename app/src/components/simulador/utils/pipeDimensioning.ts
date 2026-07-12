@@ -44,7 +44,7 @@ export function calculatePipeDiameter(flowRate: number): number {
  * usando DFS (Depth-First Search) desde cada tubería hacia los radiadores
  * MEJORA: También considera conexiones via toElementId (para montantes)
  */
-function calculatePipePowers(
+export function calculatePipePowers(
   pipes: PipeSegment[],
   radiators: Radiator[]
 ): Map<string, number> {

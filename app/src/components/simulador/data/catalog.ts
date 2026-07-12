@@ -20,6 +20,12 @@ export interface BoilerModel {
     width: number;
     height: number;
     depth: number;
+    // Altura manométrica ÚTIL de la bomba/circuladora que trae la caldera, en
+    // metros de columna de agua (mca), al caudal de trabajo típico de una
+    // vivienda. Referencia: circuladora Grundfos UPS 15-60 en Velocidad III
+    // (~6 mca a caudal cero → ~5,5 útiles en régimen); el 15-50 da ~4,5. La
+    // usa la validación hidráulica para decidir si la bomba mueve la instalación.
+    alturaBombaMca?: number;
     isDefault?: boolean;
 }
 
@@ -55,6 +61,7 @@ export const CATALOG = {
             tipoTiro: 'natural', // VERIFICAR con catálogo del fabricante
             maxPowerKcal: 20640, // ~24kW
             maxPowerKw: 24,
+            alturaBombaMca: 5.0, // circuladora tipo UPS 15-50 — VERIFICAR con ficha
             cost: 850000,
             width: 400,
             height: 700,
@@ -68,6 +75,7 @@ export const CATALOG = {
             tipoTiro: 'forzado', // cámara estanca — VERIFICAR con catálogo
             maxPowerKcal: 20640,
             maxPowerKw: 24,
+            alturaBombaMca: 5.5, // circuladora tipo UPS 15-60 — VERIFICAR con ficha
             cost: 920000,
             width: 400,
             height: 700,
@@ -80,6 +88,7 @@ export const CATALOG = {
             tipoTiro: 'condensacion', // PRECIO DE REFERENCIA — ajustar
             maxPowerKcal: 20640,
             maxPowerKw: 24,
+            alturaBombaMca: 5.5, // circuladora modulante tipo UPM3 — VERIFICAR con ficha
             cost: 1900000,
             width: 400,
             height: 700,

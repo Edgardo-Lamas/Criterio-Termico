@@ -5,10 +5,12 @@
 
 import type { Room } from '../models/Room';
 import type { Radiator } from '../models/Radiator';
+import type { PipeSegment } from '../models/PipeSegment';
 import type { TipoTiro } from '../data/catalog';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { MAX_CIRCUIT_LENGTH_M, MAX_CIRCUITOS_POR_COLECTOR } from './floorHeating';
 import { calculateRoomPower } from './thermalCalculator';
+import { validarHidraulica } from './hydraulicValidation';
 
 // 'critica'      → compromete el funcionamiento: hay que resolverla antes de instalar
 // 'atencion'     → decisión de diseño que el instalador debe contemplar
@@ -31,6 +33,12 @@ export interface ConsideracionesInput {
   floorHeating: FloorHeatingBudget | null;
   // Tipo de tiro de la caldera elegida en el presupuesto (si hay una elegida)
   boilerTipo?: TipoTiro | null;
+  // Tuberías del diseño (para validar el ramal de radiadores). Si no se pasan,
+  // la validación hidráulica cubre solo el piso radiante.
+  pipes?: PipeSegment[];
+  // Altura útil de la bomba de la caldera elegida (mca). Si no se pasa, se usa
+  // el default de la mural típica.
+  bombaMca?: number;
 }
 
 export function generarConsideraciones({
@@ -38,6 +46,8 @@ export function generarConsideraciones({
   radiators,
   floorHeating,
   boilerTipo = null,
+  pipes = [],
+  bombaMca,
 }: ConsideracionesInput): Consideracion[] {
   const criticas: Consideracion[] = [];
   const atencion: Consideracion[] = [];
@@ -208,6 +218,33 @@ export function generarConsideraciones({
           `Los ${fmt(Math.round(floorHeating.longitudTotalM))} m de tubería Ø20 agregan ` +
           `~${fmt(litrosPiso)} L al volumen del sistema. Verificar que el vaso de expansión ` +
           'de la caldera alcance o agregar uno adicional (caso frecuente de sobrepresión).',
+      });
+    }
+  }
+
+  // ── Validación hidráulica: ¿la bomba de la caldera mueve la instalación? ──
+  // Cierre del tema diámetros/Venturi: no basta con que el caño tenga el grosor
+  // correcto; la bomba de la mural (~5,5 mca) tiene que poder empujar el agua
+  // por el circuito más largo. La salida es una decisión de obra, no un precio.
+  const hidraulica = validarHidraulica(pipes, radiators, floorHeating, bombaMca);
+  if (hidraulica) {
+    if (hidraulica.veredicto === 'insuficiente') {
+      criticas.push({
+        nivel: 'critica',
+        titulo: hidraulica.mensaje,
+        detalle: hidraulica.detalle,
+      });
+    } else if (hidraulica.veredicto === 'limite') {
+      atencion.push({
+        nivel: 'atencion',
+        titulo: hidraulica.mensaje,
+        detalle: hidraulica.detalle,
+      });
+    } else {
+      recomendaciones.push({
+        nivel: 'recomendacion',
+        titulo: 'Instalación verificada hidráulicamente',
+        detalle: hidraulica.detalle,
       });
     }
   }

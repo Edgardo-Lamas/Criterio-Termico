@@ -93,18 +93,22 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         return [...lista].sort((a, b) => prioridad[a.tipoTiro] - prioridad[b.tipoTiro]);
     }, [options, floorHeatingBudget]);
 
-    const selectedBoilerTipo = useMemo(
-        () => options?.suggestedBoilers.find(b => b.id === selectedBoilerId)?.tipoTiro ?? null,
+    const selectedBoiler = useMemo(
+        () => options?.suggestedBoilers.find(b => b.id === selectedBoilerId) ?? null,
         [options, selectedBoilerId]
     );
+    const selectedBoilerTipo = selectedBoiler?.tipoTiro ?? null;
+    const selectedBombaMca = selectedBoiler?.alturaBombaMca;
 
-    // Consideraciones técnicas del diseño: alertas de cobertura/circuitos/caldera
-    // y buenas prácticas de obra. Van al panel y al PDF del presupuesto.
+    // Consideraciones técnicas del diseño: alertas de cobertura/circuitos/caldera,
+    // validación hidráulica (¿la bomba mueve la instalación?) y buenas prácticas
+    // de obra. Van al panel y al PDF del presupuesto.
     const consideraciones = useMemo(
         () => generarConsideraciones({
-            rooms, radiators, floorHeating: floorHeatingBudget, boilerTipo: selectedBoilerTipo
+            rooms, radiators, floorHeating: floorHeatingBudget, boilerTipo: selectedBoilerTipo,
+            pipes, bombaMca: selectedBombaMca,
         }),
-        [rooms, radiators, floorHeatingBudget, selectedBoilerTipo]
+        [rooms, radiators, floorHeatingBudget, selectedBoilerTipo, pipes, selectedBombaMca]
     );
 
     // Set defaults solo la primera vez que hay opciones y todavía no hay selección.
@@ -200,7 +204,9 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 getActivePromotions(),
                 budgetResult,
                 preloadedLogo,
-                floorHeatingBudget
+                floorHeatingBudget,
+                pipes,
+                selectedBombaMca
             );
         } catch {
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');

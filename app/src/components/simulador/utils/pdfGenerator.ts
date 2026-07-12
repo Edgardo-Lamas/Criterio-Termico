@@ -36,7 +36,9 @@ export const generateQuotePDF = (
   _activePromotions: Promotion[],
   selectedBudget?: SelectedBudget | null,
   preloadedLogo?: string | null,
-  floorHeating?: FloorHeatingBudget | null
+  floorHeating?: FloorHeatingBudget | null,
+  pipes: PipeSegment[] = [],
+  bombaMca?: number
 ): void => {
   const doc = new jsPDF();
 
@@ -537,6 +539,8 @@ export const generateQuotePDF = (
     radiators,
     floorHeating: floorHeating ?? null,
     boilerTipo: selectedBudget?.breakdown.boiler?.model.tipoTiro ?? null,
+    pipes,
+    bombaMca,
   });
 
   if (consideraciones.length > 0) {
