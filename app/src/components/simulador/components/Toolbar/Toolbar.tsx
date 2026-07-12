@@ -163,10 +163,15 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
   const handleLoadFloorPlan = () => {
     const floorName = currentFloor === 'ground' ? 'Planta Baja' : 'Planta Alta';
     alert(
-      `📐 RECOMENDACIÓN PARA MAYOR PRECISIÓN\n\n` +
-      `Para obtener un cómputo de materiales más preciso, se recomienda subir un plano que contenga:\n\n` +
-      `• Escala 1:100 (estándar arquitectónico)\n` +
-      `• Medidas (cotas) de las habitaciones\n\n` +
+      `📐 EL PLANO DEBE TENER LAS COTAS COMPLETAS Y LEGIBLES\n\n` +
+      `El sistema lee las medidas (cotas) impresas en el plano para calcular ` +
+      `la superficie de cada ambiente. Para que los cálculos sean confiables, ` +
+      `el plano que subas tiene que tener:\n\n` +
+      `• Las cotas (medidas en metros) completas en todos los bordes\n` +
+      `• Los números de cota nítidos y legibles (no borrosos ni cortados)\n` +
+      `• Los ambientes rotulados con su nombre (Cocina, Dormitorio, etc.)\n\n` +
+      `Sin cotas legibles el sistema no puede garantizar las áreas y las ` +
+      `deberás cargar a mano.\n\n` +
       `El plano se cargará en: ${floorName}`
     );
 

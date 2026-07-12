@@ -327,6 +327,12 @@ export const RoomPanel: React.FC = () => {
               {analizando ? '⏳ Analizando…' : '🔍 Analizar plano con IA'}
             </button>
           )}
+          {planoActual && !analisisMsg && (
+            <div style={{ marginTop: '4px', fontSize: '10px', color: '#999', lineHeight: 1.4 }}>
+              📐 El plano debe tener las cotas completas y legibles: el sistema
+              lee esas medidas para calcular la superficie de cada ambiente.
+            </div>
+          )}
           {analisisMsg && (
             <div style={{
               marginTop: '6px',
