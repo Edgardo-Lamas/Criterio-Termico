@@ -33,10 +33,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
         })
     }
 
-    // Autorización: exclusivamente la service_role key. No es un endpoint público.
+    // Autorización: exclusivamente el rol service_role. No es un endpoint público.
+    // El gateway de Supabase ya valida la firma del JWT antes de invocar la función;
+    // acá verificamos el claim `role` del payload en vez de comparar contra un valor
+    // fijo. Este patrón es robusto a la rotación/migración de API keys (comparar
+    // contra SUPABASE_SERVICE_ROLE_KEY se rompe cuando el proyecto pasa al sistema
+    // nuevo de keys, porque el valor inyectado deja de ser la JWT legacy).
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const auth = req.headers.get('Authorization') ?? ''
-    if (auth !== `Bearer ${serviceKey}`) {
+    const token = auth.replace(/^Bearer\s+/i, '')
+    let role: string | null = null
+    try {
+        role = JSON.parse(atob(token.split('.')[1] ?? '')).role ?? null
+    } catch { /* token que no es un JWT decodificable */ }
+    if (role !== 'service_role') {
         return new Response(JSON.stringify({ error: 'No autorizado' }), {
             status: 401, headers: { 'Content-Type': 'application/json' },
         })
