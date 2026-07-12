@@ -1,16 +1,24 @@
 import React, { useMemo, useState } from 'react';
 import { useElementsStore } from '../../store/useElementsStore';
 import { planillaRadiadores } from '../../utils/planilla';
+import { validarRamalesRadiadores } from '../../utils/hydraulicValidation';
 
 // Planilla de radiadores — como en los planos de obra: el plano muestra solo
 // "R1, R2, ..." y acá están todos los datos (ambiente, elementos, potencia).
 export const RadiatorSchedule: React.FC = () => {
-  const { radiators, rooms, currentFloor, setSelectedElement } = useElementsStore();
+  const { radiators, rooms, pipes, currentFloor, setSelectedElement } = useElementsStore();
   const [isOpen, setIsOpen] = useState(false);
 
   const filas = useMemo(
     () => planillaRadiadores(radiators, rooms).filter(f => f.floor === currentFloor),
     [radiators, rooms, currentFloor]
+  );
+
+  // Empuje de la bomba por radiador: ¿la caldera lo mueve? (necesita las
+  // tuberías del "Conectar Auto"). Se muestra como columna de la planilla.
+  const hidraulicaPorRadiador = useMemo(
+    () => validarRamalesRadiadores(pipes, radiators),
+    [pipes, radiators]
   );
   const enOtraPlanta = radiators.length - filas.length;
   const totalKcalh = filas.reduce((acc, f) => acc + f.potenciaKcalh, 0);
@@ -58,7 +66,7 @@ export const RadiatorSchedule: React.FC = () => {
       position: 'fixed',
       bottom: '40px',
       left: '20px',
-      width: '340px',
+      width: '390px',
       maxHeight: '45vh',
       backgroundColor: 'white',
       borderRadius: '8px',
@@ -97,6 +105,7 @@ export const RadiatorSchedule: React.FC = () => {
               <th style={{ ...th, textAlign: 'right' }}>Elem.</th>
               <th style={{ ...th, textAlign: 'right' }}>Alt.</th>
               <th style={{ ...th, textAlign: 'right' }}>Kcal/h</th>
+              <th style={{ ...th, textAlign: 'right' }} title="Empuje de la bomba: ¿la caldera mueve este ramal? (pérdida de carga)">Bomba</th>
             </tr>
           </thead>
           <tbody>
@@ -112,6 +121,20 @@ export const RadiatorSchedule: React.FC = () => {
                 <td style={{ ...td, textAlign: 'right' }}>{f.elementos ?? '—'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>{f.alturaMm ? `${f.alturaMm}` : '—'}</td>
                 <td style={{ ...td, textAlign: 'right' }}>{f.potenciaKcalh.toLocaleString('es-AR')}</td>
+                {(() => {
+                  const h = hidraulicaPorRadiador.get(f.radiatorId);
+                  if (!h) return <td style={{ ...td, textAlign: 'right', color: '#999' }}>—</td>;
+                  const color = h.estado === 'insuficiente' ? '#D32F2F'
+                    : h.estado === 'limite' ? '#E67E22' : '#2E7D32';
+                  const icono = h.estado === 'insuficiente' ? '⚠'
+                    : h.estado === 'limite' ? '≈' : '✓';
+                  return (
+                    <td style={{ ...td, textAlign: 'right', color, fontWeight: 600 }}
+                        title={`Pérdida de carga del ramal: ${h.deltaPMca} m — ${h.estado === 'insuficiente' ? 'la bomba no llega' : h.estado === 'limite' ? 'al límite' : 'la bomba lo mueve'}`}>
+                      {icono} {h.deltaPMca}
+                    </td>
+                  );
+                })()}
               </tr>
             ))}
           </tbody>
@@ -121,9 +144,15 @@ export const RadiatorSchedule: React.FC = () => {
               <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>
                 {totalKcalh.toLocaleString('es-AR')}
               </td>
+              <td style={td} />
             </tr>
           </tfoot>
         </table>
+      </div>
+
+      <div style={{ padding: '6px 12px', fontSize: '10.5px', color: '#888', borderTop: '1px solid #eee' }}>
+        Bomba: pérdida de carga del ramal (m). ✓ la bomba lo mueve · ≈ al límite · ⚠ no llega.
+        {hidraulicaPorRadiador.size === 0 ? ' Usá "⚡ Conectar Auto" para calcularla.' : ''}
       </div>
 
       {enOtraPlanta > 0 && (

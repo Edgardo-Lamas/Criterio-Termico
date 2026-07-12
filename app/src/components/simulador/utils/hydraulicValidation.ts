@@ -100,23 +100,29 @@ export interface ValidacionHidraulica {
   detalle: string;          // qué hacer, con el número técnico en segundo plano
 }
 
+// ΔP del ramal de un radiador identificado (para mostrar dato por dato en la
+// planilla de radiadores).
+export interface RamalRadiadorHidraulico {
+  radiatorId: string;
+  deltaPMca: number;
+}
+
 /**
- * ΔP del ramal de radiadores más desfavorable. Recorre el grafo de tuberías de
- * ida desde cada radiador hasta la caldera sumando la fricción de cada tramo
- * (cada uno con su propio caudal según la potencia acumulada que transporta) y
- * se queda con el peor. La ida y el retorno son simétricos → se duplica.
+ * ΔP del ramal de CADA radiador. Recorre el grafo de tuberías de ida desde el
+ * radiador hasta la caldera sumando la fricción de cada tramo (cada uno con su
+ * propio caudal según la potencia acumulada que transporta). La ida y el
+ * retorno son simétricos → se duplica; se suma la pérdida del propio radiador.
  */
-function analizarRadiadores(
+function analizarRadiadoresDetalle(
   pipes: PipeSegment[],
   radiators: Radiator[],
-): CircuitoHidraulico[] {
+): RamalRadiadorHidraulico[] {
   const supply = pipes.filter((p) => p.pipeType === 'supply');
   if (supply.length === 0 || radiators.length === 0) return [];
 
   const powers = calculatePipePowers(pipes, radiators); // pipeId → kcal/h
   const byId = new Map(supply.map((p) => [p.id, p]));
-
-  let peor: CircuitoHidraulico | null = null;
+  const res: RamalRadiadorHidraulico[] = [];
 
   for (const rad of radiators) {
     // El ramal que entra a este radiador
@@ -139,14 +145,42 @@ function analizarRadiadores(
       cur = cur.fromElementId ? byId.get(cur.fromElementId) : undefined;
     }
 
-    const deltaP =
-      friccion * 2 * FACTOR_PERDIDAS_LOCALES + DP_EMISOR_RADIADOR_MCA;
-    if (!peor || deltaP > peor.deltaPMca) {
-      peor = { etiqueta: 'el ramal de radiadores más largo', tipo: 'radiadores', deltaPMca: deltaP };
-    }
+    const deltaP = friccion * 2 * FACTOR_PERDIDAS_LOCALES + DP_EMISOR_RADIADOR_MCA;
+    res.push({ radiatorId: rad.id, deltaPMca: deltaP });
   }
 
-  return peor ? [peor] : [];
+  return res;
+}
+
+function analizarRadiadores(
+  pipes: PipeSegment[],
+  radiators: Radiator[],
+): CircuitoHidraulico[] {
+  const detalle = analizarRadiadoresDetalle(pipes, radiators);
+  if (detalle.length === 0) return [];
+  const peor = detalle.reduce((a, b) => (b.deltaPMca > a.deltaPMca ? b : a));
+  return [
+    { etiqueta: 'el ramal de radiadores más largo', tipo: 'radiadores', deltaPMca: peor.deltaPMca },
+  ];
+}
+
+/**
+ * ΔP y veredicto por radiador, para incluir como dato en la planilla de
+ * radiadores. Clave: radiatorId. Devuelve mapa vacío si aún no hay tuberías.
+ */
+export function validarRamalesRadiadores(
+  pipes: PipeSegment[],
+  radiators: Radiator[],
+  alturaBombaMca: number = ALTURA_BOMBA_DEFAULT_MCA,
+): Map<string, { deltaPMca: number; estado: VeredictoHidraulico }> {
+  const map = new Map<string, { deltaPMca: number; estado: VeredictoHidraulico }>();
+  for (const r of analizarRadiadoresDetalle(pipes, radiators)) {
+    map.set(r.radiatorId, {
+      deltaPMca: r1(r.deltaPMca),
+      estado: estadoCircuito(r.deltaPMca, alturaBombaMca),
+    });
+  }
+  return map;
 }
 
 // ΔP de un circuito de piso identificado (para mostrar dato por dato en la

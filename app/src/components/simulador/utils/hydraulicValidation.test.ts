@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   validarHidraulica,
   validarCircuitosPiso,
+  validarRamalesRadiadores,
   perdidaFriccionMca,
   ALTURA_BOMBA_DEFAULT_MCA,
 } from './hydraulicValidation';
@@ -188,5 +189,19 @@ describe('validarCircuitosPiso — dato por circuito para la tabla', () => {
 
   it('mapa vacío si no hay piso', () => {
     expect(validarCircuitosPiso(null).size).toBe(0);
+  });
+});
+
+describe('validarRamalesRadiadores — dato por radiador para la planilla', () => {
+  it('devuelve ΔP y estado por radiador, clave radiatorId', () => {
+    const m = validarRamalesRadiadores(redRadiador(8), [radiador('R1', 5000)]);
+    const h = m.get('R1');
+    expect(h).toBeDefined();
+    expect(h!.deltaPMca).toBeGreaterThan(0);
+    expect(h!.estado).toBe('ok');
+  });
+
+  it('mapa vacío si no hay tuberías (sin Conectar Auto)', () => {
+    expect(validarRamalesRadiadores([], [radiador('R1', 5000)]).size).toBe(0);
   });
 });
