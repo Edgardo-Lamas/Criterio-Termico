@@ -2,6 +2,14 @@ import type { Radiator } from '../models/Radiator';
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+// Única fuente de verdad del dimensionamiento (tabla por caudal, ΔT=10°C):
+// acá había TRES copias de la tabla que podían divergir
+import { calculateFlowRate, calculatePipeDiameter } from './pipeDimensioning';
+
+// Diámetro por potencia acumulada (kcal/h) — atajo sobre la tabla común
+function diametroPorPotencia(powerKcalh: number): number {
+  return calculatePipeDiameter(calculateFlowRate(powerKcalh));
+}
 
 interface Point {
   x: number;
@@ -297,16 +305,6 @@ function generateCircuitPipes(
   // Calcular potencia total del circuito
   const totalPower = radiators.reduce((sum, r) => sum + r.power, 0);
 
-  // Calcular diámetro según potencia
-  const calculateDiameter = (power: number): number => {
-    const flowRate = power / 10; // ΔT = 10°C
-    if (flowRate <= 450) return 16;
-    if (flowRate <= 750) return 20;
-    if (flowRate <= 1300) return 25;
-    if (flowRate <= 2200) return 32;
-    return 40;
-  };
-
   // Ordenar radiadores por distancia al origen
   const sortedRadiators = [...radiators].sort((a, b) => {
     const distA = Math.sqrt(Math.pow(a.x + a.width / 2 - originPoint.x, 2) + Math.pow(a.y + a.height / 2 - originPoint.y, 2));
@@ -351,7 +349,7 @@ function generateCircuitPipes(
     }
 
     // Diámetro del troncal según potencia restante (todo lo que queda por alimentar)
-    const trunkDiameter = calculateDiameter(remainingPower);
+    const trunkDiameter = diametroPorPotencia(remainingPower);
 
     // === TRONCAL: desde punto actual hasta punto de derivación ===
     if (currentTrunkPoint.x !== derivationPoint.x || currentTrunkPoint.y !== derivationPoint.y) {
@@ -397,7 +395,7 @@ function generateCircuitPipes(
     const branchId = `${circuitId}-supply-branch-${pipeIdCounter++}`;
 
     // Diámetro del ramal: solo la potencia de ESTE radiador
-    const branchDiameter = calculateDiameter(radiator.power);
+    const branchDiameter = diametroPorPotencia(radiator.power);
 
     pipes.push({
       id: branchId,
@@ -538,6 +536,12 @@ export function generateMultiFloorPipes(
 
     riserId = `riser-${Date.now()}`;
 
+    // El montante alimenta TODA la potencia de la otra planta: se dimensiona
+    // acá mismo (antes quedaba hardcodeado en Ø16 y solo se corregía si el
+    // re-dimensionado posterior llegaba a correr)
+    const potenciaOtraPlanta = boilerFloor === 'ground' ? firstPower : groundPower;
+    const riserDiameter = diametroPorPotencia(potenciaOtraPlanta);
+
     // TRAMO CALDERA → MONTANTE (conexión horizontal en la planta de la caldera)
     const boilerToRiserPath = findShortestPath(boilerCenter, riserPoint, allRadiators.filter(r => r.floor === boilerFloor));
     const boilerToRiserId = `${riserId}-boiler-connection`;
@@ -547,7 +551,7 @@ export function generateMultiFloorPipes(
       type: 'pipe',
       pipeType: 'supply',
       points: boilerToRiserPath,
-      diameter: 16, // Se dimensionará según potencia total
+      diameter: riserDiameter,
       material: 'Multicapa',
       floor: boilerFloor,
       fromElementId: mainBoiler.id,
@@ -560,7 +564,7 @@ export function generateMultiFloorPipes(
       type: 'pipe',
       pipeType: 'return',
       points: boilerToRiserPath.map(p => ({ x: p.x + PARALLEL_OFFSET, y: p.y + PARALLEL_OFFSET })),
-      diameter: 16,
+      diameter: riserDiameter,
       material: 'Multicapa',
       floor: boilerFloor,
       fromElementId: `${riserId}-return`,
@@ -575,7 +579,7 @@ export function generateMultiFloorPipes(
       type: 'pipe',
       pipeType: 'supply',
       points: [riserPoint, { x: riserPoint.x, y: riserPoint.y + 10 }], // Símbolo pequeño
-      diameter: 16, // Se dimensionará según potencia de la planta que alimenta
+      diameter: riserDiameter,
       material: 'Multicapa',
       floor: 'vertical',
       fromElementId: `${boilerToRiserId}-supply`,
@@ -591,7 +595,7 @@ export function generateMultiFloorPipes(
         { x: riserPoint.x + PARALLEL_OFFSET, y: riserPoint.y },
         { x: riserPoint.x + PARALLEL_OFFSET, y: riserPoint.y + 10 }
       ],
-      diameter: 16,
+      diameter: riserDiameter,
       material: 'Multicapa',
       floor: 'vertical',
       fromElementId: boilerFloor === 'ground' ? 'first-trunk' : 'ground-trunk',
@@ -639,15 +643,7 @@ export function generateMultiFloorPipes(
       // Caldera en PB, generar tuberías de PA desde el montante
 
       // Calcular diámetro del troncal de distribución de PA (potencia total de PA)
-      const calculateDiam = (power: number): number => {
-        const flow = power / 10;
-        if (flow <= 450) return 16;
-        if (flow <= 750) return 20;
-        if (flow <= 1300) return 25;
-        if (flow <= 2200) return 32;
-        return 40;
-      };
-      const paTotalDiameter = calculateDiam(firstPower);
+      const paTotalDiameter = diametroPorPotencia(firstPower);
 
       // Crear TRONCAL DE DISTRIBUCIÓN en PA que sale del montante
       // Este troncal tiene el diámetro total de PA y luego se bifurca a los circuitos
@@ -710,15 +706,7 @@ export function generateMultiFloorPipes(
     } else if (boilerFloor === 'first' && groundRadiators.length > 0) {
       // Caldera en PA, generar tuberías de PB desde el montante
 
-      const calculateDiam = (power: number): number => {
-        const flow = power / 10;
-        if (flow <= 450) return 16;
-        if (flow <= 750) return 20;
-        if (flow <= 1300) return 25;
-        if (flow <= 2200) return 32;
-        return 40;
-      };
-      const pbTotalDiameter = calculateDiam(groundPower);
+      const pbTotalDiameter = diametroPorPotencia(groundPower);
 
       // Crear TRONCAL DE DISTRIBUCIÓN en PB
       const distributionTrunkId = `ground-distribution-trunk-${Date.now()}`;

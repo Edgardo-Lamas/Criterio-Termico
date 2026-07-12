@@ -105,9 +105,11 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
 
     setPipes(newPipes);
 
-    // Auto-dimensionar si todos tienen potencia
+    // Auto-dimensionar si al menos un radiador tiene potencia (las ramas con
+    // potencia 0 quedan como están — antes se exigía que TODOS la tuvieran y
+    // un solo radiador sin asignar dejaba todo sin dimensionar)
     const radiatorsWithPower = currentFloorRadiators.filter(r => r.power > 0);
-    if (radiatorsWithPower.length === currentFloorRadiators.length && currentFloorRadiators.length > 0) {
+    if (radiatorsWithPower.length > 0) {
       // Actualizar potencia de la caldera
       const totalRadiatorPower = radiators.reduce((sum, r) => sum + r.power, 0);
       const recommendedBoilerPower = Math.round(totalRadiatorPower / 0.80);
@@ -133,9 +135,10 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     const result = generateMultiFloorPipes(radiators, boilers, undefined, floorHeatingZones);
     setPipes(result.pipes);
 
-    // Auto-dimensionar
+    // Auto-dimensionar si al menos un radiador tiene potencia (mismo criterio
+    // que la conexión de una sola planta)
     const allRadiatorsWithPower = radiators.filter(r => r.power > 0);
-    if (allRadiatorsWithPower.length === radiators.length && radiators.length > 0) {
+    if (allRadiatorsWithPower.length > 0) {
       // Actualizar potencia de la caldera principal
       const totalRadiatorPower = radiators.reduce((sum, r) => sum + r.power, 0);
       const recommendedBoilerPower = Math.round(totalRadiatorPower / 0.80);
