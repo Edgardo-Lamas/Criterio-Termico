@@ -226,55 +226,24 @@ function calculatePathLength(points: Point[]): number {
 
 
 /**
- * Divide radiadores en circuitos balanceados
- * Usa división espacial (izquierda/derecha o arriba/abajo según la distribución)
+ * Ordena los radiadores en UN ÚNICO troncal por cercanía a la caldera
+ * (o al punto de arranque del troncal en la otra planta).
+ *
+ * CRITERIO DE OBRA (Edgardo): sale UN troncal de la caldera cargando el total
+ * de la planta y va reduciendo el diámetro a medida que deja radiadores atrás.
+ * Antes se partía en 2 circuitos por dispersión espacial: cada troncal salía
+ * de la caldera con la MITAD de la potencia, así que un sistema de 11.600 kcal/h
+ * daba dos Ø20 en vez del Ø25 que corresponde al total. Con un solo troncal el
+ * tramo de la caldera se dimensiona por el total y baja al derivar cada radiador.
  */
 function divideIntoCircuits(radiators: Radiator[], boilerCenter: Point): Radiator[][] {
-  if (radiators.length <= 3) {
-    // Muy pocos radiadores, un solo circuito
-    return [radiators];
-  }
-
-  // Calcular centro de masa de todos los radiadores
-  const avgX = radiators.reduce((sum, r) => sum + r.x + r.width / 2, 0) / radiators.length;
-  const avgY = radiators.reduce((sum, r) => sum + r.y + r.height / 2, 0) / radiators.length;
-
-  // Calcular dispersión en X e Y
-  const spreadX = Math.max(...radiators.map(r => r.x)) - Math.min(...radiators.map(r => r.x));
-  const spreadY = Math.max(...radiators.map(r => r.y)) - Math.min(...radiators.map(r => r.y));
-
-  // Dividir por el eje con mayor dispersión
-  const divideByX = spreadX >= spreadY;
-  const divisionPoint = divideByX ? avgX : avgY;
-  const circuit1: Radiator[] = [];
-  const circuit2: Radiator[] = [];
-
-  radiators.forEach(rad => {
-    const radCenter = divideByX ? rad.x + rad.width / 2 : rad.y + rad.height / 2;
-    if (radCenter < divisionPoint) {
-      circuit1.push(rad);
-    } else {
-      circuit2.push(rad);
-    }
+  if (radiators.length === 0) return [];
+  const sorted = [...radiators].sort((a, b) => {
+    const distA = Math.hypot(a.x + a.width / 2 - boilerCenter.x, a.y + a.height / 2 - boilerCenter.y);
+    const distB = Math.hypot(b.x + b.width / 2 - boilerCenter.x, b.y + b.height / 2 - boilerCenter.y);
+    return distA - distB;
   });
-
-  // Si un circuito quedó vacío, redistribuir
-  if (circuit1.length === 0) return [circuit2];
-  if (circuit2.length === 0) return [circuit1];
-
-  // Ordenar cada circuito por distancia a la caldera
-  const sortByDistance = (rads: Radiator[]) => {
-    return [...rads].sort((a, b) => {
-      const distA = Math.sqrt(Math.pow(a.x + a.width / 2 - boilerCenter.x, 2) + Math.pow(a.y + a.height / 2 - boilerCenter.y, 2));
-      const distB = Math.sqrt(Math.pow(b.x + b.width / 2 - boilerCenter.x, 2) + Math.pow(b.y + b.height / 2 - boilerCenter.y, 2));
-      return distA - distB;
-    });
-  };
-
-  const sorted1 = sortByDistance(circuit1);
-  const sorted2 = sortByDistance(circuit2);
-
-  return [sorted1, sorted2];
+  return [sorted];
 }
 
 /**

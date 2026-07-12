@@ -77,4 +77,30 @@ describe('generateAutoPipes — troncal que reduce por potencia acumulada', () =
     // 6.000 kcal/h acumulados → 600 L/h → Ø20 según la tabla común
     expect(troncales[0].diameter).toBe(calculatePipeDiameter(600));
   });
+
+  it('sale UN solo troncal de la caldera cargando el total (no se parte en 2)', () => {
+    // 6 radiadores en dos alas sumando 11.600 kcal/h. Antes se partían en 2
+    // circuitos por dispersión → cada troncal salía con ~5.800 (Ø20). Ahora
+    // sale un único troncal con el total: 11.600 → 1.160 L/h → Ø25.
+    const radiadores = [
+      radiador('r1', 300, 100, 2000, 'ground'),
+      radiador('r2', 300, 400, 2000, 'ground'),
+      radiador('r3', 300, 600, 2000, 'ground'),
+      radiador('r4', 800, 100, 2000, 'ground'),
+      radiador('r5', 800, 400, 1800, 'ground'),
+      radiador('r6', 800, 600, 1800, 'ground'),
+    ];
+    const boilerId = 'b1';
+    const result = generateAutoPipes(radiadores, [caldera(boilerId, 100, 350, 'ground')]);
+
+    // Un único tramo de impulsión sale directo de la caldera
+    const desdeCaldera = result.pipes.filter(
+      p => p.pipeType === 'supply' && p.fromElementId === boilerId
+    );
+    expect(desdeCaldera).toHaveLength(1);
+
+    // Y está dimensionado por el total (11.600 → 1.160 L/h → Ø25)
+    expect(desdeCaldera[0].diameter).toBe(calculatePipeDiameter(11600 / 10));
+    expect(desdeCaldera[0].diameter).toBe(25);
+  });
 });
