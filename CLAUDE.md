@@ -160,6 +160,7 @@ La restricción real la hace la BD.
 | Función | Ruta | Descripción |
 |---|---|---|
 | `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG sobre casos |
+| `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium, cupo 20/día) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago |
 | `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |

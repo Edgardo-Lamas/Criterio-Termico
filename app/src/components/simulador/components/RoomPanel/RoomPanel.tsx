@@ -13,17 +13,21 @@ import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
+import { analizarPlano } from '../../services/analizarPlano';
 
 export const RoomPanel: React.FC = () => {
   const {
     rooms, radiators, floorHeatingZones, floorHeatingTempC,
-    currentFloor, addRoom, updateRoom, removeRoom, addRadiator
+    currentFloor, floorPlans, addRoom, updateRoom, removeRoom, addRadiator, updateElement
   } = useElementsStore();
   const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [isCollapsed, setIsCollapsed] = useState(false);
   // Altura de elemento para la auto-colocación (500 estándar, 600/700 también)
   const [elementoMm, setElementoMm] = useState<AlturaElementoMm>(500);
+  // Análisis de plano con IA (Etapa 3): estado del pedido y resultado
+  const [analizando, setAnalizando] = useState(false);
+  const [analisisMsg, setAnalisisMsg] = useState<string | null>(null);
 
   // Desplazarse a la izquierda cuando el BudgetPanel está abierto (450px + margen)
   const rightOffset = isBudgetPanelOpen ? '490px' : '20px';
@@ -88,6 +92,74 @@ export const RoomPanel: React.FC = () => {
         updateRoom(room.id, { radiatorIds: ids });
       }
     });
+  };
+
+  // Análisis de plano con IA (Etapa 3): Claude lee el plano de fondo y
+  // completa, por ambiente, pared exterior + ventanas (ajustes de potencia) y
+  // el lado de la puerta. Aplica sobre las habitaciones existentes por nombre
+  // (crea las que falten) y setea la puerta de la zona vinculada si la hay.
+  const planoActual = floorPlans[currentFloor]?.image ?? null;
+
+  const handleAnalizarPlano = async () => {
+    if (!planoActual || analizando) return;
+    setAnalizando(true);
+    setAnalisisMsg('Analizando el plano con IA…');
+    try {
+      const nombresPlanta = rooms.filter(r => r.floor === currentFloor).map(r => r.name);
+      const ambientes = await analizarPlano(planoActual, nombresPlanta);
+      if (ambientes.length === 0) {
+        setAnalisisMsg('La IA no reconoció ambientes en este plano. Cargalos a mano.');
+        return;
+      }
+
+      let actualizados = 0;
+      let creados = 0;
+      const norm = (s: string) => s.trim().toLowerCase();
+
+      ambientes.forEach(amb => {
+        const existente = rooms.find(
+          r => r.floor === currentFloor && norm(r.name) === norm(amb.nombre)
+        );
+        if (existente) {
+          updateRoom(existente.id, {
+            hasExteriorWall: amb.paredExterior,
+            windowsLevel: amb.ventanas,
+          });
+          actualizados++;
+          // Si el ambiente tiene una zona de piso vinculada, setear la puerta
+          if (amb.puertaLado) {
+            const zona = floorHeatingZones.find(z => z.roomId === existente.id);
+            if (zona) updateElement(zona.id, { puerta: { lado: amb.puertaLado, t: 0.5 } });
+          }
+        } else {
+          const nueva: Room = {
+            id: `room-${Date.now()}-${creados}`,
+            name: amb.nombre,
+            area: 15,
+            height: 2.5,
+            thermalFactor: 50,
+            hasExteriorWall: amb.paredExterior,
+            windowsLevel: amb.ventanas,
+            radiatorIds: [],
+            floor: currentFloor,
+          };
+          addRoom(nueva);
+          creados++;
+        }
+      });
+
+      const bajaConfianza = ambientes.filter(a => a.confianza === 'baja').length;
+      setAnalisisMsg(
+        `Listo: ${actualizados} actualizado${actualizados !== 1 ? 's' : ''}` +
+        (creados > 0 ? `, ${creados} creado${creados !== 1 ? 's' : ''}` : '') +
+        `. Revisá el área de cada uno` +
+        (bajaConfianza > 0 ? ` (${bajaConfianza} con baja confianza).` : '.')
+      );
+    } catch (err) {
+      setAnalisisMsg(err instanceof Error ? err.message : 'No se pudo analizar el plano.');
+    } finally {
+      setAnalizando(false);
+    }
   };
 
   const handleDeleteRoom = (roomId: string) => {
@@ -228,6 +300,39 @@ export const RoomPanel: React.FC = () => {
           >
             + Nueva Habitación
           </button>
+          {planoActual && (
+            <button
+              onClick={handleAnalizarPlano}
+              disabled={analizando}
+              title="Claude lee el plano de fondo y completa, por ambiente, pared exterior, ventanas y el lado de la puerta"
+              style={{
+                width: '100%',
+                marginTop: '6px',
+                padding: '8px',
+                backgroundColor: analizando ? '#9E9E9E' : '#7B1FA2',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: analizando ? 'default' : 'pointer',
+                fontSize: '13px'
+              }}
+            >
+              {analizando ? '⏳ Analizando…' : '🔍 Analizar plano con IA'}
+            </button>
+          )}
+          {analisisMsg && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 8px',
+              fontSize: '11px',
+              color: '#4A148C',
+              backgroundColor: '#F3E5F5',
+              borderRadius: '4px',
+              lineHeight: 1.4
+            }}>
+              {analisisMsg}
+            </div>
+          )}
           {roomsAutoColocables.length > 0 && (
             <div style={{ marginTop: '6px', display: 'flex', gap: '6px' }}>
               <button
