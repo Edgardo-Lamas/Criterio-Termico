@@ -271,60 +271,55 @@ export const Canvas = () => {
       ctx.fillText(room.name, b.x + 4, b.y + 10);
     });
 
-    // Zonas (rectángulo de fondo, debajo del serpentín)
+    // Zonas: el rectángulo (fondo + borde punteado) SOLO se dibuja cuando la
+    // zona está seleccionada. Ya dibujada la serpentina, el rectángulo naranja
+    // ensuciaba la vista sin aportar (el circuito ya muestra el ambiente). Se
+    // sigue seleccionando con un click adentro del área.
     currentFloorZones.forEach((zone) => {
-      ctx.fillStyle = 'rgba(255, 152, 0, 0.08)';
-      ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
-      ctx.strokeStyle = zone.id === selectedElementId ? '#2196F3' : 'rgba(230, 126, 34, 0.7)';
-      ctx.lineWidth = zone.id === selectedElementId ? 2 : 1;
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
-      ctx.setLineDash([]);
+      const seleccionada = zone.id === selectedElementId;
+      const arrastrandoPuerta = zone.id === draggingDoorZoneId;
+      if (seleccionada) {
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.08)';
+        ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
+        ctx.strokeStyle = '#2196F3';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 4]);
+        ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+        ctx.setLineDash([]);
+      }
 
-      // Marcador de puerta: vano sobre el borde + hoja a 45° (símbolo de plano).
-      // Se agarra con el mouse y se arrastra pegado al borde (ver handleMouseDown).
+      // Marcador de puerta = por dónde entra/sale la cañería. Es solo un punto
+      // de entrada sobre la pared (vano neutro, SIN sentido de apertura: la
+      // puerta real abre para cualquier lado). Se agarra del tirador y se
+      // arrastra pegado a cualquier borde (ver handleMouseDown / puertaDesdePunto).
       if (zone.puerta) {
-        const seleccionada = zone.id === selectedElementId;
-        const arrastrando = zone.id === draggingDoorZoneId;
         const p = puntoPuerta(zone, zone.puerta);
-        // Tangente al borde y normal hacia adentro de la zona, según el lado
-        const [tg, nor] = {
-          arriba: [{ x: 1, y: 0 }, { x: 0, y: 1 }],
-          abajo: [{ x: 1, y: 0 }, { x: 0, y: -1 }],
-          izquierda: [{ x: 0, y: 1 }, { x: 1, y: 0 }],
-          derecha: [{ x: 0, y: 1 }, { x: -1, y: 0 }],
-        }[zone.puerta.lado];
-        const MEDIA_APERTURA = 20; // vano de 40 px = 0,80 m a 50 px/m (puerta estándar)
-        const jambaA = { x: p.x - tg.x * MEDIA_APERTURA, y: p.y - tg.y * MEDIA_APERTURA };
-        // Cuando está seleccionada/arrastrándose se resalta en azul, para que se
-        // note que es agarrable (mismo azul de selección que la zona)
-        const colorPuerta = seleccionada || arrastrando ? '#2196F3' : '#6D4C41';
-        // Vano: segmento grueso sobre el borde
+        const horizontal = zone.puerta.lado === 'arriba' || zone.puerta.lado === 'abajo';
+        const tg = horizontal ? { x: 1, y: 0 } : { x: 0, y: 1 }; // tangente al borde
+        const MEDIA_APERTURA = 20; // vano de 40 px = 0,80 m (puerta estándar)
+        const activa = seleccionada || arrastrandoPuerta;
+        const colorPuerta = activa ? '#2196F3' : '#6D4C41';
+        // Vano: hueco en la pared (dos jambas), sin hoja ni arco de apertura
         ctx.strokeStyle = colorPuerta;
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(p.x - tg.x * MEDIA_APERTURA, p.y - tg.y * MEDIA_APERTURA);
         ctx.lineTo(p.x + tg.x * MEDIA_APERTURA, p.y + tg.y * MEDIA_APERTURA);
         ctx.stroke();
-        // Hoja de la puerta a 45° hacia adentro (corta, para no montarse sobre
-        // el serpentín)
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.moveTo(jambaA.x, jambaA.y);
-        ctx.lineTo(jambaA.x + (tg.x + nor.x) * 18, jambaA.y + (tg.y + nor.y) * 18);
-        ctx.stroke();
-        // Tirador: círculo sobre el vano para agarrar y arrastrar la puerta
+        // Tirador: círculo para agarrar y arrastrar (más grande = más fácil)
         ctx.fillStyle = colorPuerta;
         ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, seleccionada || arrastrando ? 6 : 4.5, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, activa ? 7 : 5.5, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        // Etiqueta chica afuera
+        // Etiqueta chica al costado del tirador
         ctx.fillStyle = colorPuerta;
         ctx.font = 'bold 9px Arial';
-        ctx.fillText('puerta', p.x - nor.x * 16 - 14, p.y - nor.y * 16);
+        ctx.textAlign = horizontal ? 'center' : 'left';
+        ctx.fillText('puerta', horizontal ? p.x : p.x + 10, horizontal ? p.y - 12 : p.y + 3);
+        ctx.textAlign = 'left';
       }
     });
 

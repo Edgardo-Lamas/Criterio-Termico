@@ -5,7 +5,7 @@
 
 import { generarSerpentin } from '../../../lib/pisoRadiante/serpentin';
 import type { Punto, EsquinaBoca } from '../../../lib/pisoRadiante/serpentin';
-import type { FloorHeatingZone, PuertaZona } from '../models/FloorHeatingZone';
+import type { FloorHeatingZone, PuertaZona, LadoZona } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
 import type { Room } from '../models/Room';
@@ -92,20 +92,26 @@ export function puntoPuerta(
   }
 }
 
-// Lado y fracción de la puerta a partir de un punto del canvas (el click del
-// usuario): se proyecta al borde más cercano del rectángulo de la zona.
+// Lado y fracción de la puerta a partir de un punto del canvas (el click o el
+// arrastre del usuario): se proyecta al borde más cercano del rectángulo.
+// Usa la distancia al SEGMENTO de cada borde (no a la recta infinita): así, al
+// arrastrar el tirador hacia una pared lateral —aunque el ambiente sea mucho
+// más ancho que alto— la puerta salta a ese lado en vez de quedarse pegada
+// siempre arriba/abajo. Rodear una esquina la pasa de un lado al otro.
 export function puertaDesdePunto(zone: FloorHeatingZone, p: CanvasPoint): PuertaZona {
-  const clampX = Math.min(zone.x + zone.width, Math.max(zone.x, p.x))
-  const clampY = Math.min(zone.y + zone.height, Math.max(zone.y, p.y))
-  const dArr = Math.abs(p.y - zone.y)
-  const dAba = Math.abs(p.y - (zone.y + zone.height))
-  const dIzq = Math.abs(p.x - zone.x)
-  const dDer = Math.abs(p.x - (zone.x + zone.width))
+  const x0 = zone.x, x1 = zone.x + zone.width
+  const y0 = zone.y, y1 = zone.y + zone.height
+  const clampX = Math.min(x1, Math.max(x0, p.x))
+  const clampY = Math.min(y1, Math.max(y0, p.y))
+  const dArr = Math.hypot(p.x - clampX, p.y - y0)
+  const dAba = Math.hypot(p.x - clampX, p.y - y1)
+  const dIzq = Math.hypot(p.x - x0, p.y - clampY)
+  const dDer = Math.hypot(p.x - x1, p.y - clampY)
   const min = Math.min(dArr, dAba, dIzq, dDer)
-  if (min === dArr) return { lado: 'arriba', t: (clampX - zone.x) / zone.width }
-  if (min === dAba) return { lado: 'abajo', t: (clampX - zone.x) / zone.width }
-  if (min === dIzq) return { lado: 'izquierda', t: (clampY - zone.y) / zone.height }
-  return { lado: 'derecha', t: (clampY - zone.y) / zone.height }
+  if (min === dArr) return { lado: 'arriba', t: (clampX - x0) / zone.width }
+  if (min === dAba) return { lado: 'abajo', t: (clampX - x0) / zone.width }
+  if (min === dIzq) return { lado: 'izquierda', t: (clampY - y0) / zone.height }
+  return { lado: 'derecha', t: (clampY - y0) / zone.height }
 }
 
 // Entrega máxima de una zona completa: área × emisión a la impulsión de
@@ -367,6 +373,45 @@ export function colectorMasCercano(zone: FloorHeatingZone, manifolds: Manifold[]
   return mejor
 }
 
+// La acometida corre por DENTRO de la banda perimetral del serpentín (margen
+// 10 cm ≈ 5 px a 50 px/m), entre la pared y la vuelta exterior del circuito,
+// así no pisa ni el serpentín ni el marcador de la puerta.
+const INSET_PARED = 3 // px hacia adentro desde la pared (dentro de la banda de ~5 px)
+
+/**
+ * Tramo entre la PUERTA y la boca del serpentín. La tubería cruza la pared
+ * PERPENDICULAR justo en la puerta y después corre por DENTRO del ambiente,
+ * pegada a la pared (banda perimetral), hasta la esquina de la boca. Antes el
+ * tramo iba por afuera (lado pasillo) y se montaba sobre el marcador de la
+ * puerta; ahora la esquiva: cruza en la puerta y sigue por dentro.
+ * `entrada` es el punto de la acometida apenas afuera de la puerta (meta del A*).
+ */
+function tramoPuertaBoca(
+  zone: FloorHeatingZone,
+  lado: LadoZona,
+  entrada: CanvasPoint,
+  boca: CanvasPoint
+): CanvasPoint[] {
+  if (lado === 'arriba' || lado === 'abajo') {
+    const wallY = lado === 'abajo' ? zone.y + zone.height : zone.y
+    const insideY = lado === 'abajo' ? wallY - INSET_PARED : wallY + INSET_PARED
+    return [
+      { x: entrada.x, y: wallY },   // cruza la pared EN la puerta (perpendicular)
+      { x: entrada.x, y: insideY }, // entra a la banda perimetral
+      { x: boca.x, y: insideY },    // corre pegado a la pared por dentro
+      boca,                          // sube a la boca del serpentín
+    ]
+  }
+  const wallX = lado === 'derecha' ? zone.x + zone.width : zone.x
+  const insideX = lado === 'derecha' ? wallX - INSET_PARED : wallX + INSET_PARED
+  return [
+    { x: wallX, y: entrada.y },
+    { x: insideX, y: entrada.y },
+    { x: insideX, y: boca.y },
+    boca,
+  ]
+}
+
 /**
  * Rutea las acometidas reales de los circuitos esquivando las demás zonas
  * (criterio de diseño: la acometida no atraviesa una habitación ajena, va
@@ -403,14 +448,6 @@ function rutearAcometidas(
     // retorno apenas separados sobre el borde); sin puerta, por el punto
     // del perímetro más cercano al serpentín.
     const puerta = zone.puerta
-    // Tramo interno puerta → boca del serpentín: la boca nace en la esquina más
-    // cercana a la puerta (ver esquinaMasCercana), así que la L va primero
-    // pegada a la pared de la puerta hasta la esquina y recién ahí entra a la
-    // boca. Al revés correría por encima de la vuelta exterior del circuito.
-    const codoInterno = (entrada: CanvasPoint, objetivo: CanvasPoint): CanvasPoint =>
-      (puerta!.lado === 'arriba' || puerta!.lado === 'abajo')
-        ? { x: objetivo.x, y: entrada.y }
-        : { x: entrada.x, y: objetivo.y }
 
     const entradaIda = puerta
       ? puntoPuerta(zone, puerta, -4, 12)
@@ -419,7 +456,7 @@ function rutearAcometidas(
     if (rutaIda) {
       marcarRuta(ocupadas, rutaIda)
       c.acometidaIda = puerta
-        ? [...rutaIda, codoInterno(entradaIda, c.ida[0]), c.ida[0]]
+        ? [...rutaIda, ...tramoPuertaBoca(zone, puerta.lado, entradaIda, c.ida[0])]
         : [...rutaIda, c.ida[0]]
     }
 
@@ -431,7 +468,8 @@ function rutearAcometidas(
     if (rutaRetorno) {
       marcarRuta(ocupadas, rutaRetorno)
       c.acometidaRetorno = puerta
-        ? [finRetorno, codoInterno(entradaRetorno, finRetorno), ...[...rutaRetorno].reverse()]
+        // boca → (pegado a la pared por dentro) → cruce en la puerta → colector
+        ? [...tramoPuertaBoca(zone, puerta.lado, entradaRetorno, finRetorno).reverse(), ...[...rutaRetorno].reverse()]
         : [finRetorno, ...[...rutaRetorno].reverse()]
     }
 
