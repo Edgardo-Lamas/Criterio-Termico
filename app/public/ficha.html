@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Criterio Térmico calcula, diseña y presupuesta una instalación de calefacción completa desde el plano de la obra. Software para instaladores.">
+<meta name="theme-color" content="#0f0f23">
+<link rel="icon" href="/favicon.svg">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Criterio Térmico">
+<meta property="og:url" content="https://criterio-termico.vercel.app/ficha.html">
+<meta property="og:title" content="Criterio Térmico — Software para instaladores de calefacción">
+<meta property="og:description" content="Del plano al presupuesto, con criterio de ingeniero: calcula, diseña y presupuesta la instalación completa desde el plano de la obra.">
+<meta property="og:image" content="https://criterio-termico.vercel.app/og-ficha.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Criterio Térmico — software para instaladores de calefacción">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Criterio Térmico — Software para instaladores de calefacción">
+<meta name="twitter:description" content="Del plano al presupuesto, con criterio de ingeniero.">
+<meta name="twitter:image" content="https://criterio-termico.vercel.app/og-ficha.png">
+<title>Criterio Térmico — Ficha de producto</title>
+<style>
+  :root {
+    --paper: #eef2f6;
+    --panel: #ffffff;
+    --panel-2: #f6f8fb;
+    --ink: #14202b;
+    --ink-soft: #55677a;
+    --ink-faint: #8494a4;
+    --line: #dce4ec;
+    --heat: #e94560;
+    --heat-2: #ff6b35;
+    --heat-soft: #fbe0e6;
+    --navy: #2a5f8c;
+    --navy-soft: #e2ebf2;
+    --ok: #1f8a5b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0e151c;
+      --panel: #161f28;
+      --panel-2: #1b2530;
+      --ink: #eaf0f5;
+      --ink-soft: #9fb0bf;
+      --ink-faint: #6e8091;
+      --line: #263340;
+      --heat: #ff6b8a;
+      --heat-2: #ff8a4c;
+      --heat-soft: #3a1f27;
+      --navy: #7db3dc;
+      --navy-soft: #1a2b39;
+      --ok: #4cc38a;
+    }
+  }
+  :root[data-theme="light"] {
+    --paper: #eef2f6; --panel: #ffffff; --panel-2: #f6f8fb; --ink: #14202b;
+    --ink-soft: #55677a; --ink-faint: #8494a4; --line: #dce4ec; --heat: #e94560;
+    --heat-2: #ff6b35; --heat-soft: #fbe0e6; --navy: #2a5f8c; --navy-soft: #e2ebf2; --ok: #1f8a5b;
+  }
+  :root[data-theme="dark"] {
+    --paper: #0e151c; --panel: #161f28; --panel-2: #1b2530; --ink: #eaf0f5;
+    --ink-soft: #9fb0bf; --ink-faint: #6e8091; --line: #263340; --heat: #ff6b8a;
+    --heat-2: #ff8a4c; --heat-soft: #3a1f27; --navy: #7db3dc; --navy-soft: #1a2b39; --ok: #4cc38a;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .sheet { max-width: 940px; margin: 0 auto; padding: 0 24px 72px; }
+
+  /* ── Encabezado ── */
+  header.hero {
+    display: grid; grid-template-columns: 1.35fr 1fr; gap: 28px; align-items: center;
+    padding: 40px 0 32px; border-bottom: 2px solid var(--ink);
+  }
+  @media (max-width: 680px) { header.hero { grid-template-columns: 1fr; gap: 20px; } }
+  .lockup { display: flex; align-items: center; gap: 13px; margin: 0 0 20px; }
+  .lockup .mark { width: 46px; height: 46px; flex: none; }
+  .lockup .wordmark { font-weight: 720; font-size: 18px; letter-spacing: -0.01em; }
+  .lockup .wordmark small { display: block; font-weight: 500; font-size: 11px; letter-spacing: 0.02em; color: var(--ink-soft); }
+  h1 {
+    font-size: clamp(30px, 5.4vw, 50px); line-height: 1.02; margin: 0 0 14px;
+    font-weight: 760; letter-spacing: -0.02em; text-wrap: balance;
+  }
+  .hero p.tag { margin: 0; color: var(--ink-soft); font-size: 16.5px; max-width: 46ch; }
+  .hero .motif {
+    aspect-ratio: 1 / 1; width: 100%; max-width: 230px; justify-self: end;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  }
+  @media (max-width: 680px) { .hero .motif { justify-self: start; max-width: 180px; } }
+
+  /* ── Secciones ── */
+  section { padding-top: 40px; }
+  .eyebrow {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--heat); font-weight: 600; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--heat); display: inline-block; }
+  h2 { font-size: clamp(21px, 3.2vw, 27px); margin: 0 0 14px; font-weight: 700; letter-spacing: -0.01em; text-wrap: balance; }
+  .lead { font-size: 16px; color: var(--ink-soft); max-width: 68ch; margin: 0; }
+  .lead strong { color: var(--ink); font-weight: 640; }
+
+  /* ── Flujo de trabajo ── */
+  .flow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin-top: 22px; counter-reset: step; }
+  @media (max-width: 780px) { .flow { grid-template-columns: 1fr 1fr; gap: 14px; } }
+  @media (max-width: 440px) { .flow { grid-template-columns: 1fr; } }
+  .step { position: relative; padding: 0 16px 4px 0; }
+  .step .n {
+    counter-increment: step; font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px; font-weight: 700; color: #fff; background: var(--navy);
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 11px;
+  }
+  .step .n::before { content: counter(step); }
+  .step h3 { font-size: 15px; margin: 0 0 5px; font-weight: 650; }
+  .step p { font-size: 13px; color: var(--ink-soft); margin: 0; }
+
+  /* ── Grilla de capacidades ── */
+  .caps { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 22px; }
+  @media (max-width: 680px) { .caps { grid-template-columns: 1fr; } }
+  .cap {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 11px;
+    padding: 17px 18px; display: flex; gap: 14px; break-inside: avoid;
+  }
+  .cap .ic {
+    flex: none; width: 38px; height: 38px; border-radius: 9px; background: var(--heat-soft);
+    color: var(--heat); display: grid; place-items: center; font-size: 19px;
+  }
+  .cap.blue .ic { background: var(--navy-soft); color: var(--navy); }
+  .cap h3 { font-size: 15px; margin: 1px 0 4px; font-weight: 650; }
+  .cap p { font-size: 13.5px; color: var(--ink-soft); margin: 0; }
+
+  /* ── Franja de destacados ── */
+  .band {
+    margin-top: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+    padding: 6px 22px; display: grid; grid-template-columns: repeat(4, 1fr);
+  }
+  @media (max-width: 680px) { .band { grid-template-columns: 1fr 1fr; } }
+  .stat { padding: 20px 10px; text-align: center; border-right: 1px solid var(--line); }
+  .band .stat:last-child { border-right: none; }
+  @media (max-width: 680px) {
+    .stat:nth-child(2) { border-right: none; }
+    .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
+  }
+  .stat .num { font-size: 26px; font-weight: 760; letter-spacing: -0.02em; color: var(--heat); font-variant-numeric: tabular-nums; }
+  .stat .lbl { font-size: 12.5px; color: var(--ink-soft); margin-top: 2px; }
+
+  /* ── Para quién ── */
+  .who { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
+  @media (max-width: 680px) { .who { grid-template-columns: 1fr; } }
+  .who .item { display: flex; gap: 11px; align-items: flex-start; padding: 4px 0; }
+  .who .tick { flex: none; color: var(--ok); font-weight: 700; margin-top: 1px; }
+  .who .item p { margin: 0; font-size: 14.5px; }
+  .who .item b { font-weight: 640; }
+
+  /* ── Cierre / contacto ── */
+  footer {
+    margin-top: 48px; padding: 28px 30px; border-radius: 16px;
+    /* Fijo y oscuro en ambos temas: si usara var(--ink) se invertiría en modo
+       oscuro y el texto claro del contacto quedaría invisible. */
+    background: #141d29; color: #eef2f6;
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 24px; align-items: center;
+  }
+  @media (max-width: 620px) { footer { grid-template-columns: 1fr; gap: 20px; } }
+  .ft-brand { display: flex; align-items: center; gap: 14px; }
+  .ft-brand .mark { width: 52px; height: 52px; flex: none; }
+  .ft-brand .name { font-weight: 740; font-size: 20px; letter-spacing: -0.01em; }
+  .ft-brand .name span {
+    background: linear-gradient(120deg, var(--heat), var(--heat-2));
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .ft-brand .name small { display: block; font-weight: 500; font-size: 12px; color: #9fb0bf; letter-spacing: 0.01em; -webkit-text-fill-color: #9fb0bf; }
+  .contact { display: grid; gap: 9px; }
+  .contact .row { display: flex; align-items: center; gap: 11px; font-size: 14.5px; }
+  .contact .row .ci { flex: none; width: 24px; height: 24px; border-radius: 6px; display: grid; place-items: center; font-size: 13px; background: rgba(255,255,255,0.08); }
+  .contact .row a, .contact .row span.v { color: #eef2f6; text-decoration: none; }
+  .contact .ph { color: #7f8ea0; font-style: italic; }
+
+  /* ── Impresión / PDF ── */
+  @media print {
+    :root {
+      --paper: #ffffff; --panel: #ffffff; --panel-2: #ffffff; --ink: #14202b;
+      --ink-soft: #45566a; --line: #c9d3dd; --heat: #d6304f; --heat-2: #ff6b35;
+      --heat-soft: #f8dde3; --navy: #2a5f8c; --navy-soft: #dfe9f1;
+    }
+    @page { margin: 13mm; }
+    body { background: #fff; }
+    .sheet { max-width: none; padding: 0; }
+    section { padding-top: 26px; break-inside: avoid; }
+    .caps, .flow, .who { break-inside: avoid; }
+    footer { break-inside: avoid; background: #14202b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    header.hero { padding-top: 4px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Marca "CT" con degradado de llama, tomada del logo del SaaS (favicon.svg) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="flame" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e94560"/>
+      <stop offset="100%" stop-color="#ff6b35"/>
+    </linearGradient>
+  </defs>
+</svg>
+
+<div class="sheet">
+
+  <header class="hero">
+    <div>
+      <div class="lockup">
+        <svg class="mark" viewBox="0 0 100 100" role="img" aria-label="Logo Criterio Térmico">
+          <circle cx="50" cy="50" r="47" fill="#0f0f23" stroke="url(#flame)" stroke-width="4"/>
+          <text x="50" y="63" text-anchor="middle" font-size="42" fill="url(#flame)" font-family="Arial, sans-serif" font-weight="bold">CT</text>
+        </svg>
+        <div class="wordmark">Criterio Térmico<small>Software para instaladores de calefacción</small></div>
+      </div>
+      <h1>Del plano al presupuesto, con criterio de ingeniero</h1>
+      <p class="tag">La plataforma que calcula, diseña y presupuesta una instalación de calefacción completa a partir del plano de la obra — en el navegador y con criterios de obra reales.</p>
+    </div>
+    <canvas class="motif" id="motif" width="360" height="360" aria-label="Esquema de serpentín de piso radiante"></canvas>
+  </header>
+
+  <section>
+    <p class="eyebrow">Qué es</p>
+    <h2>Cálculo, diseño y presupuesto, sin planillas sueltas</h2>
+    <p class="lead">Criterio Térmico reúne en un solo lugar el <strong>cálculo de ingeniería</strong>, el <strong>diseño sobre el plano</strong> y el <strong>presupuesto comercial</strong> de una instalación por radiadores o piso radiante. Cargás el plano de la obra, definís los ambientes, y el sistema dimensiona la potencia, traza las cañerías, verifica la hidráulica y arma el presupuesto listo para el cliente. Todo con márgenes de seguridad y criterios de obra reales, no fórmulas de manual.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Cómo funciona</p>
+    <h2>Cinco pasos, un solo entorno</h2>
+    <div class="flow">
+      <div class="step"><div class="n"></div><h3>Cargás el plano</h3><p>Subís el plano de la obra como fondo del simulador.</p></div>
+      <div class="step"><div class="n"></div><h3>Definís los ambientes</h3><p>Cada habitación con su superficie, altura y aislación.</p></div>
+      <div class="step"><div class="n"></div><h3>El sistema calcula</h3><p>Potencia térmica por ambiente y de la caldera, con margen.</p></div>
+      <div class="step"><div class="n"></div><h3>Diseñás la instalación</h3><p>Colocás caldera, radiadores, colectores y zonas de piso.</p></div>
+      <div class="step"><div class="n"></div><h3>Exportás</h3><p>Presupuesto y plano técnico en PDF, listos para entregar.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Capacidades</p>
+    <h2>Todo lo que resuelve la plataforma</h2>
+    <div class="caps">
+
+      <div class="cap">
+        <div class="ic">🔥</div>
+        <div><h3>Cálculo de potencia térmica</h3><p>Requerido por ambiente y potencia de caldera recomendada, con margen de seguridad, según superficie, altura y calidad de aislación.</p></div>
+      </div>
+
+      <div class="cap blue">
+        <div class="ic">📐</div>
+        <div><h3>Calculadoras de ingeniería</h3><p>Diámetros de cañería, caudales por circuito, dimensionado de bombas y presurizadoras, y cálculo específico de piso radiante.</p></div>
+      </div>
+
+      <div class="cap blue">
+        <div class="ic">🗺️</div>
+        <div><h3>Simulador 2D sobre el plano</h3><p>Ubicás caldera, radiadores, colectores y zonas arrastrando sobre el plano real de la obra, a escala.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">🌀</div>
+        <div><h3>Diseño automático de piso radiante</h3><p>Genera el serpentín de cada ambiente, lo divide en circuitos según el largo máximo y respeta el paso entre tubos y la puerta de entrada.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">⚡</div>
+        <div><h3>Ruteo automático de cañerías</h3><p>Traza las acometidas al colector más cercano esquivando las demás habitaciones, y la primaria caldera–colector por el contrapiso.</p></div>
+      </div>
+
+      <div class="cap blue">
+        <div class="ic">💧</div>
+        <div><h3>Validación hidráulica</h3><p>Verifica que la bomba mueva el circuito más exigente y avisa, en lenguaje de obra, si conviene subir un diámetro, equilibrar o dividir.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">🔍</div>
+        <div><h3>Interpretación de planos con IA</h3><p>Subís el plano y la IA lo interpreta como un proyectista: lee las cotas, reconoce cada ambiente con su superficie, orientación, muros exteriores y aberturas, y arma solo el modelo de cálculo. El relevamiento que lleva horas, resuelto en segundos.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">💬</div>
+        <div><h3>Asistente técnico con IA</h3><p>Un experto disponible en toda la app: responde consultas de cálculo, normativa y criterio apoyado en más de 200 obras reales.</p></div>
+      </div>
+
+      <div class="cap blue">
+        <div class="ic">📚</div>
+        <div><h3>Manual técnico</h3><p>Manual de calefacción completo, con la teoría y los criterios de dimensionado detrás de cada cálculo.</p></div>
+      </div>
+
+      <div class="cap blue">
+        <div class="ic">⚠️</div>
+        <div><h3>Casos de errores de obra</h3><p>Biblioteca de problemas reales documentados —problema, causa y solución— para no repetir errores frecuentes en la instalación.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">📄</div>
+        <div><h3>Presupuesto y plano en PDF</h3><p>Presupuesto comercial con resumen térmico por ambiente, materiales y consideraciones técnicas, más el plano técnico de la instalación.</p></div>
+      </div>
+
+      <div class="cap">
+        <div class="ic">📦</div>
+        <div><h3>Exportación a BIM y uso offline</h3><p>Exporta el diseño a formato BIM y funciona sin conexión: instalable como app, con todos los cálculos en el dispositivo.</p></div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="band">
+      <div class="stat"><div class="num">+200</div><div class="lbl">obras reales documentadas</div></div>
+      <div class="stat"><div class="num">5</div><div class="lbl">calculadoras de ingeniería</div></div>
+      <div class="stat"><div class="num">2D</div><div class="lbl">diseño sobre el plano</div></div>
+      <div class="stat"><div class="num">100%</div><div class="lbl">cálculo en el navegador</div></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Para quién es</p>
+    <h2>Pensado para el instalador profesional</h2>
+    <div class="who">
+      <div class="item"><span class="tick">✓</span><p><b>Presupuestás más rápido y con respaldo.</b> Del plano al PDF en una sesión, con números que podés defender ante el cliente.</p></div>
+      <div class="item"><span class="tick">✓</span><p><b>Diseñás con criterio, no a ojo.</b> El sistema aplica los márgenes y las verificaciones que evitan el sobredimensionado y las fallas.</p></div>
+      <div class="item"><span class="tick">✓</span><p><b>Trabajás en la obra, con o sin señal.</b> Funciona offline y se instala como una app en la computadora.</p></div>
+      <div class="item"><span class="tick">✓</span><p><b>Aprendés mientras usás.</b> Manual, casos de obra y un asistente técnico siempre a mano.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="ft-brand">
+      <svg class="mark" viewBox="0 0 100 100" role="img" aria-label="Logo Criterio Térmico">
+        <circle cx="50" cy="50" r="47" fill="#0f0f23" stroke="url(#flame)" stroke-width="4"/>
+        <text x="50" y="63" text-anchor="middle" font-size="42" fill="url(#flame)" font-family="Arial, sans-serif" font-weight="bold">CT</text>
+      </svg>
+      <div class="name">Criterio <span>Térmico</span><small>Diseño y cálculo de calefacción para profesionales</small></div>
+    </div>
+    <div class="contact">
+      <div class="row"><span class="ci">👤</span><span class="v">Edgardo Lamas</span></div>
+      <div class="row"><span class="ci">💬</span><a href="https://wa.me/5491152604137">11 5260 4137</a></div>
+      <div class="row"><span class="ci">✉️</span><a href="mailto:lamasedgardo2024@gmail.com">lamasedgardo2024@gmail.com</a></div>
+      <div class="row"><span class="ci">🌐</span><a href="https://criterio-termico.vercel.app">criterio-termico.vercel.app</a></div>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  // Motivo: serpentín de piso radiante (impulsión caliente / retorno frío), el
+  // mismo patrón que genera el simulador. Se redibuja según el tema.
+  (function () {
+    const cv = document.getElementById('motif');
+    function draw() {
+      const cs = getComputedStyle(document.documentElement);
+      const line = cs.getPropertyValue('--line').trim() || '#dce4ec';
+      const paper = cs.getPropertyValue('--panel').trim() || '#fff';
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const S = 360;
+      cv.width = S * dpr; cv.height = S * dpr;
+      const ctx = cv.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, S, S);
+
+      // marco del ambiente
+      ctx.strokeStyle = line; ctx.lineWidth = 2;
+      ctx.strokeRect(30, 30, 300, 300);
+      // vano de puerta abajo
+      ctx.strokeStyle = paper; ctx.lineWidth = 5;
+      ctx.beginPath(); ctx.moveTo(150, 330); ctx.lineTo(210, 330); ctx.stroke();
+
+      // espiral doble en contraflujo (ida/retorno entrelazados)
+      function espiral(m, color) {
+        let l = 30 + m, t = 30 + m, r = 330 - m, b = 330 - m;
+        const p = 44;
+        ctx.strokeStyle = color; ctx.lineWidth = 4; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        ctx.beginPath(); ctx.moveTo(l, t);
+        for (let i = 0; i < 8; i++) {
+          ctx.lineTo(r, t);
+          if (b - t < p) break; ctx.lineTo(r, b);
+          if (r - (l + p) < p) break; ctx.lineTo(l + p, b);
+          if (b - (t + p) < p) break; ctx.lineTo(l + p, t + p);
+          l += p; t += p; r -= p; b -= p;
+          if (r - l < p || b - t < p) break;
+        }
+        ctx.stroke();
+      }
+      espiral(26, '#e94560');   // impulsión (caliente) — color de marca
+      espiral(48, '#3f86d0');   // retorno (frío)
+    }
+    draw();
+    new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  })();
+</script>
+</body>
+</html>
