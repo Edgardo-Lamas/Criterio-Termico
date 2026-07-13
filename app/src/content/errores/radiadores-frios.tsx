@@ -67,7 +67,29 @@ export function ErrorRadiadoresFriosDetalle() {
             </ul>
 
             <h2>La solución</h2>
-            <h3>1. Equilibrado hidráulico por detentes</h3>
+            <h3>1. Poner la bomba en velocidad máxima (velocidad III)</h3>
+            <p>
+                Antes de tocar nada, el primer movimiento —y el más barato, de costo cero—
+                es revisar el selector de velocidad de la circuladora. Las bombas de las
+                calderas murales (tipo Grundfos UPS 15-60) traen un selector de tres
+                velocidades y de fábrica suelen venir en la II. Pasándola a la
+                <strong> velocidad III</strong> la bomba entrega su altura máxima
+                —del orden de 6 metros de columna de agua— y muchas veces con eso ya
+                alcanza para que el ramal más largo reciba caudal suficiente.
+            </p>
+
+            <div className="callout callout-tip">
+                <div className="callout-label">En el Simulador 2D</div>
+                <p>
+                    La columna <strong>Bomba</strong> de la Planilla de radiadores calcula
+                    justamente esto: marca ✓ si la bomba mueve el ramal, ≈ si queda al
+                    límite y ⚠ si no llega. Cuando un ramal aparece en ≈ o ⚠, el orden de
+                    trabajo es el de esta ficha: primero velocidad III, después equilibrado
+                    con detentes, y recién al final subir diámetro o sumar una bomba.
+                </p>
+            </div>
+
+            <h3>2. Equilibrado hidráulico por detentes</h3>
             <p>
                 Los detentes (válvulas de retorno con regulación de caudal) en cada radiador
                 permiten restringir el caudal en los ramales más cercanos a la caldera,
@@ -83,14 +105,15 @@ export function ErrorRadiadoresFriosDetalle() {
                 <li>Repetir el ciclo hasta que las temperaturas se equilibren</li>
             </ol>
 
-            <h3>2. Verificar la bomba de circulación</h3>
+            <h3>3. Verificar la bomba de circulación</h3>
             <p>
-                Si el equilibrado manual no resuelve el problema, la bomba puede estar
-                subdimensionada. Verificar que la curva de la bomba cubra el caudal y
-                la altura manométrica del circuito más largo.
+                Si con la velocidad III y el equilibrado manual el problema no se resuelve,
+                la bomba puede estar subdimensionada. Verificar que la curva de la bomba
+                cubra el caudal y la altura manométrica del circuito más largo. Como último
+                recurso, sumar una bomba dedicada a ese circuito (o un separador hidráulico).
             </p>
 
-            <h3>3. En circuito monotubo: instalar bypass en cada radiador</h3>
+            <h3>4. En circuito monotubo: instalar bypass en cada radiador</h3>
             <p>
                 En sistemas monotubo, el bypass hidráulico en cada emisor garantiza que
                 el caudal del circuito principal no se vea afectado por el estado de apertura

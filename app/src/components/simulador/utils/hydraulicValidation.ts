@@ -20,10 +20,14 @@ import { calculatePipePowers } from './pipeDimensioning';
 
 // ── Constantes de criterio (ajustables) ────────────────────────────────────
 
-// Altura útil de la bomba de la mural típica (mca), Grundfos UPS 15-60 Vel. III
-// al caudal de trabajo de una vivienda. Cada caldera del catálogo puede definir
-// la suya (BoilerModel.alturaBombaMca); este es el default si no la tiene.
-export const ALTURA_BOMBA_DEFAULT_MCA = 5.5;
+// Altura máxima de la bomba de la mural típica (mca): Grundfos UPS 15-60 en
+// Velocidad III entrega 6,0 m (el "60" de la designación = 6,0 m). Calibrado con
+// obras reales de Edgardo (2026-07-13): ramales de ~5 m calientan bien y con
+// equilibrado hidráulico se resuelven plantas más extensas, así que 5,5 marcaba
+// falsos "al límite". Por eso el veredicto de obra arranca por poner la bomba en
+// Velocidad III (donde estos 6,0 m son reales) y equilibrar con los detentores.
+// Cada caldera del catálogo puede definir la suya (BoilerModel.alturaBombaMca).
+export const ALTURA_BOMBA_DEFAULT_MCA = 6.0;
 
 // Exigimos que el circuito índice consuma como máximo el 90% de lo que da la
 // bomba: 10% de margen para envejecimiento, suciedad y equilibrado real.
@@ -296,18 +300,22 @@ export function validarHidraulica(
     mensaje = 'La instalación queda al límite de lo que empuja la bomba de la caldera.';
     detalle =
       `El circuito más exigente (${indice.etiqueta}) necesita ${indiceMca} m y la ` +
-      `bomba entrega ${disponibleMca} m: casi sin margen. Para asegurar el caudal, ` +
-      `subí un diámetro en ese ramal o dividí ese circuito en dos.`;
+      `bomba entrega ${disponibleMca} m: queda justo. Poné la bomba en velocidad ` +
+      `máxima (III) y equilibrá con los detentores de los radiadores más cercanos, ` +
+      `para mandarle más caudal a ese ramal. Con eso llega sin problema; si aun así ` +
+      `ese ambiente queda frío, subí un diámetro en el troncal de ese ramal.`;
   } else {
     veredicto = 'insuficiente';
     mensaje = 'La bomba de la caldera no llega a mover el circuito más largo.';
     detalle =
       `El circuito más exigente (${indice.etiqueta}) pide ${indiceMca} m y la bomba ` +
-      `entrega ${disponibleMca} m, así que ese ambiente va a quedar frío. ` +
+      `entrega ${disponibleMca} m. Primero poné la bomba en velocidad máxima (III) y ` +
+      `equilibrá con los detentores (cerrá un poco los radiadores cercanos para forzar ` +
+      `el caudal a ese ramal). Si aun así queda frío, ` +
       `${indice.tipo === 'piso'
-        ? 'Dividí ese serpentín en circuitos más cortos o acercá el colector'
-        : 'Subí un diámetro en el troncal de ese ramal'}` +
-      `; si aun así no alcanza, sumá una bomba para ese circuito (o un separador hidráulico).`;
+        ? 'dividí ese serpentín en circuitos más cortos o acercá el colector'
+        : 'subí un diámetro en el troncal de ese ramal o dividilo en dos ramales más cortos'}` +
+      `; como último recurso, sumá una bomba para ese circuito (o un separador hidráulico).`;
   }
 
   return {

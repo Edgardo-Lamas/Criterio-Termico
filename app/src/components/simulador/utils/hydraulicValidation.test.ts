@@ -129,6 +129,20 @@ describe('validarHidraulica', () => {
     const floja = validarHidraulica([], [], piso, 2.0);
     expect(floja!.veredicto).toBe('insuficiente');
   });
+
+  it('la sugerencia arranca por velocidad III + equilibrado, no por poner otra bomba', () => {
+    // Forzamos el veredicto "al límite" con una bomba justa (ratio ~0,93)
+    const limite = validarHidraulica([], [], pisoBudget(100, 2000), 4.0);
+    expect(limite!.veredicto).toBe('limite');
+    expect(limite!.detalle).toMatch(/velocidad/i);
+    expect(limite!.detalle).toMatch(/equilibr|detentor/i);
+    // El "insuficiente" también prioriza velocidad/equilibrado antes que sumar bomba
+    const insuf = validarHidraulica([], [], pisoBudget(120, 3200));
+    expect(insuf!.veredicto).toBe('insuficiente');
+    expect(insuf!.detalle).toMatch(/velocidad/i);
+    // Sumar otra bomba es el último recurso: la velocidad va antes que esa frase
+    expect(insuf!.detalle.indexOf('velocidad')).toBeLessThan(insuf!.detalle.indexOf('último recurso'));
+  });
 });
 
 // Verificación de integración: ejercita el pipeline REAL de geometría
