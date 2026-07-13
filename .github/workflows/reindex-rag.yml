@@ -1,0 +1,46 @@
+name: Reindexar RAG del asistente
+
+# El asistente IA busca en la tabla `conocimiento` (Supabase, embeddings) los
+# casos más parecidos a la consulta. Ese índice vive en la base, no en el repo:
+# al editar un caso en src/content/errores/ hay que regenerar sus embeddings.
+# Este workflow lo hace solo, cada vez que cambia el contenido de los casos.
+
+on:
+  push:
+    branches: ['main']
+    paths:
+      - 'app/src/content/errores/**'
+      - 'scripts/reindexar-rag.mjs'
+      - 'scripts/extraer-casos.mjs'
+  workflow_dispatch: # permite dispararlo a mano desde la pestaña Actions
+
+permissions:
+  contents: read
+
+# Un solo reindexado a la vez; si llegan pushes seguidos, corre el último.
+concurrency:
+  group: reindex-rag
+  cancel-in-progress: true
+
+jobs:
+  reindex:
+    name: Reindexar casos en el RAG
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Reindexar
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Falta el secret SUPABASE_SERVICE_ROLE_KEY en el repo (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          node scripts/reindexar-rag.mjs

@@ -27,8 +27,14 @@ const scriptDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(scriptDir, '..')
 const erroresDir = join(repoRoot, 'app', 'src', 'content', 'errores')
 
-// 1) Obtener la service_role key del CLI (queda solo en memoria de este proceso)
+// 1) Obtener la service_role key.
+//    - En CI: llega por env (secret de GitHub SUPABASE_SERVICE_ROLE_KEY), donde
+//      el Supabase CLI no está logueado.
+//    - Local: se saca del CLI y queda solo en memoria de este proceso.
 function getServiceKey() {
+    const fromEnv = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
+    if (fromEnv) return fromEnv
+
     const out = execFileSync(
         'supabase',
         ['projects', 'api-keys', '--project-ref', PROJECT_REF, '-o', 'json'],
@@ -36,7 +42,12 @@ function getServiceKey() {
     )
     const keys = JSON.parse(out)
     const svc = keys.find((k) => k.id === 'service_role')
-    if (!svc?.api_key) throw new Error('No se encontró la service_role key en el CLI')
+    if (!svc?.api_key) {
+        throw new Error(
+            'No se encontró la service_role key: definí SUPABASE_SERVICE_ROLE_KEY ' +
+            'o logueá el Supabase CLI (supabase login + supabase link)',
+        )
+    }
     return svc.api_key
 }
 
