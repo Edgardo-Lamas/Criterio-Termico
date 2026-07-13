@@ -30,6 +30,8 @@ export const Canvas = () => {
   const [zoneDraft, setZoneDraft] = useState<{ startX: number; startY: number; endX: number; endY: number } | null>(null);
   // Zona a la que se le está marcando la puerta (modo "click en el borde")
   const [placingDoorZoneId, setPlacingDoorZoneId] = useState<string | null>(null);
+  // Zona cuya puerta se está arrastrando (se pega al borde, como un radiador)
+  const [draggingDoorZoneId, setDraggingDoorZoneId] = useState<string | null>(null);
   // Circuito con la etiqueta visible por hover ("zoneId:numero"); el candidato
   // y su timer viven en refs para no redibujar mientras corre la espera
   const [hoveredCircuitKey, setHoveredCircuitKey] = useState<string | null>(null);
@@ -279,8 +281,11 @@ export const Canvas = () => {
       ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
       ctx.setLineDash([]);
 
-      // Marcador de puerta: vano sobre el borde + hoja a 45° (símbolo de plano)
+      // Marcador de puerta: vano sobre el borde + hoja a 45° (símbolo de plano).
+      // Se agarra con el mouse y se arrastra pegado al borde (ver handleMouseDown).
       if (zone.puerta) {
+        const seleccionada = zone.id === selectedElementId;
+        const arrastrando = zone.id === draggingDoorZoneId;
         const p = puntoPuerta(zone, zone.puerta);
         // Tangente al borde y normal hacia adentro de la zona, según el lado
         const [tg, nor] = {
@@ -291,23 +296,35 @@ export const Canvas = () => {
         }[zone.puerta.lado];
         const MEDIA_APERTURA = 20; // vano de 40 px = 0,80 m a 50 px/m (puerta estándar)
         const jambaA = { x: p.x - tg.x * MEDIA_APERTURA, y: p.y - tg.y * MEDIA_APERTURA };
+        // Cuando está seleccionada/arrastrándose se resalta en azul, para que se
+        // note que es agarrable (mismo azul de selección que la zona)
+        const colorPuerta = seleccionada || arrastrando ? '#2196F3' : '#6D4C41';
         // Vano: segmento grueso sobre el borde
-        ctx.strokeStyle = '#6D4C41';
+        ctx.strokeStyle = colorPuerta;
         ctx.lineWidth = 5;
         ctx.beginPath();
         ctx.moveTo(p.x - tg.x * MEDIA_APERTURA, p.y - tg.y * MEDIA_APERTURA);
         ctx.lineTo(p.x + tg.x * MEDIA_APERTURA, p.y + tg.y * MEDIA_APERTURA);
         ctx.stroke();
-        // Hoja de la puerta a 45° hacia adentro
+        // Hoja de la puerta a 45° hacia adentro (corta, para no montarse sobre
+        // el serpentín)
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.moveTo(jambaA.x, jambaA.y);
-        ctx.lineTo(jambaA.x + (tg.x + nor.x) * 28, jambaA.y + (tg.y + nor.y) * 28);
+        ctx.lineTo(jambaA.x + (tg.x + nor.x) * 18, jambaA.y + (tg.y + nor.y) * 18);
+        ctx.stroke();
+        // Tirador: círculo sobre el vano para agarrar y arrastrar la puerta
+        ctx.fillStyle = colorPuerta;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, seleccionada || arrastrando ? 6 : 4.5, 0, Math.PI * 2);
+        ctx.fill();
         ctx.stroke();
         // Etiqueta chica afuera
-        ctx.fillStyle = '#6D4C41';
+        ctx.fillStyle = colorPuerta;
         ctx.font = 'bold 9px Arial';
-        ctx.fillText('puerta', p.x - nor.x * 14 - 14, p.y - nor.y * 14);
+        ctx.fillText('puerta', p.x - nor.x * 16 - 14, p.y - nor.y * 16);
       }
     });
 
@@ -1020,6 +1037,20 @@ export const Canvas = () => {
 
     // Si la herramienta es "select", intentar seleccionar o arrastrar
     if (tool === 'select') {
+      // Puerta de una zona: se agarra desde su marcador y se arrastra pegada al
+      // borde (como un radiador). Se chequea ANTES que nada porque el marcador
+      // vive sobre el borde de la zona, encima del área seleccionable.
+      const zonaConPuerta = currentFloorZones.find(z => {
+        if (!z.puerta) return false;
+        const p = puntoPuerta(z, z.puerta);
+        return Math.hypot(coords.x - p.x, coords.y - p.y) <= 16;
+      });
+      if (zonaConPuerta) {
+        setSelectedElement(zonaConPuerta.id);
+        setDraggingDoorZoneId(zonaConPuerta.id);
+        return;
+      }
+
       // Buscar si hicimos click en algún radiador de la planta actual (recorrer en orden inverso para priorizar los últimos)
       let foundRadiator: Radiator | null = null;
 
@@ -1214,6 +1245,14 @@ export const Canvas = () => {
       return;
     }
 
+    // Si estamos arrastrando la puerta de una zona: se proyecta al borde más
+    // cercano (puede pasar de un lado a otro rodeando la zona) y se actualiza.
+    if (draggingDoorZoneId) {
+      const zone = floorHeatingZones.find(z => z.id === draggingDoorZoneId);
+      if (zone) updateElement(zone.id, { puerta: puertaDesdePunto(zone, coords) });
+      return;
+    }
+
     // Si estamos arrastrando un elemento seleccionado
     if (isDragging && selectedElementId) {
       const newX = coords.x - dragOffset.x;
@@ -1322,6 +1361,7 @@ export const Canvas = () => {
     // Desactivar dragging y panning
     setIsDragging(false);
     setIsPanning(false);
+    setDraggingDoorZoneId(null);
   };
 
   // NOTE: Zoom functions are now provided by useCanvasZoom hook
@@ -1334,10 +1374,17 @@ export const Canvas = () => {
   // Determinar el cursor según el estado
   const getCursor = () => {
     if (isPanning) return 'grabbing';
-    if (tool === 'select' && isDragging) return 'grabbing';
+    if (tool === 'select' && (isDragging || draggingDoorZoneId)) return 'grabbing';
     if (tool === 'select') {
+      // El tirador de la puerta también se agarra
+      const overPuerta = currentFloorZones.some(z => {
+        if (!z.puerta) return false;
+        const p = puntoPuerta(z, z.puerta);
+        return Math.hypot(mousePos.x - p.x, mousePos.y - p.y) <= 16;
+      });
       // Verificar si el mouse está sobre algún elemento
-      const overElement = radiators.some(r => isPointInsideRadiator(mousePos.x, mousePos.y, r)) ||
+      const overElement = overPuerta ||
+        radiators.some(r => isPointInsideRadiator(mousePos.x, mousePos.y, r)) ||
         boilers.some(b => isPointInsideBoiler(mousePos.x, mousePos.y, b)) ||
         pipes.some(p => isPointNearPipe(mousePos, p.points, 10));
 
@@ -1638,8 +1685,8 @@ export const Canvas = () => {
                 fontWeight: 'bold',
               }}
               title={selectedZone.puerta
-                ? 'Reubicar la puerta: click en el borde de la zona por donde entra la cañería'
-                : 'Marcar la puerta: click en el borde de la zona por donde entra la cañería'}
+                ? 'La puerta ya está: arrastrá su tirador para acomodarla donde entra la cañería'
+                : 'Marcar la puerta: click en el borde de la zona por donde entra la cañería (después la podés arrastrar)'}
             >
               🚪 {selectedZone.puerta ? 'Mover' : 'Puerta'}
             </button>
