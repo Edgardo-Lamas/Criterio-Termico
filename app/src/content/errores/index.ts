@@ -13,6 +13,8 @@ import { errorPresionSubeAguaRed, ErrorPresionSubeAguaRedDetalle } from './presi
 import { errorAnticongelante, ErrorAnticongelanteDetalle } from './anticongelante'
 import { errorCalidadAgua, ErrorCalidadAguaDetalle } from './calidad-agua'
 import { errorRamalRobado, ErrorRamalRobadoDetalle } from './ramal-robado'
+import { errorPexMemoriaTermica, ErrorPexMemoriaTermicaDetalle } from './pex-memoria-termica'
+import { errorEmpalmesPisoRadiante, ErrorEmpalmesPisoRadianteDetalle } from './empalmes-piso-radiante'
 
 export type ErrorTier = 'free' | 'pro' | 'premium'
 
@@ -40,6 +42,8 @@ export const erroresList: ErrorMeta[] = [
     errorAnticongelante,
     errorCalidadAgua,
     errorRamalRobado,
+    errorPexMemoriaTermica,
+    errorEmpalmesPisoRadiante,
 ]
 
 // Componentes de detalle mapeados por ID
@@ -57,6 +61,8 @@ const erroresContent: Record<string, ComponentType> = {
     'anticongelante': ErrorAnticongelanteDetalle,
     'calidad-agua': ErrorCalidadAguaDetalle,
     'ramal-robado': ErrorRamalRobadoDetalle,
+    'pex-memoria-termica': ErrorPexMemoriaTermicaDetalle,
+    'empalmes-piso-radiante': ErrorEmpalmesPisoRadianteDetalle,
 }
 
 export function getErrorMeta(id: string): ErrorMeta | null {
