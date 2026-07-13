@@ -87,6 +87,43 @@ describe('generarSerpentin — espiral doble (ambientes grandes)', () => {
     })
 })
 
+describe('generarSerpentin — boca orientable a la esquina de la puerta', () => {
+    const anchoM = 5, altoM = 4, paso = 20, m = 0.10
+    const esquinas = {
+        'sup-izq': { x: m, y: m },
+        'sup-der': { x: anchoM - m, y: m },
+        'inf-izq': { x: m, y: altoM - m },
+        'inf-der': { x: anchoM - m, y: altoM - m },
+    } as const
+
+    for (const [boca, esquina] of Object.entries(esquinas)) {
+        it(`boca ${boca}: la ida arranca y el retorno remata en esa esquina`, () => {
+            const s = generarSerpentin(anchoM, altoM, paso, m * 100, boca as keyof typeof esquinas)
+            expect(s.ida[0].x).toBeCloseTo(esquina.x, 2)
+            expect(s.ida[0].y).toBeCloseTo(esquina.y, 2)
+            const finRetorno = s.retorno[s.retorno.length - 1]
+            // ida y retorno salen juntos por la misma esquina (a un paso)
+            const d = Math.hypot(finRetorno.x - esquina.x, finRetorno.y - esquina.y)
+            expect(d).toBeLessThanOrEqual(0.4)
+        })
+    }
+
+    it('el espejado conserva longitud, cobertura y puntos dentro del ambiente', () => {
+        const base = generarSerpentin(anchoM, altoM, paso)
+        const espejada = generarSerpentin(anchoM, altoM, paso, m * 100, 'inf-der')
+        expect(espejada.longitudTotal).toBeCloseTo(base.longitudTotal, 2)
+        for (const p of todosLosPuntos(espejada)) {
+            expect(p.x).toBeGreaterThanOrEqual(0)
+            expect(p.x).toBeLessThanOrEqual(anchoM)
+            expect(p.y).toBeGreaterThanOrEqual(0)
+            expect(p.y).toBeLessThanOrEqual(altoM)
+        }
+        // sigue siendo ortogonal tras el espejo
+        expect(segmentosOrtogonales(espejada.ida)).toBe(true)
+        expect(segmentosOrtogonales(espejada.retorno)).toBe(true)
+    })
+})
+
 describe('generarSerpentin — meandro (ambientes chicos o angostos)', () => {
     it('un baño 2×1.5 m con paso 15 usa meandro', () => {
         const s = generarSerpentin(2, 1.5, 15)

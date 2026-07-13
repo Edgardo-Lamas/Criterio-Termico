@@ -4,7 +4,7 @@
 // circuitos de máximo 120 m y rutea las acometidas al colector.
 
 import { generarSerpentin } from '../../../lib/pisoRadiante/serpentin';
-import type { Punto } from '../../../lib/pisoRadiante/serpentin';
+import type { Punto, EsquinaBoca } from '../../../lib/pisoRadiante/serpentin';
 import type { FloorHeatingZone, PuertaZona } from '../models/FloorHeatingZone';
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
@@ -176,6 +176,16 @@ function redondear(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+// Esquina del rectángulo más cercana a un punto (la puerta): la boca del
+// serpentín nace ahí para que la acometida entre pegada a la pared sin cruzar
+// las vueltas del circuito.
+type RectPx = { x: number; y: number; width: number; height: number }
+function esquinaMasCercana(rect: RectPx, p: CanvasPoint): EsquinaBoca {
+  const izq = Math.abs(p.x - rect.x) <= Math.abs(p.x - (rect.x + rect.width))
+  const sup = Math.abs(p.y - rect.y) <= Math.abs(p.y - (rect.y + rect.height))
+  return `${sup ? 'sup' : 'inf'}-${izq ? 'izq' : 'der'}` as EsquinaBoca
+}
+
 // Divide el rectángulo de la zona a lo largo de su eje mayor en n franjas iguales.
 function dividirZona(zone: FloorHeatingZone, n: number): { x: number; y: number; width: number; height: number }[] {
   const franjas: { x: number; y: number; width: number; height: number }[] = []
@@ -263,6 +273,10 @@ export function calcularCircuitosZona(
   const areaDibujadaM2 = (zone.width / PIXELS_PER_METER) * (zone.height / PIXELS_PER_METER)
   const escala = real && areaDibujadaM2 > 0 ? real.areaM2 / areaDibujadaM2 : 1
 
+  // Punto de la puerta (si está marcada): la boca de cada franja nace en su
+  // esquina más cercana a la puerta para que la acometida no cruce el serpentín.
+  const puntoDoor: CanvasPoint | null = zone.puerta ? puntoPuerta(zone, zone.puerta) : null
+
   const MAX_INTENTOS = 8
   for (let n = 1; n <= MAX_INTENTOS; n++) {
     const franjas = dividirZona(zone, n)
@@ -273,10 +287,11 @@ export function calcularCircuitosZona(
       const f = franjas[i]
       const anchoM = f.width / PIXELS_PER_METER
       const altoM = f.height / PIXELS_PER_METER
+      const boca: EsquinaBoca = puntoDoor ? esquinaMasCercana(f, puntoDoor) : 'sup-izq'
 
       let serpentin
       try {
-        serpentin = generarSerpentin(anchoM, altoM, zone.pasoCm)
+        serpentin = generarSerpentin(anchoM, altoM, zone.pasoCm, 10, boca)
       } catch {
         // Franja demasiado chica para trazar: la zona entera no es viable
         return []
@@ -388,11 +403,14 @@ function rutearAcometidas(
     // retorno apenas separados sobre el borde); sin puerta, por el punto
     // del perímetro más cercano al serpentín.
     const puerta = zone.puerta
-    // Tramo interno puerta → serpentín: en L, arrancando perpendicular al lado
+    // Tramo interno puerta → boca del serpentín: la boca nace en la esquina más
+    // cercana a la puerta (ver esquinaMasCercana), así que la L va primero
+    // pegada a la pared de la puerta hasta la esquina y recién ahí entra a la
+    // boca. Al revés correría por encima de la vuelta exterior del circuito.
     const codoInterno = (entrada: CanvasPoint, objetivo: CanvasPoint): CanvasPoint =>
       (puerta!.lado === 'arriba' || puerta!.lado === 'abajo')
-        ? { x: entrada.x, y: objetivo.y }
-        : { x: objetivo.x, y: entrada.y }
+        ? { x: objetivo.x, y: entrada.y }
+        : { x: entrada.x, y: objetivo.y }
 
     const entradaIda = puerta
       ? puntoPuerta(zone, puerta, -4, 12)

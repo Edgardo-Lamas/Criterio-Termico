@@ -19,6 +19,12 @@ export interface Punto {
 
 export type PatronSerpentin = 'espiral' | 'meandro'
 
+// Esquina del rectángulo por donde nace la boca del serpentín (arranque de la
+// ida y remate del retorno, que salen juntos hacia el colector). En obra la
+// boca se ubica en la esquina más cercana a la puerta, para que la acometida
+// entre pegada a la pared y NO cruce las vueltas del circuito.
+export type EsquinaBoca = 'sup-izq' | 'sup-der' | 'inf-izq' | 'inf-der'
+
 export interface Serpentin {
     patron: PatronSerpentin
     ida: Punto[]        // polilínea de impulsión (roja en plano)
@@ -135,6 +141,21 @@ function redondear(n: number): number {
     return Math.round(n * 100) / 100
 }
 
+// Reubica la boca del serpentín en la esquina pedida espejando el trazado
+// canónico (que nace en la esquina superior-izquierda). El espejo es una
+// isometría: conserva el entrelazado ida/retorno, la ortogonalidad, la
+// longitud total y mantiene todos los puntos dentro del rectángulo.
+function orientarBoca(serp: Serpentin, ancho: number, alto: number, boca: EsquinaBoca): Serpentin {
+    const espejoX = boca === 'sup-der' || boca === 'inf-der'
+    const espejoY = boca === 'inf-izq' || boca === 'inf-der'
+    if (!espejoX && !espejoY) return serp
+    const t = (p: Punto): Punto => ({
+        x: espejoX ? ancho - p.x : p.x,
+        y: espejoY ? alto - p.y : p.y,
+    })
+    return { ...serp, ida: serp.ida.map(t), retorno: serp.retorno.map(t) }
+}
+
 /**
  * Genera el trazado de un circuito de piso radiante para un ambiente rectangular.
  *
@@ -142,12 +163,16 @@ function redondear(n: number): number {
  * @param altoM   alto del ambiente en metros
  * @param pasoCm  separación final entre tubos (15 o 20 según el motor de cálculo)
  * @param margenCm distancia mínima a las paredes (banda perimetral), default 10 cm
+ * @param boca    esquina donde nace la boca del circuito (default superior-izq).
+ *                Se elige la esquina más cercana a la puerta para que la
+ *                acometida entre pegada a la pared sin cruzar las vueltas.
  */
 export function generarSerpentin(
     anchoM: number,
     altoM: number,
     pasoCm: number,
-    margenCm: number = 10
+    margenCm: number = 10,
+    boca: EsquinaBoca = 'sup-izq'
 ): Serpentin {
     if (!(anchoM > 0) || !(altoM > 0)) throw new Error('Dimensiones del ambiente inválidas.')
     if (!(pasoCm > 0)) throw new Error('Paso de tubería inválido.')
@@ -165,7 +190,8 @@ export function generarSerpentin(
     // (cada par ida+retorno consume 2s de semi-ancho por lado). En baños y
     // pasillos angostos el meandro cubre mejor el área.
     const cabeEspiral = Math.min(utilAncho, utilAlto) >= 10 * s
-    return cabeEspiral
+    const serp = cabeEspiral
         ? generarEspiralDoble(anchoM, altoM, s, margen)
         : generarMeandro(anchoM, altoM, s, margen)
+    return orientarBoca(serp, anchoM, altoM, boca)
 }
