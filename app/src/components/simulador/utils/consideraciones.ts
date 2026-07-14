@@ -57,22 +57,33 @@ export function generarConsideraciones({
 
   // ── Del diseño de piso radiante ─────────────────────────────────────────
   if (floorHeating) {
-    // Zonas que no cubren la carga térmica de la habitación (+15% de margen)
+    // Zonas donde el piso no cubre la pérdida del ambiente
     const insuficientes = floorHeating.zonas.filter(z => z.suficiente === false);
     if (insuficientes.length > 0) {
       const lista = insuficientes
         .map(z => `${z.zoneName} (${z.coberturaPct}%)`)
         .join(', ');
+      // Si ya se diseñó a 45°C el piso está en su tope físico (superficie 29°C
+      // máx, EN 1264): subir impulsión o achicar el paso no dan más potencia,
+      // y prometerlo manda al instalador a rehacer el trazado al pedo.
+      const enElTope = floorHeating.tempImpulsionC >= 45;
+      const palancaTemp = enElTope
+        ? 'Ojo: a 45°C el piso ya está en su tope físico (la superficie no puede pasar de 29°C), ' +
+          'así que ni subir la impulsión ni achicar el paso dan más potencia — el faltante no se ' +
+          'arregla con el trazado. '
+        : `Está diseñado a ${floorHeating.tempImpulsionC}°C: subir la impulsión hasta 45°C da más ` +
+          'margen si la caldera lo permite. ';
       criticas.push({
         nivel: 'critica',
         titulo: `Cobertura térmica insuficiente: ${lista}`,
         detalle:
-          'El piso radiante no alcanza el requerido con margen del 15% en esos ambientes. ' +
-          'Opciones que no agregan otro circuito hidráulico: reducir el paso a 15 cm, subir ' +
-          'la temperatura de impulsión (si la caldera lo permite), mejorar la aislación del ' +
-          'ambiente, o cubrir el faltante con un panel eléctrico. OJO con confiar en el ' +
-          'toallero para un baño: su potencia no suele cubrir la demanda, y con los toallones ' +
-          'colgados encima pierde la convección — en ese caso, reforzar con un radiador.',
+          'El piso radiante no cubre la pérdida de esos ambientes. ' + palancaTemp +
+          'Lo que sí mueve la aguja: bajar la pérdida del ambiente —en vivienda de nivel único ' +
+          'el techo se lleva el 30-40% del total, así que aislar la losa es lo que más pesa— o ' +
+          'cubrir el faltante con un panel eléctrico, que no agrega otro circuito hidráulico. ' +
+          'OJO con confiar en el toallero para un baño: su potencia no suele cubrir la demanda, ' +
+          'y con los toallones colgados encima pierde la convección — en ese caso, reforzar con ' +
+          'un radiador.',
       });
     }
 

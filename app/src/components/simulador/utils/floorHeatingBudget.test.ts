@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, emisionKcalhM2, potenciaZonaKcalh, puertaEnLado, cargaPisoKcalh } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, emisionKcalhM2, potenciaZonaKcalh, puertaEnLado } from './floorHeating';
+import { calculateRoomPower } from './thermalCalculator';
 import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
@@ -272,10 +273,9 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(budget?.potenciaTotalKcalh).toBe(576);
   });
 
-  it('compara entrega vs. requerido de la habitación con margen de seguridad del 15%', () => {
-    // La carga de diseño del piso es W/m² según aislación (no el factor
-    // volumétrico de radiadores): 15 m² × 80 W/m² × 0,86 = 1.032 kcal/h
-    // → con margen 15% = 1.187. Entrega con área REAL: 15 × 86 = 1.290 → ✓ 109%.
+  it('el requerido de la zona es la pérdida del ambiente, la misma que da la Calculadora', () => {
+    // 15 m² × 2,5 m × 50 kcal/h·m³ = 1.875 kcal/h, sin ajustes.
+    // Entrega con área REAL: 15 × 86 = 1.290 → cubre 69%, no alcanza.
     const room = {
       id: 'r1', name: 'Recámara 2', area: 15, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -287,33 +287,53 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     if (!budget) return;
     expect(budget.zonas).toHaveLength(1);
     expect(budget.zonas[0].potenciaKcalh).toBe(1290);
-    expect(budget.zonas[0].requeridoKcalh).toBe(1032);
-    expect(budget.zonas[0].requeridoConMargenKcalh).toBe(1187);
-    expect(budget.zonas[0].coberturaPct).toBe(109);
-    expect(budget.zonas[0].suficiente).toBe(true);
+    // El requerido sale del MISMO motor que la Calculadora de Potencia
+    expect(budget.zonas[0].requeridoKcalh).toBe(calculateRoomPower(room));
+    expect(budget.zonas[0].requeridoKcalh).toBe(1875);
+    expect(budget.zonas[0].coberturaPct).toBe(69);
+    expect(budget.zonas[0].suficiente).toBe(false);
     expect(budget.potenciaTotalKcalh).toBe(1290);
   });
 
-  it('con aislación mala el piso queda al límite y avisa insuficiente', () => {
-    // 15 m² × 100 W/m² × 0,86 = 1.290 = exactamente la entrega máxima a 45°C,
-    // pero el margen del 15% (1.483) no se cubre → ⚠ complementar
+  it('dibujar el serpentín no cambia lo que la habitación requiere', () => {
+    // Regresión del bug real: el requerido dependía de si había zona dibujada,
+    // así que la misma pieza daba 585 con piso y 1.328 sin piso.
+    const room = {
+      id: 'r1', name: 'Recámara 2', area: 8.5, height: 2.5,
+      thermalFactor: 50 as const, hasExteriorWall: true,
+      windowsLevel: 'normales' as const, radiatorIds: [],
+    };
+    // Lo que ve el ambiente sin nada dibujado (lo que informa la Calculadora)
+    const sinPiso = calculateRoomPower(room);
+    expect(sinPiso).toBe(1328); // 8,5 × 2,5 × 50 × 1,25
+
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Recámara 2' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
+    // …es exactamente lo mismo que exige con el serpentín puesto
+    expect(budget?.zonas[0].requeridoKcalh).toBe(sinPiso);
+  });
+
+  it('el tope físico del piso puede quedar por debajo de la carga: eso es un resultado válido', () => {
+    // A 45°C el piso no pasa de 86 kcal/h·m² (superficie 29°C máx, EN 1264).
+    // Un ambiente de 2,5 m de techo pide 125 kcal/h·m² con factor 50, así que
+    // el piso solo NO alcanza y el veredicto tiene que decirlo, no ajustar la vara.
     const room = {
       id: 'r1', name: 'Estar', area: 15, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
       windowsLevel: 'sin-ventanas' as const, radiatorIds: [],
-      aislacion: 'mala' as const,
     };
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Estar' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
-    expect(budget?.zonas[0].requeridoKcalh).toBe(1290);
-    expect(budget?.zonas[0].requeridoConMargenKcalh).toBe(1483);
+    const topeFisico = Math.round(room.area * emisionKcalhM2(45));
+    expect(budget?.zonas[0].potenciaKcalh).toBe(topeFisico);
+    expect(topeFisico).toBeLessThan(calculateRoomPower(room));
     expect(budget?.zonas[0].suficiente).toBe(false);
   });
 
   it('la zona vinculada usa el área REAL de la habitación, no la dibujada', () => {
     // Baño de 5 m² con zona dibujada de 12 m² (imagen fuera de escala):
     // la matemática usa los 5 m² reales → entrega 5 × 86 = 430,
-    // serpentín 5 × 6,7 = 33,5 m, carga de diseño 5 × 80 × 0,86 = 344.
+    // serpentín 5 × 6,7 = 33,5 m, carga del ambiente 5 × 2,5 × 50 = 625.
     const room = {
       id: 'r1', name: 'Baño', area: 5, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -325,24 +345,15 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     if (!budget) return;
     expect(budget.zonas[0].potenciaKcalh).toBe(430);
     expect(budget.zonas[0].areaM2).toBeCloseTo(5, 1);
-    expect(budget.zonas[0].requeridoConMargenKcalh).toBe(396);
-    expect(budget.zonas[0].suficiente).toBe(true);
-    // La carga de diseño del panel se reparte entre los circuitos de la zona
+    expect(budget.zonas[0].requeridoKcalh).toBe(625);
+    expect(budget.zonas[0].suficiente).toBe(false);
+    // La carga del ambiente se reparte entre los circuitos de la zona
     const propios = budget.circuits.filter(c => c.zoneId === 'z1');
     const cargaTotal = propios.reduce((acc, c) => acc + (c.cargaKcalh ?? 0), 0);
-    expect(cargaTotal).toBe(344);
+    expect(cargaTotal).toBe(625);
     // Sin habitación vinculada no hay carga asignada
     const sinRoom = calcularCircuitosPlanta([zona('z2', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
     expect(sinRoom.every(c => c.cargaKcalh === null)).toBe(true);
-  });
-
-  it('cargaPisoKcalh: carga de diseño en W/m² según aislación', () => {
-    // 20 m²: buena 60 W/m² → 1.032, media 80 → 1.376, mala 100 → 1.720
-    expect(cargaPisoKcalh({ area: 20, aislacion: 'buena' })).toBe(1032);
-    expect(cargaPisoKcalh({ area: 20 })).toBe(1376); // default: media
-    expect(cargaPisoKcalh({ area: 20, aislacion: 'mala' })).toBe(1720);
-    // Con aislación media y 45°C el piso siempre alcanza: 86 ≥ 80×0,86×1,15 = 79
-    expect(Math.round(cargaPisoKcalh({ area: 1 }) * 1.15)).toBeLessThanOrEqual(emisionKcalhM2(45));
   });
 
   it('sin habitación vinculada no hay comparación (requerido null)', () => {

@@ -7,9 +7,7 @@ import {
   calculateBoilerPower,
   kcalToKw
 } from '../../utils/thermalCalculator';
-import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT, puertaEnLado } from '../../utils/floorHeating';
-import type { CalidadAislacion } from '../../utils/floorHeating';
-import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
+import { potenciaZonaKcalh, emisionKcalhM2, puertaEnLado } from '../../utils/floorHeating';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
@@ -413,24 +411,22 @@ export const RoomPanel: React.FC = () => {
               ? Math.round(room.area * emisionKcalhM2(floorHeatingTempC))
               : 0;
             const installed = powerCheck.installed + pisoPower;
-            // Base del requerido: con piso radiante la carga de diseño es la
-            // real del ambiente (W/m² según aislación, criterio EN 1264); el
-            // factor volumétrico es la regla de radiadores y pide más de lo
-            // que el piso puede entregar físicamente (tope 86 kcal/h·m²)
-            const usaBasePiso = roomZones.length > 0;
-            const required = usaBasePiso ? cargaPisoKcalh(room) : powerCheck.required;
-            // Margen del 15% SOLO para piso radiante (su base W/m² es
-            // realista). Para radiadores no: el factor volumétrico ya viene
-            // sobredimensionado con sus incrementos de pared y ventanas
-            // (criterio de Edgardo).
-            const requeridoConMargen = usaBasePiso
-              ? Math.round(required * MARGEN_SEGURIDAD)
-              : required;
-            const sufficient = installed >= requeridoConMargen;
-            const percentage = requeridoConMargen > 0
-              ? Math.round((installed / requeridoConMargen) * 100)
+            // El requerido es la pérdida del ambiente y no cambia según el
+            // emisor: mismo número que la Calculadora de Potencia, con o sin
+            // serpentín dibujado.
+            const required = powerCheck.required;
+            const sufficient = installed >= required;
+            const percentage = required > 0
+              ? Math.round((installed / required) * 100)
               : 0;
             const hasEmitters = room.radiatorIds.length > 0 || roomZones.length > 0;
+            // Tope físico del piso: la superficie no puede pasar de 29°C
+            // (EN 1264). Si ni a 45°C cubre la carga, no hay paso ni trazado
+            // que lo arregle — hay que decirlo.
+            const topePisoKcalh = Math.round(room.area * emisionKcalhM2(45));
+            const pisoNuncaAlcanza = roomZones.length > 0
+              && room.radiatorIds.length === 0
+              && topePisoKcalh < required;
 
             return (
               <div
@@ -496,22 +492,10 @@ export const RoomPanel: React.FC = () => {
 
                 <div style={{ fontSize: '12px', color: '#666' }}>
                   <div>Área: {room.area} m² × {room.height} m = {(room.area * room.height).toFixed(1)} m³</div>
-                  {usaBasePiso ? (
-                    <div>
-                      Base piso radiante: {CARGA_PISO_WM2[room.aislacion ?? AISLACION_DEFAULT]} W/m²
-                      {' '}(aislación {room.aislacion ?? AISLACION_DEFAULT})
-                    </div>
-                  ) : (
-                    <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
-                  )}
+                  <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
                     <strong>Requerido:</strong> {required.toLocaleString()} Kcal/h
                   </div>
-                  {usaBasePiso && (
-                    <div>
-                      <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
-                    </div>
-                  )}
                   {hasEmitters ? (
                     <>
                       {room.radiatorIds.length > 0 && (
@@ -536,6 +520,28 @@ export const RoomPanel: React.FC = () => {
                       }}>
                         {sufficient ? '✓ Suficiente' : '⚠ Insuficiente'} ({percentage}%)
                       </div>
+                      {pisoNuncaAlcanza && (
+                        <div style={{
+                          marginTop: '4px',
+                          padding: '6px',
+                          background: '#FFF3E0',
+                          borderLeft: '3px solid #FF9800',
+                          borderRadius: '3px',
+                          color: '#5D4037',
+                          fontSize: '11px',
+                          lineHeight: 1.4
+                        }}>
+                          El piso solo no da para esta pieza: aun a 45° entrega
+                          {' '}{topePisoKcalh.toLocaleString()} Kcal/h como máximo y hacen
+                          falta {required.toLocaleString()}. Es tope físico —el suelo no
+                          puede pasar de 29°—, así que ni achicar el paso ni subir la
+                          impulsión lo mueven. Faltan
+                          {' '}{(required - topePisoKcalh).toLocaleString()} Kcal/h:
+                          bajá la pérdida del ambiente (en nivel único la losa es lo que
+                          más pesa) o cubrí el faltante con un panel eléctrico. Ver
+                          consideraciones.
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div style={{ marginTop: '4px', color: '#999', fontSize: '11px' }}>
@@ -635,33 +641,13 @@ export const RoomPanel: React.FC = () => {
                 borderRadius: '4px'
               }}
             >
-              <option value={40}>40 Kcal/h·m³ (Templado/Edificio)</option>
-              <option value={50}>50 Kcal/h·m³ (Normal)</option>
-              <option value={60}>60 Kcal/h·m³ (Frío intenso)</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#555' }}>
-              Aislación (para piso radiante):
-            </label>
-            <select
-              value={selectedRoom.aislacion ?? AISLACION_DEFAULT}
-              onChange={(e) => updateRoom(selectedRoom.id, { aislacion: e.target.value as CalidadAislacion })}
-              style={{
-                width: '100%',
-                padding: '6px',
-                fontSize: '13px',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            >
-              <option value="buena">Buena — {CARGA_PISO_WM2.buena} W/m² (DVH, muros aislados)</option>
-              <option value="media">Media — {CARGA_PISO_WM2.media} W/m² (construcción tradicional)</option>
-              <option value="mala">Mala — {CARGA_PISO_WM2.mala} W/m² (precaria o zona muy fría)</option>
+              <option value={40}>40 Kcal/h·m³ — Buena aislación (EPS en muros, DVH, techo aislado)</option>
+              <option value={50}>50 Kcal/h·m³ — Estándar argentino (ladrillo sin aislar, vidrio simple)</option>
+              <option value={60}>60 Kcal/h·m³ — Poca aislación (casa antigua, losa sin aislar, infiltraciones)</option>
             </select>
             <div style={{ color: '#999', fontSize: '10px', marginTop: '4px' }}>
-              Define la carga de diseño cuando el ambiente se calefacciona por piso radiante
+              Vale para radiadores y para piso radiante: la pérdida del ambiente
+              es la misma sea cual sea el emisor
             </div>
           </div>
 

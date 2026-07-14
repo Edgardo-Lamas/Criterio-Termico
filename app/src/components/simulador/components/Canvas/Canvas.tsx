@@ -8,9 +8,9 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, cargaPisoKcalh, crearPuerta, puntoPuerta } from '../../utils/floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, crearPuerta, puntoPuerta } from '../../utils/floorHeating';
+import { calculateRoomPower } from '../../utils/thermalCalculator';
 import { etiquetasRadiadores } from '../../utils/planilla';
-import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
 
@@ -373,15 +373,15 @@ export const Canvas = () => {
       if (propios.length === 0) return;
 
       const entrega = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
-      // Carga de diseño de piso radiante (W/m² según aislación de la
-      // habitación), la misma base que el presupuesto y el panel
-      const requerido = Math.round(cargaPisoKcalh(room) * MARGEN_SEGURIDAD);
+      // Pérdida del ambiente — misma base que el panel, el presupuesto y la
+      // Calculadora de Potencia
+      const requerido = calculateRoomPower(room);
       const pct = requerido > 0 ? Math.round((entrega / requerido) * 100) : 0;
       const ok = entrega >= requerido;
       // Compacto para no tapar los circuitos; el detalle completo aparece
       // al seleccionar la zona (y en el panel / presupuesto).
       const texto = zone.id === selectedElementId
-        ? `${ok ? '\u2713' : '\u26A0'} el piso rinde ${entrega.toLocaleString('es-AR')} de ${requerido.toLocaleString('es-AR')} kcal/h (req+15%) \u00B7 ${pct}%`
+        ? `${ok ? '\u2713' : '\u26A0'} el piso rinde ${entrega.toLocaleString('es-AR')} de ${requerido.toLocaleString('es-AR')} kcal/h \u00B7 ${pct}%`
         : `${ok ? '\u2713' : '\u26A0'} piso ${pct}%`;
       const color = ok ? '#2E7D32' : '#C62828';
 

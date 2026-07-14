@@ -4,18 +4,17 @@ export interface Room {
   area: number; // m²
   height: number; // metros (altura de techo)
   
-  // Factor térmico base (Kcal/h por m³)
+  // Factor térmico base (Kcal/h por m³) — condensa la calidad constructiva:
+  // 40 = buena aislación, 50 = estándar argentino, 60 = poca (ver cap4-potencia).
+  // Es la ÚNICA fuente de la calidad constructiva del ambiente: vale igual para
+  // radiadores y para piso radiante, porque la pérdida de calor no depende del
+  // emisor.
   thermalFactor: 40 | 50 | 60; // Default: 50
-  
+
   // Ajustes opcionales
   hasExteriorWall: boolean; // +15% si tiene pared exterior
   windowsLevel: 'sin-ventanas' | 'pocas' | 'normales' | 'muchas'; // 0%, +5%, +10%, +20%
 
-  // Calidad de aislación del ambiente — define la carga de diseño en W/m²
-  // cuando la habitación se calefacciona por PISO RADIANTE (ver
-  // CARGA_PISO_WM2 en utils/floorHeating.ts). Default: 'media'.
-  aislacion?: 'buena' | 'media' | 'mala';
-  
   // Radiadores asignados a esta habitación
   radiatorIds: string[];
   

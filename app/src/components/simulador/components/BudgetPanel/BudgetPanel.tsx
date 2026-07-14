@@ -409,8 +409,8 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                                         ⚡ {z.zoneName}
                                         <small>
                                             {' '}({z.areaM2.toLocaleString('es-AR')} m²
-                                            {z.requeridoConMargenKcalh !== null
-                                                ? ` · requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h con margen 15%`
+                                            {z.requeridoKcalh !== null
+                                                ? ` · requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h`
                                                 : ' · sin habitación asignada'})
                                         </small>
                                     </span>
