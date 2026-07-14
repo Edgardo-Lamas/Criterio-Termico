@@ -1561,6 +1561,52 @@ export const Canvas = () => {
         );
       })()}
 
+      {/* Botón de rotación de la PUERTA (solo si la zona seleccionada tiene puerta).
+          Va pegado a la puerta —no a la zona— igual que el ↻ del radiador va
+          pegado al radiador, para que sea visible y descubrible justo donde está
+          el elemento. Antes el control estaba en la barra de la zona, que aparece
+          arriba del rectángulo y quedaba tapada por la toolbar cuando la zona
+          está pegada al borde superior. */}
+      {selectedElementId && (() => {
+        const zoneWithDoor = currentFloorZones.find(z => z.id === selectedElementId && z.puerta);
+        if (!zoneWithDoor?.puerta) return null;
+        const p = zoneWithDoor.puerta;
+
+        // Coordenadas de pantalla de la puerta. Por defecto el botón va arriba;
+        // si eso lo dejaría clippeado contra la toolbar (puerta muy alta), se
+        // voltea abajo de la puerta para que siempre quede a la vista.
+        const screenX = p.x * zoom + panOffset.x;
+        const arriba = p.y * zoom + panOffset.y - 40;
+        const screenY = arriba < 4 ? p.y * zoom + panOffset.y + 24 : arriba;
+
+        return (
+          <button
+            onClick={() => updateElement(zoneWithDoor.id, {
+              puerta: { ...p, orientacion: p.orientacion === 'horizontal' ? 'vertical' : 'horizontal' },
+            })}
+            style={{
+              position: 'absolute',
+              left: `${screenX}px`,
+              top: `${screenY}px`,
+              transform: 'translateX(-50%)',
+              width: '32px',
+              height: '32px',
+              borderRadius: '4px',
+              border: '2px solid #6D4C41',
+              background: 'white',
+              color: '#6D4C41',
+              fontSize: '16px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              zIndex: 1000,
+            }}
+            title="Rotar la puerta 90° (horizontal / vertical), como un radiador"
+          >
+            ↻
+          </button>
+        );
+      })()}
+
       {/* Selector de paso (solo si hay una zona de piso radiante seleccionada) */}
       {selectedElementId && currentFloorZones.some(z => z.id === selectedElementId) && (() => {
         const selectedZone = currentFloorZones.find(z => z.id === selectedElementId);
@@ -1681,28 +1727,6 @@ export const Canvas = () => {
             >
               🚪 {selectedZone.puerta ? 'Mover' : 'Puerta'}
             </button>
-            {selectedZone.puerta && (
-              <button
-                onClick={() => {
-                  const p = selectedZone.puerta!;
-                  updateElement(selectedZone.id, {
-                    puerta: { ...p, orientacion: p.orientacion === 'horizontal' ? 'vertical' : 'horizontal' },
-                  });
-                }}
-                style={{
-                  padding: '2px 6px',
-                  borderRadius: '3px',
-                  border: '1px solid #6D4C41',
-                  background: 'white',
-                  color: '#6D4C41',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                }}
-                title="Rotar la puerta (horizontal / vertical), como un radiador"
-              >
-                ⟳
-              </button>
-            )}
             {selectedZone.puerta && (
               <button
                 onClick={() => {

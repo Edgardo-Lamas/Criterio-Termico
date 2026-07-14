@@ -369,11 +369,6 @@ export function colectorMasCercano(zone: FloorHeatingZone, manifolds: Manifold[]
   return mejor
 }
 
-// La acometida corre por DENTRO de la banda perimetral del serpentín (margen
-// 10 cm ≈ 5 px a 50 px/m), entre la pared y la vuelta exterior del circuito,
-// así no pisa ni el serpentín ni el marcador de la puerta.
-const INSET_PARED = 3 // px hacia adentro desde la pared (dentro de la banda de ~5 px)
-
 // Separación paralela entre ida y retorno de la acometida (px). El retorno es
 // la traza de la ida desplazada en diagonal; ambas viajan juntas del colector
 // a la zona, como en la misma canaleta de obra (mismo criterio que el montante).
@@ -397,37 +392,24 @@ function entradaPuerta(
 }
 
 /**
- * Tramo entre la PUERTA y la boca del serpentín. La tubería cruza la pared
- * PERPENDICULAR justo en la puerta y después corre por DENTRO del ambiente,
- * pegada a la pared (banda perimetral), hasta la esquina de la boca. Antes el
- * tramo iba por afuera (lado pasillo) y se montaba sobre el marcador de la
- * puerta; ahora la esquiva: cruza en la puerta y sigue por dentro.
- * `entrada` es el punto de la acometida apenas afuera de la puerta (meta del A*).
+ * Tramo entre el punto de acometida (apenas afuera de la puerta) y la boca del
+ * serpentín. La cañería CRUZA la puerta EN LÍNEA RECTA y llega a la boca con un
+ * solo codo. En obra estos caños van por DEBAJO del piso: la puerta es solo un
+ * marcador de por dónde entra/sale la tubería, así que el caño la ATRAVIESA
+ * derecho — no la esquiva ni se escalona (pedido de Edgardo). `entrada` es el
+ * punto apenas afuera de la puerta (meta del A*), alineado con ella.
  */
 function tramoPuertaBoca(
-  zone: FloorHeatingZone,
   lado: LadoZona,
   entrada: CanvasPoint,
   boca: CanvasPoint
 ): CanvasPoint[] {
   if (lado === 'arriba' || lado === 'abajo') {
-    const wallY = lado === 'abajo' ? zone.y + zone.height : zone.y
-    const insideY = lado === 'abajo' ? wallY - INSET_PARED : wallY + INSET_PARED
-    return [
-      { x: entrada.x, y: wallY },   // cruza la pared EN la puerta (perpendicular)
-      { x: entrada.x, y: insideY }, // entra a la banda perimetral
-      { x: boca.x, y: insideY },    // corre pegado a la pared por dentro
-      boca,                          // sube a la boca del serpentín
-    ]
+    // Pared horizontal → cruza VERTICAL y recto por la puerta, después el codo.
+    return [entrada, { x: entrada.x, y: boca.y }, boca]
   }
-  const wallX = lado === 'derecha' ? zone.x + zone.width : zone.x
-  const insideX = lado === 'derecha' ? wallX - INSET_PARED : wallX + INSET_PARED
-  return [
-    { x: wallX, y: entrada.y },
-    { x: insideX, y: entrada.y },
-    { x: insideX, y: boca.y },
-    boca,
-  ]
+  // Pared vertical → cruza HORIZONTAL y recto por la puerta, después el codo.
+  return [entrada, { x: boca.x, y: entrada.y }, boca]
 }
 
 /**
@@ -467,30 +449,30 @@ function rutearAcometidas(
     // del perímetro más cercano al serpentín.
     const puerta = zone.puerta
 
-    // Se rutea UNA sola traza (la ida) con A*; el retorno corre PARALELO —la
-    // misma traza desplazada ACOM_OFFSET px— así ida y retorno viajan JUNTAS del
-    // colector a la puerta y nunca se cruzan. Antes se ruteaban por separado y,
-    // al esquivarse una a la otra con el A*, terminaban cruzándose.
+    // Se arma UNA sola traza completa (la IDA): A* del colector hasta apenas
+    // afuera de la puerta + cruce RECTO por la puerta hasta la boca. El RETORNO
+    // es esa MISMA traza desplazada ACOM_OFFSET px en diagonal, así ida y retorno
+    // viajan perfectamente paralelas del colector a la zona, sin escalones ni
+    // cruces. Solo su extremo interno se ancla en la cola de retorno real del
+    // serpentín para calzar con el circuito. En obra ambas van juntas por la
+    // misma canaleta bajo el piso; la puerta es solo el marcador del cruce.
     const finRetorno = c.retorno[c.retorno.length - 1]
     const entradaIda = puerta
-      ? entradaPuerta(puerta, ladoDesdePuerta(zone, puerta), -ACOM_OFFSET, 12)
+      ? entradaPuerta(puerta, ladoDesdePuerta(zone, puerta), 0, 12)
       : puntoEntradaZona(zone, c.ida[0])
     const rutaIda = rutearOrtogonal({ start: salida, goal: entradaIda, obstaculos, ocupadas, area })
     if (rutaIda) {
       marcarRuta(ocupadas, rutaIda)
-      // Retorno = ida desplazada en diagonal (mismo truco que el montante):
-      // cada tramo ortogonal queda paralelo y separado ACOM_OFFSET px.
-      const rutaRetorno = rutaIda.map(p => ({ x: p.x + ACOM_OFFSET, y: p.y + ACOM_OFFSET }))
-      if (puerta) {
-        const lado = ladoDesdePuerta(zone, puerta)
-        c.acometidaIda = [...rutaIda, ...tramoPuertaBoca(zone, lado, entradaIda, c.ida[0])]
-        const entradaRetorno = entradaPuerta(puerta, lado, ACOM_OFFSET, 12)
-        // boca → (pegado a la pared por dentro) → cruce en la puerta → colector
-        c.acometidaRetorno = [...tramoPuertaBoca(zone, lado, entradaRetorno, finRetorno).reverse(), ...[...rutaRetorno].reverse()]
-      } else {
-        c.acometidaIda = [...rutaIda, c.ida[0]]
-        c.acometidaRetorno = [finRetorno, ...[...rutaRetorno].reverse()]
-      }
+      const acomIda = puerta
+        ? [...rutaIda, ...tramoPuertaBoca(ladoDesdePuerta(zone, puerta), entradaIda, c.ida[0])]
+        : [...rutaIda, c.ida[0]]
+      c.acometidaIda = acomIda
+      // Retorno = ida desplazada en diagonal (mismo truco que el montante) y
+      // recorrida al revés (de la zona al colector); el extremo interno se
+      // reemplaza por la cola de retorno real para calzar con el serpentín.
+      const paralela = acomIda.map(p => ({ x: p.x + ACOM_OFFSET, y: p.y + ACOM_OFFSET }))
+      paralela[paralela.length - 1] = finRetorno
+      c.acometidaRetorno = paralela.reverse()
 
       c.longitudAcometida = redondear(
         (longitudPx(c.acometidaIda) + longitudPx(c.acometidaRetorno)) / PIXELS_PER_METER
