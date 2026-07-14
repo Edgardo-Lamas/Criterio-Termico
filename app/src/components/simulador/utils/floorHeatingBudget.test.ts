@@ -161,6 +161,39 @@ describe('puerta de la zona — la acometida entra por la puerta real', () => {
       expect(pasaPorPuerta(c.acometidaRetorno)).toBe(true);
     }
   });
+
+  // ¿Se cruzan (propiamente) dos polilíneas? Cruce = un segmento de A corta el
+  // interior de un segmento de B. Un toque en las puntas no cuenta.
+  function seCruzan(a: CanvasPoint[], b: CanvasPoint[]): boolean {
+    const cross = (ax: number, ay: number, bx: number, by: number) => ax * by - ay * bx;
+    const cruceSeg = (p1: CanvasPoint, p2: CanvasPoint, p3: CanvasPoint, p4: CanvasPoint): boolean => {
+      const r = { x: p2.x - p1.x, y: p2.y - p1.y };
+      const s = { x: p4.x - p3.x, y: p4.y - p3.y };
+      const denom = cross(r.x, r.y, s.x, s.y);
+      if (Math.abs(denom) < 1e-9) return false; // paralelos o colineales
+      const t = cross(p3.x - p1.x, p3.y - p1.y, s.x, s.y) / denom;
+      const u = cross(p3.x - p1.x, p3.y - p1.y, r.x, r.y) / denom;
+      return t > 0.02 && t < 0.98 && u > 0.02 && u < 0.98; // interior estricto
+    };
+    for (let i = 0; i < a.length - 1; i++)
+      for (let j = 0; j < b.length - 1; j++)
+        if (cruceSeg(a[i], a[i + 1], b[j], b[j + 1])) return true;
+    return false;
+  }
+
+  it('ida y retorno NO se cruzan, con el colector en cualquier lado (bug del cruce rojo/azul)', () => {
+    const base = zona('z1', 4, 2, 4, 3);
+    const z: FloorHeatingZone = { ...base, puerta: puertaEnLado(base, 'abajo') };
+    // El cruce del offset diagonal aparecía según de qué lado quedaba el
+    // colector respecto de la puerta: se prueban ambos lados y en línea.
+    for (const col of [colector('m1', 1, 7), colector('m1', 6.5, 7), colector('m1', 4, 7)]) {
+      const circuits = calcularCircuitosPlanta([z], [col]);
+      expect(circuits.length).toBeGreaterThan(0);
+      for (const c of circuits) {
+        expect(seCruzan(c.acometidaIda, c.acometidaRetorno)).toBe(false);
+      }
+    }
+  });
 });
 
 describe('calcularMontantes — primaria caldera→colector Ø32', () => {

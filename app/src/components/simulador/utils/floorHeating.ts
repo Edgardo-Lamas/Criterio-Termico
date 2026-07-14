@@ -370,9 +370,48 @@ export function colectorMasCercano(zone: FloorHeatingZone, manifolds: Manifold[]
 }
 
 // Separación paralela entre ida y retorno de la acometida (px). El retorno es
-// la traza de la ida desplazada en diagonal; ambas viajan juntas del colector
-// a la zona, como en la misma canaleta de obra (mismo criterio que el montante).
+// la traza de la ida desplazada PERPENDICULAR a un lado fijo; ambas viajan
+// juntas del colector a la zona, como en la misma canaleta de obra.
 const ACOM_OFFSET = 4
+
+// Quita puntos consecutivos repetidos (evita segmentos de longitud 0, que
+// romperían el cálculo de la normal en la paralela).
+function dedupe(pts: CanvasPoint[]): CanvasPoint[] {
+  const out: CanvasPoint[] = []
+  for (const p of pts) {
+    const q = out[out.length - 1]
+    if (!q || Math.abs(q.x - p.x) > 0.01 || Math.abs(q.y - p.y) > 0.01) out.push({ ...p })
+  }
+  return out
+}
+
+// Desplaza una polilínea ORTOGONAL `d` px hacia UN LADO FIJO del sentido de
+// avance (izquierda del avance si d>0). Así ida y retorno quedan PARALELAS y no
+// se cruzan nunca. El offset diagonal constante anterior (+d,+d) cambiaba de
+// lado al invertir el sentido de un tramo, y ahí las líneas se cruzaban (bug
+// del cruce rojo/azul antes de la puerta).
+function desplazarParalelaOrto(ruta: CanvasPoint[], d: number): CanvasPoint[] {
+  const p = dedupe(ruta)
+  if (p.length < 2) return p.map(q => ({ ...q }))
+  // Normal izquierda de cada segmento (su dirección rotada +90°).
+  const normal = (i: number): CanvasPoint => ({
+    x: -Math.sign(p[i + 1].y - p[i].y),
+    y: Math.sign(p[i + 1].x - p[i].x),
+  })
+  const out: CanvasPoint[] = []
+  const n0 = normal(0)
+  out.push({ x: p[0].x + n0.x * d, y: p[0].y + n0.y * d })
+  for (let i = 1; i < p.length - 1; i++) {
+    // Vértice interno = escuadra ortogonal: sumar las normales de los dos
+    // segmentos que lo forman da el corrimiento correcto del codo en L.
+    const a = normal(i - 1)
+    const b = normal(i)
+    out.push({ x: p[i].x + (a.x + b.x) * d, y: p[i].y + (a.y + b.y) * d })
+  }
+  const nL = normal(p.length - 2)
+  out.push({ x: p[p.length - 1].x + nL.x * d, y: p[p.length - 1].y + nL.y * d })
+  return out
+}
 
 // Punto de acometida por FUERA de la puerta (meta del A*): `fueraPx` lo aleja
 // perpendicular a la pared hacia el pasillo y `alongPx` lo corre a lo largo de
@@ -451,11 +490,11 @@ function rutearAcometidas(
 
     // Se arma UNA sola traza completa (la IDA): A* del colector hasta apenas
     // afuera de la puerta + cruce RECTO por la puerta hasta la boca. El RETORNO
-    // es esa MISMA traza desplazada ACOM_OFFSET px en diagonal, así ida y retorno
-    // viajan perfectamente paralelas del colector a la zona, sin escalones ni
-    // cruces. Solo su extremo interno se ancla en la cola de retorno real del
-    // serpentín para calzar con el circuito. En obra ambas van juntas por la
-    // misma canaleta bajo el piso; la puerta es solo el marcador del cruce.
+    // es esa MISMA traza desplazada ACOM_OFFSET px PERPENDICULAR a un lado fijo,
+    // así ida y retorno viajan perfectamente paralelas del colector a la zona,
+    // sin escalones ni cruces. Solo su extremo interno se ancla en la cola de
+    // retorno real del serpentín para calzar con el circuito. En obra ambas van
+    // juntas por la misma canaleta bajo el piso; la puerta es solo el marcador.
     const finRetorno = c.retorno[c.retorno.length - 1]
     const entradaIda = puerta
       ? entradaPuerta(puerta, ladoDesdePuerta(zone, puerta), 0, 12)
@@ -467,10 +506,19 @@ function rutearAcometidas(
         ? [...rutaIda, ...tramoPuertaBoca(ladoDesdePuerta(zone, puerta), entradaIda, c.ida[0])]
         : [...rutaIda, c.ida[0]]
       c.acometidaIda = acomIda
-      // Retorno = ida desplazada en diagonal (mismo truco que el montante) y
-      // recorrida al revés (de la zona al colector); el extremo interno se
-      // reemplaza por la cola de retorno real para calzar con el serpentín.
-      const paralela = acomIda.map(p => ({ x: p.x + ACOM_OFFSET, y: p.y + ACOM_OFFSET }))
+      // Retorno = ida desplazada PERPENDICULAR a un lado fijo (paralela real,
+      // nunca cruza), recorrida al revés (de la zona al colector). El lado se
+      // elige según de qué lado del último tramo cae la cola del serpentín, para
+      // que la paralela llegue a la cola sin volver a cruzar la ida; y el extremo
+      // interno se reemplaza por esa cola real para calzar con el circuito.
+      const dedup = dedupe(acomIda)
+      const fin = dedup[dedup.length - 1]
+      const pen = dedup[dedup.length - 2] ?? dedup[0]
+      const dir = { x: Math.sign(fin.x - pen.x), y: Math.sign(fin.y - pen.y) }
+      const normalIzq = { x: -dir.y, y: dir.x }
+      const rel = { x: finRetorno.x - fin.x, y: finRetorno.y - fin.y }
+      const ladoIzq = rel.x * normalIzq.x + rel.y * normalIzq.y >= 0
+      const paralela = desplazarParalelaOrto(acomIda, ladoIzq ? ACOM_OFFSET : -ACOM_OFFSET)
       paralela[paralela.length - 1] = finRetorno
       c.acometidaRetorno = paralela.reverse()
 

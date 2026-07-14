@@ -271,21 +271,30 @@ export const Canvas = () => {
       ctx.fillText(room.name, b.x + 4, b.y + 10);
     });
 
-    // Zonas: el rectángulo (fondo + borde punteado) SOLO se dibuja cuando la
-    // zona está seleccionada. Ya dibujada la serpentina, el rectángulo naranja
-    // ensuciaba la vista sin aportar (el circuito ya muestra el ambiente). Se
-    // sigue seleccionando con un click adentro del área.
+    // Zonas: la selección NO dibuja una caja punteada (ensuciaba la vista sobre
+    // el serpentín, y en celeste se confundía con el caño de retorno). Solo un
+    // tinte muy tenue + escuadras naranjas en las esquinas: marca la zona
+    // seleccionada sin tapar el circuito ni competir con sus colores. El
+    // ambiente ya lo muestra la propia serpentina.
     currentFloorZones.forEach((zone) => {
       const seleccionada = zone.id === selectedElementId;
       const arrastrandoPuerta = zone.id === draggingDoorZoneId;
       if (seleccionada) {
-        ctx.fillStyle = 'rgba(255, 152, 0, 0.08)';
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.06)';
         ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
-        ctx.strokeStyle = '#2196F3';
+        const L = 12; // largo de cada escuadra de esquina (px)
+        const x0 = zone.x, y0 = zone.y, x1 = zone.x + zone.width, y1 = zone.y + zone.height;
+        ctx.strokeStyle = '#E67E22';
         ctx.lineWidth = 2;
-        ctx.setLineDash([6, 4]);
-        ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+        ctx.lineCap = 'round';
         ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(x0, y0 + L); ctx.lineTo(x0, y0); ctx.lineTo(x0 + L, y0);          // sup-izq
+        ctx.moveTo(x1 - L, y0); ctx.lineTo(x1, y0); ctx.lineTo(x1, y0 + L);          // sup-der
+        ctx.moveTo(x1, y1 - L); ctx.lineTo(x1, y1); ctx.lineTo(x1 - L, y1);          // inf-der
+        ctx.moveTo(x0 + L, y1); ctx.lineTo(x0, y1); ctx.lineTo(x0, y1 - L);          // inf-izq
+        ctx.stroke();
+        ctx.lineCap = 'butt';
       }
 
       // Marcador de puerta = por dónde entra/sale la cañería. Es un vano libre
