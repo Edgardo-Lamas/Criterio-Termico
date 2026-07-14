@@ -8,7 +8,7 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, cargaPisoKcalh, puertaDesdePunto, puntoPuerta } from '../../utils/floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, cargaPisoKcalh, crearPuerta, puntoPuerta } from '../../utils/floorHeating';
 import { etiquetasRadiadores } from '../../utils/planilla';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
@@ -288,37 +288,32 @@ export const Canvas = () => {
         ctx.setLineDash([]);
       }
 
-      // Marcador de puerta = por dónde entra/sale la cañería. Es solo un punto
-      // de entrada sobre la pared (vano neutro, SIN sentido de apertura: la
-      // puerta real abre para cualquier lado). Se agarra del tirador y se
-      // arrastra pegado a cualquier borde (ver handleMouseDown / puertaDesdePunto).
+      // Marcador de puerta = por dónde entra/sale la cañería. Es un vano libre
+      // (sin sentido de apertura), que se ubica y rota horizontal/vertical como
+      // un radiador para calzar con la puerta real del plano. Se agarra de la
+      // barra y se arrastra (ver handleMouseDown). Sin tirador redondo: la barra
+      // misma es el elemento y el punto de agarre.
       if (zone.puerta) {
-        const p = puntoPuerta(zone, zone.puerta);
-        const horizontal = zone.puerta.lado === 'arriba' || zone.puerta.lado === 'abajo';
-        const tg = horizontal ? { x: 1, y: 0 } : { x: 0, y: 1 }; // tangente al borde
+        const p = puntoPuerta(zone.puerta);
+        const horizontal = zone.puerta.orientacion === 'horizontal';
+        const tg = horizontal ? { x: 1, y: 0 } : { x: 0, y: 1 }; // eje del vano
         const MEDIA_APERTURA = 20; // vano de 40 px = 0,80 m (puerta estándar)
         const activa = seleccionada || arrastrandoPuerta;
         const colorPuerta = activa ? '#2196F3' : '#6D4C41';
-        // Vano: hueco en la pared (dos jambas), sin hoja ni arco de apertura
+        // Vano: barra en la pared (dos jambas), sin hoja ni arco de apertura
         ctx.strokeStyle = colorPuerta;
-        ctx.lineWidth = 5;
+        ctx.lineWidth = activa ? 6 : 5;
+        ctx.lineCap = 'round';
         ctx.beginPath();
         ctx.moveTo(p.x - tg.x * MEDIA_APERTURA, p.y - tg.y * MEDIA_APERTURA);
         ctx.lineTo(p.x + tg.x * MEDIA_APERTURA, p.y + tg.y * MEDIA_APERTURA);
         ctx.stroke();
-        // Tirador: círculo para agarrar y arrastrar (más grande = más fácil)
-        ctx.fillStyle = colorPuerta;
-        ctx.strokeStyle = '#FFFFFF';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, activa ? 7 : 5.5, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        // Etiqueta chica al costado del tirador
+        ctx.lineCap = 'butt';
+        // Etiqueta chica al costado del vano
         ctx.fillStyle = colorPuerta;
         ctx.font = 'bold 9px Arial';
         ctx.textAlign = horizontal ? 'center' : 'left';
-        ctx.fillText('puerta', horizontal ? p.x : p.x + 10, horizontal ? p.y - 12 : p.y + 3);
+        ctx.fillText('puerta', horizontal ? p.x : p.x + MEDIA_APERTURA + 4, horizontal ? p.y - MEDIA_APERTURA - 4 : p.y + 3);
         ctx.textAlign = 'left';
       }
     });
@@ -915,15 +910,16 @@ export const Canvas = () => {
     const coords = getMouseCoordinates(e);
     setMousePos(coords);
 
-    // Modo puerta: el click marca la puerta sobre el borde más cercano de la
-    // zona. Un click lejos de la zona (>60 px) cancela sin marcar.
+    // Modo puerta: el click ubica la puerta donde clickeaste, con la
+    // orientación de la pared más cercana (después se arrastra y se rota libre).
+    // Un click lejos de la zona (>60 px) cancela sin marcar.
     if (placingDoorZoneId) {
       const zone = floorHeatingZones.find(z => z.id === placingDoorZoneId);
       if (zone) {
         const dx = Math.max(zone.x - coords.x, 0, coords.x - (zone.x + zone.width));
         const dy = Math.max(zone.y - coords.y, 0, coords.y - (zone.y + zone.height));
         if (Math.hypot(dx, dy) <= 60) {
-          updateElement(zone.id, { puerta: puertaDesdePunto(zone, coords) });
+          updateElement(zone.id, { puerta: crearPuerta(zone, coords) });
         }
       }
       setPlacingDoorZoneId(null);
@@ -1032,13 +1028,13 @@ export const Canvas = () => {
 
     // Si la herramienta es "select", intentar seleccionar o arrastrar
     if (tool === 'select') {
-      // Puerta de una zona: se agarra desde su marcador y se arrastra pegada al
-      // borde (como un radiador). Se chequea ANTES que nada porque el marcador
-      // vive sobre el borde de la zona, encima del área seleccionable.
+      // Puerta de una zona: se agarra desde su marcador (la barra) y se arrastra
+      // libre como un radiador. Se chequea ANTES que nada porque el marcador
+      // suele quedar sobre el borde de la zona, encima del área seleccionable.
       const zonaConPuerta = currentFloorZones.find(z => {
         if (!z.puerta) return false;
-        const p = puntoPuerta(z, z.puerta);
-        return Math.hypot(coords.x - p.x, coords.y - p.y) <= 16;
+        const p = puntoPuerta(z.puerta);
+        return Math.hypot(coords.x - p.x, coords.y - p.y) <= 22;
       });
       if (zonaConPuerta) {
         setSelectedElement(zonaConPuerta.id);
@@ -1240,11 +1236,11 @@ export const Canvas = () => {
       return;
     }
 
-    // Si estamos arrastrando la puerta de una zona: se proyecta al borde más
-    // cercano (puede pasar de un lado a otro rodeando la zona) y se actualiza.
+    // Si estamos arrastrando la puerta de una zona: la seguimos libre bajo el
+    // cursor (la orientación se cambia con el botón ⟳ del panel).
     if (draggingDoorZoneId) {
       const zone = floorHeatingZones.find(z => z.id === draggingDoorZoneId);
-      if (zone) updateElement(zone.id, { puerta: puertaDesdePunto(zone, coords) });
+      if (zone?.puerta) updateElement(zone.id, { puerta: { ...zone.puerta, x: coords.x, y: coords.y } });
       return;
     }
 
@@ -1371,11 +1367,11 @@ export const Canvas = () => {
     if (isPanning) return 'grabbing';
     if (tool === 'select' && (isDragging || draggingDoorZoneId)) return 'grabbing';
     if (tool === 'select') {
-      // El tirador de la puerta también se agarra
+      // El marcador de la puerta también se agarra
       const overPuerta = currentFloorZones.some(z => {
         if (!z.puerta) return false;
-        const p = puntoPuerta(z, z.puerta);
-        return Math.hypot(mousePos.x - p.x, mousePos.y - p.y) <= 16;
+        const p = puntoPuerta(z.puerta);
+        return Math.hypot(mousePos.x - p.x, mousePos.y - p.y) <= 22;
       });
       // Verificar si el mouse está sobre algún elemento
       const overElement = overPuerta ||
@@ -1680,11 +1676,33 @@ export const Canvas = () => {
                 fontWeight: 'bold',
               }}
               title={selectedZone.puerta
-                ? 'La puerta ya está: arrastrá su tirador para acomodarla donde entra la cañería'
-                : 'Marcar la puerta: click en el borde de la zona por donde entra la cañería (después la podés arrastrar)'}
+                ? 'La puerta ya está: arrastrala libre para acomodarla donde entra la cañería'
+                : 'Marcar la puerta: click cerca de la zona por donde entra la cañería (después la arrastrás y rotás libre)'}
             >
               🚪 {selectedZone.puerta ? 'Mover' : 'Puerta'}
             </button>
+            {selectedZone.puerta && (
+              <button
+                onClick={() => {
+                  const p = selectedZone.puerta!;
+                  updateElement(selectedZone.id, {
+                    puerta: { ...p, orientacion: p.orientacion === 'horizontal' ? 'vertical' : 'horizontal' },
+                  });
+                }}
+                style={{
+                  padding: '2px 6px',
+                  borderRadius: '3px',
+                  border: '1px solid #6D4C41',
+                  background: 'white',
+                  color: '#6D4C41',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+                title="Rotar la puerta (horizontal / vertical), como un radiador"
+              >
+                ⟳
+              </button>
+            )}
             {selectedZone.puerta && (
               <button
                 onClick={() => {

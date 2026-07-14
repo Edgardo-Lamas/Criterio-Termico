@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
-import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, emisionKcalhM2, potenciaZonaKcalh, puertaDesdePunto, cargaPisoKcalh } from './floorHeating';
+import { PIXELS_PER_METER, calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, emisionKcalhM2, potenciaZonaKcalh, puertaEnLado, cargaPisoKcalh } from './floorHeating';
 import type { CanvasPoint } from './floorHeating';
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { UnderfloorCalculationOutput } from '../../../lib/pisoRadiante/types';
@@ -142,29 +142,24 @@ describe('rutearAcometidas — criterio: no atravesar habitaciones ajenas', () =
 });
 
 describe('puerta de la zona — la acometida entra por la puerta real', () => {
-  it('con puerta marcada, ida y retorno pasan por el vano (±4 px sobre el borde)', () => {
+  it('con puerta marcada, ida y retorno pasan JUNTAS por el vano (paralelas, sin cruzarse)', () => {
     // Zona 4×3 m con puerta en el centro del lado de abajo; colector abajo a la izquierda
-    const z: FloorHeatingZone = { ...zona('z1', 4, 2, 4, 3), puerta: { lado: 'abajo', t: 0.5 } };
+    const base = zona('z1', 4, 2, 4, 3);
+    const z: FloorHeatingZone = { ...base, puerta: puertaEnLado(base, 'abajo') };
     const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 7)]);
     expect(circuits.length).toBeGreaterThan(0);
 
-    // Punto de la puerta apenas afuera del borde: (x centro, y borde inferior + 12)
+    // Punto de la puerta apenas afuera del borde: (x centro, y borde inferior + 12).
+    // Ida y retorno corren paralelas separadas ACOM_OFFSET (4 px), así que ambas
+    // pasan por el vano con una tolerancia chica (< 6 px).
     const puertaX = z.x + z.width * 0.5;
     const puertaY = z.y + z.height + 12;
     for (const c of circuits) {
       const pasaPorPuerta = (pts: { x: number; y: number }[]) =>
-        pts.some(p => Math.abs(p.y - puertaY) < 1 && Math.abs(p.x - puertaX) <= 15);
+        pts.some(p => Math.abs(p.y - puertaY) < 6 && Math.abs(p.x - puertaX) <= 15);
       expect(pasaPorPuerta(c.acometidaIda)).toBe(true);
       expect(pasaPorPuerta(c.acometidaRetorno)).toBe(true);
     }
-  });
-
-  it('puertaDesdePunto proyecta el click al borde más cercano', () => {
-    const z = zona('z1', 2, 2, 4, 3); // px: x=100, y=100, w=200, h=150
-    // Click apenas abajo del borde inferior, a 3/4 del ancho
-    expect(puertaDesdePunto(z, { x: 250, y: 260 })).toEqual({ lado: 'abajo', t: 0.75 });
-    // Click a la izquierda, a mitad de altura
-    expect(puertaDesdePunto(z, { x: 90, y: 175 })).toEqual({ lado: 'izquierda', t: 0.5 });
   });
 });
 

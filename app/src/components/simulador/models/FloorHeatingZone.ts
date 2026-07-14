@@ -1,11 +1,18 @@
 import type { ElementBase } from './ElementBase';
 
-// Lado del rectángulo de la zona donde está la puerta y fracción t (0..1)
-// a lo largo de ese lado. En obra la acometida entra por la puerta.
+// Pared del rectángulo de la zona que la acometida atraviesa. Ya no se guarda
+// en el modelo: se INFIERE de la puerta (ver ladoDesdePuerta), pero el tipo se
+// sigue usando en el ruteo de las acometidas.
 export type LadoZona = 'arriba' | 'abajo' | 'izquierda' | 'derecha';
+
+// Puerta de la zona = por dónde entran/salen las acometidas. Se ubica LIBRE
+// sobre el plano (posición absoluta en px del canvas) y se rota horizontal o
+// vertical, igual que un radiador, para calzar con la puerta real del plano.
+export type OrientacionPuerta = 'horizontal' | 'vertical';
 export interface PuertaZona {
-  lado: LadoZona;
-  t: number; // fracción 0..1 a lo largo del lado
+  x: number;              // px absolutos del canvas
+  y: number;
+  orientacion: OrientacionPuerta;
 }
 
 // Zona de piso radiante dibujada sobre el plano. El serpentín se genera

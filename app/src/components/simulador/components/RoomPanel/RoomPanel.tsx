@@ -7,7 +7,7 @@ import {
   calculateBoilerPower,
   kcalToKw
 } from '../../utils/thermalCalculator';
-import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT } from '../../utils/floorHeating';
+import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT, puertaEnLado } from '../../utils/floorHeating';
 import type { CalidadAislacion } from '../../utils/floorHeating';
 import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
@@ -136,7 +136,7 @@ export const RoomPanel: React.FC = () => {
           // Si el ambiente tiene una zona de piso vinculada, setear la puerta
           if (amb.puertaLado) {
             const zona = floorHeatingZones.find(z => z.roomId === existente.id);
-            if (zona) updateElement(zona.id, { puerta: { lado: amb.puertaLado, t: 0.5 } });
+            if (zona) updateElement(zona.id, { puerta: puertaEnLado(zona, amb.puertaLado) });
           }
         } else {
           const nueva: Room = {

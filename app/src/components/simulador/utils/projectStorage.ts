@@ -2,8 +2,23 @@ import type { Radiator } from '../models/Radiator';
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { Manifold } from '../models/Manifold';
-import type { FloorHeatingZone } from '../models/FloorHeatingZone';
+import type { FloorHeatingZone, LadoZona } from '../models/FloorHeatingZone';
 import type { Room } from '../models/Room';
+import { puertaEnLado } from './floorHeating';
+
+// Migra puertas guardadas con el modelo viejo ({ lado, t }) al nuevo (posición
+// libre { x, y, orientacion }). Sin esto, un proyecto viejo cargaría una puerta
+// sin coordenadas y el ruteo/dibujo daría NaN.
+function migrarPuertas(zones: FloorHeatingZone[] | undefined): FloorHeatingZone[] | undefined {
+  if (!zones) return zones;
+  return zones.map(z => {
+    const p = z.puerta as (typeof z.puerta & { lado?: LadoZona; t?: number }) | undefined;
+    if (p && 'lado' in p && p.lado && p.x === undefined) {
+      return { ...z, puerta: puertaEnLado(z, p.lado, p.t ?? 0.5) };
+    }
+    return z;
+  });
+}
 
 export interface Project {
   projectName: string;
@@ -62,6 +77,7 @@ export const loadFromLocalStorage = (): Project | null => {
     if (!saved) return null;
 
     const project: Project = JSON.parse(saved);
+    project.floorHeatingZones = migrarPuertas(project.floorHeatingZones);
     return project;
   } catch {
     return null;
@@ -117,6 +133,7 @@ export const loadProjectFromFile = (file: File): Promise<Project> => {
         if (!project.radiators || !project.boilers || !project.pipes) {
           throw new Error('Archivo de proyecto inválido');
         }
+        project.floorHeatingZones = migrarPuertas(project.floorHeatingZones);
         resolve(project);
       } catch (error) {
         reject(error);
@@ -162,6 +179,7 @@ export const loadAutoSave = (): Project | null => {
     if (!saved) return null;
 
     const project: Project = JSON.parse(saved);
+    project.floorHeatingZones = migrarPuertas(project.floorHeatingZones);
     return project;
   } catch {
     return null;
