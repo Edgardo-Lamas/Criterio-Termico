@@ -25,6 +25,9 @@ export interface FloorHeatingZone extends ElementBase {
   puerta?: PuertaZona;  // por dónde entran las acometidas (sin esto: borde más cercano)
   width: number;   // px del canvas
   height: number;  // px del canvas
-  pasoCm: 15 | 20; // separación entre tubos (ver UnderfloorService)
   floor?: 'ground' | 'first';
+  // El paso NO es un campo de la zona: es fijo en 15 cm para toda la
+  // instalación (ver PASO_CM en utils/floorHeating). Los proyectos viejos que
+  // tengan `pasoCm: 20` guardado lo ignoran y se recalculan a 15 — cambia el
+  // metraje de esas zonas (5 → 7 m/m²), que es el efecto buscado.
 }

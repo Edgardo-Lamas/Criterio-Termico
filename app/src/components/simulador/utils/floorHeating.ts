@@ -23,19 +23,37 @@ export const MAX_CIRCUIT_LENGTH_M = 120;
 // Los colectores comerciales llegan a 12 vías, pero el criterio de obra es 7.
 export const MAX_CIRCUITOS_POR_COLECTOR = 7;
 
-// Densidad de tubería según paso (misma tabla que UnderfloorService):
-// la regla de obra — a paso 20 cm entran 5 m de tubo por m², a paso 15 son 6,7.
-// La longitud presupuestada usa área × densidad (como calculan los fabricantes),
-// NO la geometría del dibujo, que descuenta margen perimetral y queda corta.
-export const DENSIDAD_POR_PASO: Record<15 | 20, number> = { 15: 6.7, 20: 5.0 };
+// Paso único de diseño: 15 cm con PE-X Ø20. El instalador no lo elige — aplica
+// la regla y si el resultado da, es suficiente. Un paso más fino no sube el
+// techo del piso (lo pone la superficie a 29°C, ver emisionKcalhM2): solo baja
+// la temperatura de agua necesaria, y entre 15 y 20 son un par de grados
+// porque manda la resistencia del mortero y el solado. No justifica una
+// decisión más en la pantalla.
+export const PASO_CM = 15 as const;
+
+// Regla de obra: a paso 15 entran 7 m de tubo por m². (1/0,15 = 6,7 es la
+// retícula ideal; los 7 agregan las curvas y el retorno.) La longitud
+// presupuestada usa área × densidad —como calculan los fabricantes—, NO la
+// geometría del dibujo, que descuenta margen perimetral y queda corta.
+//
+// Los metros NO entran en el cálculo de potencia: la emisión sale de la
+// superficie del piso, no del caño que hay adentro. El largo de circuito es un
+// límite hidráulico, no térmico.
+export const DENSIDAD_M_POR_M2 = 7.0;
 
 // Emisión del piso según la temperatura de impulsión del agua. Suelo pétreo,
 // ambiente de diseño 20°C, salto ida-retorno 5°C → temperatura media del agua
 // = impulsión − 2,5°C. Característica lineal aproximada q ≈ 4,5 W/m²·K sobre
-// el salto agua-ambiente, con tope 100 W/m² (piso a 29°C máx, EN 1264):
+// el salto agua-ambiente, con tope 100 W/m²:
 //   35°C → ~56 W/m² ≈ 48 kcal/h·m²
 //   40°C → ~79 W/m² ≈ 68 kcal/h·m²
 //   45°C → 100 W/m² (tope) ≈ 86 kcal/h·m²
+//
+// El tope no lo pone el agua ni el caño: lo pone que la superficie del piso no
+// puede pasar de ~29°C sin dejar de ser pisable. Eso no es una convención
+// importada — es la planta del pie, y es igual acá que en cualquier lado.
+// Por eso ni achicar el paso ni sumar metros lo mueven: solo bajan la
+// temperatura de agua necesaria para llegar al mismo techo.
 export const TEMPERATURAS_IMPULSION = [35, 40, 45] as const;
 export type TempImpulsion = (typeof TEMPERATURAS_IMPULSION)[number];
 export const TEMP_IMPULSION_DEFAULT: TempImpulsion = 45;
@@ -46,23 +64,99 @@ export function emisionKcalhM2(impulsionC: TempImpulsion): number {
   return Math.round(wM2 * 0.86); // 1 W = 0,86 kcal/h
 }
 
-// ── Carga de diseño ─────────────────────────────────────────────────────────
-// La carga de un ambiente es su pérdida de calor: depende de la envolvente,
-// NO del emisor que se le cuelgue. Por eso hay una sola fuente de verdad para
-// todo el simulador —calculateRoomPower(), el mismo motor que usa la
-// Calculadora de Potencia— y el piso radiante se mide contra ella igual que
-// un radiador.
+// ── Carga de diseño del piso ────────────────────────────────────────────────
+// El piso NO se mide contra calculateRoomPower(). Esa función da la potencia
+// de RADIADOR del ambiente, que es otra cosa, y compararla con la emisión del
+// piso rompía el simulador: de las 144 configuraciones posibles (factor ×
+// altura × pared exterior × ventanas), el piso daba insuficiente en las 144.
+// Con factor 50 la pieza necesitaba 1,72 m de techo para aprobar. Nunca daba
+// verde en ningún caso.
 //
-// Antes existía acá una segunda carga para piso (CARGA_PISO_WM2: 60/80/100
-// W/m² según aislación) tomada del rango de vivienda de EN 1264. Se eliminó:
-// ese rango asume construcción europea aislada y subestima ~2x la pérdida de
-// una vivienda argentina de nivel único con losa sin aislar (ver
-// cap3-perdidas: solo el techo se lleva 30-40% del total). Su efecto real era
-// que el piso radiante nunca podía dar insuficiente.
+// El PR #14 se apoyó en la premisa de que "la carga depende de la envolvente,
+// NO del emisor que se le cuelgue". Suena obvio y es falsa: el emisor fija el
+// perfil de temperaturas del aire y la envolvente pierde según ese perfil.
+// Para el MISMO ambiente, el piso pide menos que un radiador, por tres motivos
+// medibles:
 //
-// El límite físico del piso (~100 W/m², superficie a 29°C máx — EN 1264) sigue
-// vivo en emisionKcalhM2(). Que ese techo quede por debajo de la carga es un
-// resultado legítimo: significa que el piso solo no alcanza para ese ambiente.
+//  1. Zona ocupada. El piso trabaja sobre los primeros ~1,8 m y no genera la
+//     convección que llevaría calor al techo. Multiplicar por la altura le
+//     cobra un aire que no tiene que calentar — y castiga al piso justo en
+//     techos altos, que es donde el simulador lo recomienda (ver
+//     consideraciones: techo >3 m no lleva radiadores). Por eso la carga del
+//     piso es por m² y NO escala con la altura.
+//  2. Temperatura operativa. El intercambio del piso es ~65% radiación. Con el
+//     piso a 28°C la temperatura radiante media sube, y el confort se logra
+//     con el aire ~6°C más bajo que con radiadores. La envolvente pierde según
+//     el aire, no según el confort: ~27% menos.
+//  3. Sin estratificación. Con radiadores el aire caliente apoya ~5°C de más
+//     contra el techo, que en nivel único sin aislar se lleva 30-40% de la
+//     pérdida (cap3-perdidas). Con piso el perfil queda plano: ~31% menos.
+//
+// Los tres explican 1,45x. El resto hasta 2,3x es margen de intermitencia que
+// el factor volumétrico trae por ser regla de dimensionamiento de radiador
+// (el radiador arranca la casa fría y tiene que recuperarla rápido; el piso
+// trabaja continuo y solo iguala la pérdida en régimen).
+//
+// CALIBRACIÓN (Edgardo, 70+ obras): a 40°C de impulsión el piso entrega 79
+// W/m² y en casa bien aislada sobraba, al punto de bajar la impulsión. Eso
+// acota la pérdida real y valida este rango — que es el mismo que el PR #14
+// borró por parecer un fudge. No era un fudge: era el dato de obra, sin la
+// justificación que ahora está escrita arriba.
+//
+// El nivel de aislación ya lo elige el usuario con thermalFactor (40/50/60),
+// así que se reusa esa entrada en vez de pedirle un dato más.
+export const CARGA_PISO_WM2: Record<40 | 50 | 60, number> = {
+  40: 60,  // bien aislada
+  50: 80,  // media (default)
+  60: 100, // mal aislada — la mayoría del parque argentino
+};
+
+// OJO con el tope: 100 W/m² es a la vez la carga de "mal aislada" y el máximo
+// que el piso entrega a 45°C. En ese caso la cobertura da exactamente 100% —
+// es correcto (el piso solo llega justo), pero por eso el rango NO puede ser
+// 100 fijo para todas: compararía un número contra sí mismo y el cálculo
+// dejaría de discriminar.
+export function cargaPisoKcalh(room: Pick<Room, 'area' | 'thermalFactor'>): number {
+  return Math.round(room.area * CARGA_PISO_WM2[room.thermalFactor] * 0.86);
+}
+
+// El límite físico del piso (~100 W/m²: la superficie no pasa de 29°C o deja
+// de ser pisable) sigue vivo en emisionKcalhM2(). Que ese techo quede por
+// debajo de la carga es un resultado legítimo — significa que el piso solo no
+// alcanza — pero ahora se compara contra la vara correcta.
+
+// Vara de diseño del ambiente según lo que se le cuelga. Existe porque la
+// carga NO es independiente del emisor (ver arriba), y hay dos varas legítimas:
+//
+//   piso, sin radiadores → cargaPisoKcalh()      (por m², perfil de radiación)
+//   todo lo demás        → calculateRoomPower()  (volumétrica, con estratificación)
+//
+// Solo el piso puro cambia de vara, y por eso hacen falta los DOS flags: una
+// habitación sin ningún emisor tiene que seguir mostrando la carga de radiador,
+// que es el default de la obra — si mirara `!tieneRadiadores` a secas, una
+// pieza vacía caería en la vara del piso y mostraría un número que no le
+// corresponde.
+//
+// El mixto usa la vara del radiador a propósito: apenas hay un radiador en la
+// pieza aparece la convección y con ella la estratificación, así que el perfil
+// deja de ser el del piso. Además es el lado conservador — no afloja nada de
+// lo que hoy funciona con radiadores, que es el 90% de la obra. En obra el
+// mixto casi no se usa (doble circuito = doble costo).
+export function cargaDeDisenoKcalh(
+  room: Pick<Room, 'area' | 'height' | 'thermalFactor' | 'hasExteriorWall' | 'windowsLevel'>,
+  tieneRadiadores: boolean,
+  tienePiso: boolean
+): number {
+  const soloPiso = tienePiso && !tieneRadiadores;
+  return soloPiso ? cargaPisoKcalh(room) : calculateRoomPower(room);
+}
+
+// Impulsión mínima que cubre una carga dada. Sirve para el caso sano —cuando
+// el piso sobra— porque ahí la pregunta del instalador no es "¿alcanza?" sino
+// "¿hasta dónde puedo bajar el agua?". Devuelve null si ni 45°C alcanzan.
+export function impulsionMinimaParaCarga(cargaKcalhM2: number): TempImpulsion | null {
+  return TEMPERATURAS_IMPULSION.find(t => emisionKcalhM2(t) >= cargaKcalhM2) ?? null;
+}
 
 // Cobertura del piso sobre la carga del ambiente. Devuelve el veredicto en
 // crudo para que la UI, el PDF y el presupuesto cuenten todos lo mismo.
@@ -271,7 +365,7 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
 // el panel, y la carga térmica calculada se reparte entre los circuitos.
 export interface DatosReales {
   areaM2: number          // área real de la habitación (del panel)
-  cargaKcalh: number | null // requerido del ambiente (calculateRoomPower)
+  cargaKcalh: number | null // carga del ambiente para piso (cargaPisoKcalh)
 }
 
 export function calcularCircuitosZona(
@@ -306,7 +400,7 @@ export function calcularCircuitosZona(
 
       let serpentin
       try {
-        serpentin = generarSerpentin(anchoM, altoM, zone.pasoCm, 10, boca)
+        serpentin = generarSerpentin(anchoM, altoM, PASO_CM, 10, boca)
       } catch {
         // Franja demasiado chica para trazar: la zona entera no es viable
         return []
@@ -329,7 +423,7 @@ export function calcularCircuitosZona(
       // Longitud presupuestada por densidad (regla de obra), no por el dibujo.
       // Con habitación vinculada, el área de la franja se escala al área REAL.
       const areaM2 = redondear(anchoM * altoM * escala)
-      const longitudSerpentin = redondear(areaM2 * DENSIDAD_POR_PASO[zone.pasoCm])
+      const longitudSerpentin = redondear(areaM2 * DENSIDAD_M_POR_M2)
       const longitudTotal = redondear(longitudSerpentin + longitudAcometida)
       if (longitudTotal > MAX_CIRCUIT_LENGTH_M) algunoExcede = true
 
@@ -345,7 +439,7 @@ export function calcularCircuitosZona(
         retorno,
         acometidaIda,
         acometidaRetorno,
-        pasoCm: zone.pasoCm,
+        pasoCm: PASO_CM,
         areaM2,
         potenciaKcalh: Math.round(areaM2 * emisionKcalhM2(tempImpulsionC)),
         // Carga de diseño de la habitación repartida en partes iguales
@@ -563,7 +657,7 @@ export function calcularCircuitosPlanta(
     // del ambiente entre los circuitos
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined
     const real: DatosReales | null = room
-      ? { areaM2: room.area, cargaKcalh: calculateRoomPower(room) }
+      ? { areaM2: room.area, cargaKcalh: cargaDeDisenoKcalh(room, room.radiatorIds.length > 0, true) }
       : null
     const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC, real)
 

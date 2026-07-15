@@ -8,7 +8,7 @@ import {
 } from './hydraulicValidation';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { PIXELS_PER_METER } from './floorHeating';
+import { PIXELS_PER_METER, PASO_CM } from './floorHeating';
 import type { FloorHeatingCircuit } from './floorHeating';
 import type { PipeSegment } from '../models/PipeSegment';
 import type { Radiator } from '../models/Radiator';
@@ -27,13 +27,13 @@ function pisoBudget(longitudTotal: number, cargaKcalh: number, montanteM = 4): F
     numero: 1,
     colectorNumero: null,
     etiqueta: 'C1',
+    pasoCm: PASO_CM,
     cargaKcalh,
     patron: 'espiral',
     ida: [],
     retorno: [],
     acometidaIda: [],
     acometidaRetorno: [],
-    pasoCm: 20,
     areaM2: 20,
     potenciaKcalh: cargaKcalh,
     longitudSerpentin: longitudTotal,
@@ -153,8 +153,7 @@ describe('integración: validación sobre el pipeline real de piso radiante', ()
     return {
       id, type: 'floor-heating-zone', name: `Zona ${id}`,
       x: xM * PIXELS_PER_METER, y: yM * PIXELS_PER_METER,
-      width: anchoM * PIXELS_PER_METER, height: altoM * PIXELS_PER_METER,
-      pasoCm: 20, floor: 'ground', roomId,
+      width: anchoM * PIXELS_PER_METER, height: altoM * PIXELS_PER_METER, floor: 'ground', roomId,
     };
   }
   const manifold: Manifold = { id: 'col1', type: 'manifold', x: 0, y: 0, width: 60, height: 24, floor: 'ground' };

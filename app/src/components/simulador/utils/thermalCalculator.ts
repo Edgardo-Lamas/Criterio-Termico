@@ -77,21 +77,40 @@ export const CALDERA_MIN_KW = 24;
 export const CALDERA_MIN_KCALH = CALDERA_MIN_KW * 860; // 20.640 kcal/h
 
 /**
- * Calcula la potencia de caldera necesaria a partir de los emisores instalados
- * (radiadores + piso radiante), no de la pérdida de los ambientes: con el
- * elemento valuado en 200 kcal/h —valor de obra, ver autoLayout— la potencia
- * instalada no viene inflada, así que es lo que la caldera tiene que alimentar.
+ * Calcula la potencia de caldera a partir de la CARGA TÉRMICA de los ambientes
+ * calefaccionados, que es lo único que la caldera tiene que cubrir.
  *
- * La caldera trabaja al 80% de su capacidad → Caldera = Emisores ÷ 0,80,
- * con piso en la más chica que existe (24 kW).
+ * El 80% es un criterio de equipo —no exigir la caldera al máximo— y se aplica
+ * sobre el total de la instalación, no emisor por emisor:
+ *
+ *   Caldera = Σ carga térmica de los ambientes ÷ 0,80, con piso en 24 kW.
+ *
+ * NO se calcula desde los emisores instalados. Esa versión venía de abril
+ * (commit 2ee4568, "Potencia Caldera = Potencia Total Radiadores ÷ 0.80") y
+ * colgaba la regla del 80% del número que había a mano. El emisor es el medio
+ * por el que el calor entra al ambiente, no la medida de cuánto calor hace
+ * falta, así que dimensionar desde ahí propagaba el error en vez de exponerlo:
+ * si el instalador ponía radiadores de menos, la caldera se achicaba sola. Y
+ * con piso radiante era peor —el piso topea en ~100 W/m² por la temperatura de
+ * la superficie— así que la caldera terminaba dimensionada contra el tope
+ * físico del piso y no contra lo que la casa pierde.
+ *
+ * Casi nunca se notó porque el mínimo comercial de 24 kW tapa el error en casa
+ * chica; recién en una casa grande el cálculo supera los 20.640 y decide.
+ *
+ * `rooms` son los ambientes CALEFACCIONADOS — el llamador filtra, porque el
+ * piso vive en las zonas del canvas y esta función no las conoce. Una
+ * habitación sin nada colgado no se calefacciona y no le demanda nada a la
+ * caldera.
  */
 export function calculateBoilerPower(
-  radiators: Radiator[],
-  pisoRadianteKcalh = 0
+  rooms: Room[],
+  radiators: Radiator[] = []
 ): {
+  /** Carga térmica de los ambientes calefaccionados */
+  totalCargaTermica: number;
   totalRadiatorPower: number;
-  totalEmittersPower: number;
-  /** Lo que pide la instalación (emisores ÷ 0,80), sin piso comercial */
+  /** Lo que pide la instalación (carga ÷ 0,80), sin piso comercial */
   calculatedPower: number;
   /** La caldera a instalar: nunca menos que la más chica del mercado */
   recommendedBoilerPower: number;
@@ -99,15 +118,15 @@ export function calculateBoilerPower(
   limitadoPorMinimoComercial: boolean;
   workingPercentage: number;
 } {
+  const totalCargaTermica = rooms.reduce((sum, room) => sum + calculateRoomPower(room), 0);
   const totalRadiatorPower = radiators.reduce((sum, rad) => sum + rad.power, 0);
-  const totalEmittersPower = totalRadiatorPower + Math.max(0, pisoRadianteKcalh);
 
-  const calculatedPower = Math.round(totalEmittersPower / 0.80);
+  const calculatedPower = Math.round(totalCargaTermica / 0.80);
   const recommendedBoilerPower = Math.max(calculatedPower, CALDERA_MIN_KCALH);
 
   return {
+    totalCargaTermica,
     totalRadiatorPower,
-    totalEmittersPower,
     calculatedPower,
     recommendedBoilerPower,
     limitadoPorMinimoComercial: calculatedPower < CALDERA_MIN_KCALH,

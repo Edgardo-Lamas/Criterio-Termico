@@ -151,64 +151,73 @@ describe('isPowerSufficient', () => {
 })
 
 describe('calculateBoilerPower', () => {
-    it('dimensiona los emisores al 80% de capacidad', () => {
-        const radiators = [makeRadiator({ power: 1000 }), makeRadiator({ power: 1000 })]
-        const result = calculateBoilerPower(radiators)
-        expect(result.totalRadiatorPower).toBe(2000)
-        expect(result.calculatedPower).toBe(2500) // 2000 / 0.80
+    // Ambiente de 10 m² × 2,5 m × 50 = 1.250 kcal/h de carga, sin ajustes
+    const ambiente = (extra: Partial<Room> = {}): Room => makeRoom({
+        area: 10, height: 2.5, thermalFactor: 50,
+        hasExteriorWall: false, windowsLevel: 'sin-ventanas',
+        radiatorIds: ['rad1'], ...extra,
+    })
+
+    it('dimensiona la CARGA TÉRMICA al 80% de capacidad', () => {
+        const result = calculateBoilerPower([ambiente(), ambiente()])
+        expect(result.totalCargaTermica).toBe(2500)   // 2 × 1.250
+        expect(result.calculatedPower).toBe(3125)     // 2.500 / 0,80
         expect(result.workingPercentage).toBe(80)
     })
 
+    it('los emisores NO determinan la caldera: es la carga la que manda', () => {
+        // Regresión del criterio viejo (commit 2ee4568): la caldera salía de
+        // los radiadores instalados, así que poner radiadores de menos la
+        // achicaba sola. El emisor es el medio, no la medida.
+        const rooms = [ambiente(), ambiente()]
+        const conRadiadoresDeMenos = calculateBoilerPower(rooms, [makeRadiator({ power: 500 })])
+        const conRadiadoresDeMas = calculateBoilerPower(rooms, [makeRadiator({ power: 9000 })])
+        expect(conRadiadoresDeMenos.calculatedPower).toBe(conRadiadoresDeMas.calculatedPower)
+        expect(conRadiadoresDeMenos.calculatedPower).toBe(3125)
+    })
+
     it('nunca recomienda menos que la caldera más chica del mercado (24 kW)', () => {
-        // Una instalación chica no hace aparecer una caldera de 2.500 kcal/h:
-        // abajo de 24 kW no hay producto.
-        const result = calculateBoilerPower([makeRadiator({ power: 2000 })])
-        expect(result.calculatedPower).toBe(2500)
+        const result = calculateBoilerPower([ambiente()])
+        expect(result.calculatedPower).toBe(1563)     // 1.250 / 0,80
         expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH) // 20.640
         expect(result.limitadoPorMinimoComercial).toBe(true)
         expect(kcalToKw(result.recommendedBoilerPower)).toBe(24)
     })
 
-    it('sin emisores tampoco: era el bug de la caldera de juguete', () => {
+    it('sin ambientes calefaccionados tampoco: era el bug de la caldera de juguete', () => {
         const result = calculateBoilerPower([])
-        expect(result.totalEmittersPower).toBe(0)
+        expect(result.totalCargaTermica).toBe(0)
         expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
     })
 
-    it('el piso radiante cuenta como emisor (antes lo ignoraba)', () => {
-        // Caso de la captura: sin radiadores, un piso de 731 kcal/h.
-        // Daba 914 kcal/h de caldera — no existe tal producto.
-        const result = calculateBoilerPower([], 731)
-        expect(result.totalEmittersPower).toBe(731)
-        expect(result.calculatedPower).toBe(914)
+    it('una casa entera de piso radiante no dimensiona contra el tope del piso', () => {
+        // Antes la caldera seguía a los emisores, y el piso topea en ~100 W/m²
+        // por la temperatura de la superficie: la caldera terminaba dimensionada
+        // contra ese tope y no contra lo que la casa pierde. Sin radiadores, la
+        // carga sigue mandando igual.
+        const rooms = Array.from({ length: 8 }, () => ambiente({ radiatorIds: [] }))
+        const result = calculateBoilerPower(rooms, [])
+        expect(result.totalCargaTermica).toBe(10000)  // 8 × 1.250
+        expect(result.calculatedPower).toBe(12500)
+    })
+
+    it('casa promedio: entra en una de 24 kW', () => {
+        // 16.500 de carga ÷ 0,80 = 20.625, apenas abajo de 20.640
+        const rooms = Array.from({ length: 13 }, () => ambiente({ area: 10.15 }))
+        const result = calculateBoilerPower(rooms)
         expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
         expect(result.limitadoPorMinimoComercial).toBe(true)
     })
 
-    it('casa promedio: 80 elementos de 500 entran en una de 24 kW', () => {
-        // 80 × 200 kcal/h = 16.000 instalados → 20.000 pedidos.
-        // Una de 24 kW (20.640) al 80% cubre 16.512: entra.
-        const radiators = [makeRadiator({ power: 16000 })]
-        const result = calculateBoilerPower(radiators)
-        expect(result.calculatedPower).toBe(20000)
-        expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
-        expect(result.limitadoPorMinimoComercial).toBe(true)
-    })
-
-    it('casa grande: 120 elementos se pasan y ahí el cálculo sí elige', () => {
-        // 120 × 200 = 24.000 instalados ÷ 0,80 = 30.000 → ~35 kW
-        const radiators = [makeRadiator({ power: 24000 })]
-        const result = calculateBoilerPower(radiators)
-        expect(result.calculatedPower).toBe(30000)
-        expect(result.recommendedBoilerPower).toBe(30000)
+    it('casa grande: el cálculo se pasa del mínimo y ahí sí elige', () => {
+        // 20 ambientes × 1.250 = 25.000 ÷ 0,80 = 31.250 → ~36 kW
+        const rooms = Array.from({ length: 20 }, () => ambiente())
+        const result = calculateBoilerPower(rooms)
+        expect(result.totalCargaTermica).toBe(25000)
+        expect(result.calculatedPower).toBe(31250)
+        expect(result.recommendedBoilerPower).toBe(31250)
         expect(result.limitadoPorMinimoComercial).toBe(false)
-        expect(kcalToKw(result.recommendedBoilerPower)).toBeCloseTo(34.9, 1)
-    })
-
-    it('radiadores y piso se suman para elegir la caldera', () => {
-        const result = calculateBoilerPower([makeRadiator({ power: 14000 })], 10000)
-        expect(result.totalEmittersPower).toBe(24000)
-        expect(result.recommendedBoilerPower).toBe(30000)
+        expect(kcalToKw(result.recommendedBoilerPower)).toBeCloseTo(36.3, 1)
     })
 })
 
