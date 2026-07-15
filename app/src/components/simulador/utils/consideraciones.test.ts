@@ -104,9 +104,38 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
     expect(consGrande.some(c => c.titulo.includes('Equilibrado'))).toBe(true);
   });
 
+  it('techo de más de 3 m con radiadores es crítica: el emisor está mal elegido', () => {
+    const r = room('r1', 20, { height: 3.5, radiatorIds: ['rad1'] });
+    const cons = generarConsideraciones({
+      rooms: [r], radiators: [radiador('rad1', 5000)], floorHeating: null,
+    });
+    const critica = cons.find(c => c.titulo.includes('Techo alto'));
+    expect(critica?.nivel).toBe('critica');
+    expect(critica?.titulo).toContain('3.5 m');
+    // Tiene que mandar a piso radiante, no a agregar elementos
+    expect(critica?.detalle).toContain('piso radiante');
+    expect(critica?.detalle).toContain('estratifica');
+  });
+
+  it('el techo alto no molesta si el emisor es piso radiante', () => {
+    const r = room('r1', 20, { height: 4 });
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
+    expect(cons.some(c => c.titulo.includes('Techo alto'))).toBe(false);
+  });
+
+  it('exactamente 3 m todavía admite radiadores (el límite no incluye el borde)', () => {
+    const r = room('r1', 20, { height: 3, radiatorIds: ['rad1'] });
+    const cons = generarConsideraciones({
+      rooms: [r], radiators: [radiador('rad1', 5000)], floorHeating: null,
+    });
+    expect(cons.some(c => c.titulo.includes('Techo alto'))).toBe(false);
+  });
+
   it('zona con cobertura insuficiente genera una crítica y va primera', () => {
-    // Aislación mala: requerido 1.290 × 1,15 > entrega 1.290 → insuficiente
-    const r = room('r1', 15, { aislacion: 'mala' });
+    // 15 m² × 2,5 × 50 = 1.875 requerido > 1.290 que entrega el piso a 45°C
+    const r = room('r1', 15);
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
     const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
@@ -131,7 +160,7 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
   });
 
   it('la cobertura insuficiente no empuja a un sistema mixto hidráulico', () => {
-    const r = room('r1', 15, { aislacion: 'mala' });
+    const r = room('r1', 15);
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
     const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
@@ -188,7 +217,7 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
   });
 
   it('el orden es críticas → atención → recomendaciones', () => {
-    const r = room('r1', 15, { aislacion: 'mala', thermalFactor: 60 });
+    const r = room('r1', 15, { thermalFactor: 60 });
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
     const cons = generarConsideraciones({

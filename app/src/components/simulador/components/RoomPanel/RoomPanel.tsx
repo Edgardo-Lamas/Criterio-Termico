@@ -5,12 +5,12 @@ import type { Room } from '../../models/Room';
 import {
   isPowerSufficient,
   calculateBoilerPower,
-  kcalToKw
+  kcalToKw,
+  CALDERA_MIN_KW,
+  CALDERA_MIN_KCALH
 } from '../../utils/thermalCalculator';
-import { potenciaZonaKcalh, emisionKcalhM2, cargaPisoKcalh, CARGA_PISO_WM2, AISLACION_DEFAULT, puertaEnLado } from '../../utils/floorHeating';
-import type { CalidadAislacion } from '../../utils/floorHeating';
-import { MARGEN_SEGURIDAD } from '../../utils/floorHeatingBudget';
-import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
+import { potenciaZonaKcalh, emisionKcalhM2, puertaEnLado } from '../../utils/floorHeating';
+import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA, ALTURA_MAX_RADIADORES_M } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
 import { analizarPlano } from '../../services/analizarPlano';
@@ -61,11 +61,22 @@ export const RoomPanel: React.FC = () => {
 
   // Auto-colocación (Etapa 1 del auto-diseño): habitaciones de la planta
   // actual con contorno marcado, sin radiadores asignados y sin piso radiante
-  // vinculado — nunca pisa trabajo manual ni ambientes ya calefaccionados
+  // vinculado — nunca pisa trabajo manual ni ambientes ya calefaccionados.
+  // Los ambientes de techo alto quedan afuera: ahí el radiador no es el emisor
+  // adecuado, así que el auto-diseño no los cuelga (va piso radiante).
   const roomsAutoColocables = rooms.filter(r =>
     r.floor === currentFloor &&
     r.bounds &&
     r.radiatorIds.length === 0 &&
+    r.height <= ALTURA_MAX_RADIADORES_M &&
+    !floorHeatingZones.some(z => z.roomId === r.id)
+  );
+  // Se saltearon por techo alto — hay que decirlo, no callarlo
+  const roomsTechoAlto = rooms.filter(r =>
+    r.floor === currentFloor &&
+    r.bounds &&
+    r.radiatorIds.length === 0 &&
+    r.height > ALTURA_MAX_RADIADORES_M &&
     !floorHeatingZones.some(z => z.roomId === r.id)
   );
 
@@ -178,13 +189,9 @@ export const RoomPanel: React.FC = () => {
     }
   };
 
-  // Calcular totales para la caldera: radiadores + piso radiante.
-  // El piso aporta su entrega máxima (área × emisión a la impulsión de diseño)
-  // y la caldera se dimensiona con la misma regla del 80% de capacidad.
-  const boilerCalc = calculateBoilerPower(radiators);
-  // Zonas vinculadas a una habitación: entrega según el ÁREA REAL del panel
-  // (la escala de la imagen del plano no es la del canvas). Zonas sueltas:
-  // según el área dibujada, único dato disponible.
+  // Entrega del piso radiante. Zonas vinculadas a una habitación: según el
+  // ÁREA REAL del panel (la escala de la imagen del plano no es la del canvas).
+  // Zonas sueltas: según el área dibujada, único dato disponible.
   const roomsConPiso = rooms.filter(room =>
     floorHeatingZones.some(z => z.roomId === room.id)
   );
@@ -195,8 +202,10 @@ export const RoomPanel: React.FC = () => {
     .filter(z => !z.roomId || !rooms.some(r => r.id === z.roomId))
     .reduce((acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0);
   const pisoTotalPower = pisoVinculado + pisoSinVincular;
-  const totalEmittersPower = boilerCalc.totalRadiatorPower + pisoTotalPower;
-  const recommendedBoilerPower = Math.round(totalEmittersPower / 0.80);
+  // Caldera: radiadores + piso, al 80% de capacidad y nunca abajo de 24 kW
+  const boilerCalc = calculateBoilerPower(radiators, pisoTotalPower);
+  const totalEmittersPower = boilerCalc.totalEmittersPower;
+  const recommendedBoilerPower = boilerCalc.recommendedBoilerPower;
 
   // Si está colapsado, solo mostrar botón flotante
   if (isCollapsed) {
@@ -381,6 +390,22 @@ export const RoomPanel: React.FC = () => {
               </select>
             </div>
           )}
+          {roomsTechoAlto.length > 0 && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 8px',
+              background: '#FFF3E0',
+              borderLeft: '3px solid #FF9800',
+              borderRadius: '3px',
+              fontSize: '11px',
+              color: '#5D4037',
+              lineHeight: 1.4
+            }}>
+              Sin radiadores por techo alto (+{ALTURA_MAX_RADIADORES_M} m):{' '}
+              <strong>{roomsTechoAlto.map(r => `${r.name} (${r.height} m)`).join(', ')}</strong>.
+              Ahí el radiador manda el calor al techo — va piso radiante.
+            </div>
+          )}
           {/* Las tuberías se trazan con "⚡ Conectar Auto" de la barra: sistema
               de troncales con reducción de diámetro (el estándar de obra) */}
         </div>
@@ -413,24 +438,26 @@ export const RoomPanel: React.FC = () => {
               ? Math.round(room.area * emisionKcalhM2(floorHeatingTempC))
               : 0;
             const installed = powerCheck.installed + pisoPower;
-            // Base del requerido: con piso radiante la carga de diseño es la
-            // real del ambiente (W/m² según aislación, criterio EN 1264); el
-            // factor volumétrico es la regla de radiadores y pide más de lo
-            // que el piso puede entregar físicamente (tope 86 kcal/h·m²)
-            const usaBasePiso = roomZones.length > 0;
-            const required = usaBasePiso ? cargaPisoKcalh(room) : powerCheck.required;
-            // Margen del 15% SOLO para piso radiante (su base W/m² es
-            // realista). Para radiadores no: el factor volumétrico ya viene
-            // sobredimensionado con sus incrementos de pared y ventanas
-            // (criterio de Edgardo).
-            const requeridoConMargen = usaBasePiso
-              ? Math.round(required * MARGEN_SEGURIDAD)
-              : required;
-            const sufficient = installed >= requeridoConMargen;
-            const percentage = requeridoConMargen > 0
-              ? Math.round((installed / requeridoConMargen) * 100)
+            // El requerido es la pérdida del ambiente y no cambia según el
+            // emisor: mismo número que la Calculadora de Potencia, con o sin
+            // serpentín dibujado.
+            const required = powerCheck.required;
+            const sufficient = installed >= required;
+            const percentage = required > 0
+              ? Math.round((installed / required) * 100)
               : 0;
             const hasEmitters = room.radiatorIds.length > 0 || roomZones.length > 0;
+            // Tope físico del piso: la superficie no puede pasar de 29°C
+            // (EN 1264). Si ni a 45°C cubre la carga, no hay paso ni trazado
+            // que lo arregle — hay que decirlo.
+            const topePisoKcalh = Math.round(room.area * emisionKcalhM2(45));
+            const pisoNuncaAlcanza = roomZones.length > 0
+              && room.radiatorIds.length === 0
+              && topePisoKcalh < required;
+            // Radiador en techo alto: el emisor equivocado, por más que la
+            // potencia dé — el calor se va arriba
+            const radiadorEnTechoAlto = room.height > ALTURA_MAX_RADIADORES_M
+              && room.radiatorIds.length > 0;
 
             return (
               <div
@@ -496,22 +523,10 @@ export const RoomPanel: React.FC = () => {
 
                 <div style={{ fontSize: '12px', color: '#666' }}>
                   <div>Área: {room.area} m² × {room.height} m = {(room.area * room.height).toFixed(1)} m³</div>
-                  {usaBasePiso ? (
-                    <div>
-                      Base piso radiante: {CARGA_PISO_WM2[room.aislacion ?? AISLACION_DEFAULT]} W/m²
-                      {' '}(aislación {room.aislacion ?? AISLACION_DEFAULT})
-                    </div>
-                  ) : (
-                    <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
-                  )}
+                  <div>Factor: {room.thermalFactor} Kcal/h·m³</div>
                   <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #eee' }}>
                     <strong>Requerido:</strong> {required.toLocaleString()} Kcal/h
                   </div>
-                  {usaBasePiso && (
-                    <div>
-                      <strong>Con margen 15%:</strong> {requeridoConMargen.toLocaleString()} Kcal/h
-                    </div>
-                  )}
                   {hasEmitters ? (
                     <>
                       {room.radiatorIds.length > 0 && (
@@ -536,6 +551,46 @@ export const RoomPanel: React.FC = () => {
                       }}>
                         {sufficient ? '✓ Suficiente' : '⚠ Insuficiente'} ({percentage}%)
                       </div>
+                      {radiadorEnTechoAlto && (
+                        <div style={{
+                          marginTop: '4px',
+                          padding: '6px',
+                          background: '#FFEBEE',
+                          borderLeft: '3px solid #f44336',
+                          borderRadius: '3px',
+                          color: '#5D4037',
+                          fontSize: '11px',
+                          lineHeight: 1.4
+                        }}>
+                          Techo de {room.height} m con radiadores. El radiador calienta por
+                          convección y el aire caliente sube: arriba de{' '}
+                          {ALTURA_MAX_RADIADORES_M} m calefacciona el volumen que queda por
+                          encima de la gente y abajo sigue frío. Sumar elementos lo empeora
+                          —más potencia, más calor al techo—. Acá va piso radiante.
+                        </div>
+                      )}
+                      {pisoNuncaAlcanza && (
+                        <div style={{
+                          marginTop: '4px',
+                          padding: '6px',
+                          background: '#FFF3E0',
+                          borderLeft: '3px solid #FF9800',
+                          borderRadius: '3px',
+                          color: '#5D4037',
+                          fontSize: '11px',
+                          lineHeight: 1.4
+                        }}>
+                          El piso solo no da para esta pieza: aun a 45° entrega
+                          {' '}{topePisoKcalh.toLocaleString()} Kcal/h como máximo y hacen
+                          falta {required.toLocaleString()}. Es tope físico —el suelo no
+                          puede pasar de 29°—, así que ni achicar el paso ni subir la
+                          impulsión lo mueven. Faltan
+                          {' '}{(required - topePisoKcalh).toLocaleString()} Kcal/h:
+                          bajá la pérdida del ambiente (en nivel único la losa es lo que
+                          más pesa) o cubrí el faltante con un panel eléctrico. Ver
+                          consideraciones.
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div style={{ marginTop: '4px', color: '#999', fontSize: '11px' }}>
@@ -635,33 +690,13 @@ export const RoomPanel: React.FC = () => {
                 borderRadius: '4px'
               }}
             >
-              <option value={40}>40 Kcal/h·m³ (Templado/Edificio)</option>
-              <option value={50}>50 Kcal/h·m³ (Normal)</option>
-              <option value={60}>60 Kcal/h·m³ (Frío intenso)</option>
-            </select>
-          </div>
-
-          <div style={{ marginBottom: '10px' }}>
-            <label style={{ display: 'block', fontSize: '12px', marginBottom: '4px', color: '#555' }}>
-              Aislación (para piso radiante):
-            </label>
-            <select
-              value={selectedRoom.aislacion ?? AISLACION_DEFAULT}
-              onChange={(e) => updateRoom(selectedRoom.id, { aislacion: e.target.value as CalidadAislacion })}
-              style={{
-                width: '100%',
-                padding: '6px',
-                fontSize: '13px',
-                border: '1px solid #ddd',
-                borderRadius: '4px'
-              }}
-            >
-              <option value="buena">Buena — {CARGA_PISO_WM2.buena} W/m² (DVH, muros aislados)</option>
-              <option value="media">Media — {CARGA_PISO_WM2.media} W/m² (construcción tradicional)</option>
-              <option value="mala">Mala — {CARGA_PISO_WM2.mala} W/m² (precaria o zona muy fría)</option>
+              <option value={40}>40 Kcal/h·m³ — Buena aislación (EPS en muros, DVH, techo aislado)</option>
+              <option value={50}>50 Kcal/h·m³ — Estándar argentino (ladrillo sin aislar, vidrio simple)</option>
+              <option value={60}>60 Kcal/h·m³ — Poca aislación (casa antigua, losa sin aislar, infiltraciones)</option>
             </select>
             <div style={{ color: '#999', fontSize: '10px', marginTop: '4px' }}>
-              Define la carga de diseño cuando el ambiente se calefacciona por piso radiante
+              Vale para radiadores y para piso radiante: la pérdida del ambiente
+              es la misma sea cual sea el emisor
             </div>
           </div>
 
@@ -850,9 +885,20 @@ export const RoomPanel: React.FC = () => {
               ({kcalToKw(recommendedBoilerPower)} kW)
             </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '4px' }}>
-            * Trabajando al {boilerCalc.workingPercentage}% de capacidad
-          </div>
+          {boilerCalc.limitadoPorMinimoComercial ? (
+            <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '6px', lineHeight: 1.5 }}>
+              La instalación pide {boilerCalc.calculatedPower.toLocaleString()} Kcal/h, pero la
+              caldera más chica del mercado es de {CALDERA_MIN_KW} kW. Va esa: al{' '}
+              {boilerCalc.workingPercentage}% cubre hasta{' '}
+              {Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString()} Kcal/h, así que te sobra margen.
+            </div>
+          ) : (
+            <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '6px', lineHeight: 1.5 }}>
+              * Trabajando al {boilerCalc.workingPercentage}% de capacidad. Te pasaste de los{' '}
+              {Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString()} Kcal/h que cubre una de{' '}
+              {CALDERA_MIN_KW} kW — acá el cálculo sí decide la caldera.
+            </div>
+          )}
         </div>
       </div>
     </div>

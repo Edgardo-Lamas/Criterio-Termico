@@ -9,6 +9,7 @@ import type { FloorHeatingZone, PuertaZona, LadoZona } from '../models/FloorHeat
 import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
 import type { Room } from '../models/Room';
+import { calculateRoomPower } from './thermalCalculator';
 import { rutearOrtogonal, marcarRuta, areaDeTrabajo } from './orthogonalRouter';
 
 // Misma escala que usa el resto del simulador para longitudes de tubería
@@ -45,26 +46,38 @@ export function emisionKcalhM2(impulsionC: TempImpulsion): number {
   return Math.round(wM2 * 0.86); // 1 W = 0,86 kcal/h
 }
 
-// ── Carga de diseño para piso radiante ──────────────────────────────────────
-// El factor volumétrico (40/50/60 kcal/h·m³) es una regla para dimensionar
-// RADIADORES: viene sobredimensionada a propósito (sistema intermitente, alta
-// temperatura, "sobrar" es gratis) y con 2,5 m de techo pide 100-150 kcal/h·m²,
-// más de lo que un piso puede entregar físicamente (tope 100 W/m² ≈ 86
-// kcal/h·m², superficie a 29°C máx, EN 1264). El piso radiante se diseña con
-// la carga REAL del ambiente: 60/80/100 W/m² según calidad constructiva,
-// el rango de cargas de vivienda que asume EN 1264.
-export type CalidadAislacion = 'buena' | 'media' | 'mala';
-export const AISLACION_DEFAULT: CalidadAislacion = 'media';
-export const CARGA_PISO_WM2: Record<CalidadAislacion, number> = {
-  buena: 60,  // construcción aislada (DVH, muros con aislación)
-  media: 80,  // construcción tradicional razonable
-  mala: 100,  // construcción precaria o zona muy fría: el piso queda al límite
-};
+// ── Carga de diseño ─────────────────────────────────────────────────────────
+// La carga de un ambiente es su pérdida de calor: depende de la envolvente,
+// NO del emisor que se le cuelgue. Por eso hay una sola fuente de verdad para
+// todo el simulador —calculateRoomPower(), el mismo motor que usa la
+// Calculadora de Potencia— y el piso radiante se mide contra ella igual que
+// un radiador.
+//
+// Antes existía acá una segunda carga para piso (CARGA_PISO_WM2: 60/80/100
+// W/m² según aislación) tomada del rango de vivienda de EN 1264. Se eliminó:
+// ese rango asume construcción europea aislada y subestima ~2x la pérdida de
+// una vivienda argentina de nivel único con losa sin aislar (ver
+// cap3-perdidas: solo el techo se lleva 30-40% del total). Su efecto real era
+// que el piso radiante nunca podía dar insuficiente.
+//
+// El límite físico del piso (~100 W/m², superficie a 29°C máx — EN 1264) sigue
+// vivo en emisionKcalhM2(). Que ese techo quede por debajo de la carga es un
+// resultado legítimo: significa que el piso solo no alcanza para ese ambiente.
 
-// Carga de diseño de una habitación calefaccionada por piso radiante (kcal/h).
-export function cargaPisoKcalh(room: Pick<Room, 'area' | 'aislacion'>): number {
-  const wM2 = CARGA_PISO_WM2[room.aislacion ?? AISLACION_DEFAULT];
-  return Math.round(room.area * wM2 * 0.86); // 1 W = 0,86 kcal/h
+// Cobertura del piso sobre la carga del ambiente. Devuelve el veredicto en
+// crudo para que la UI, el PDF y el presupuesto cuenten todos lo mismo.
+export function coberturaPiso(
+  entregaKcalh: number,
+  requeridoKcalh: number
+): { coberturaPct: number; suficiente: boolean; faltanteKcalh: number } {
+  if (requeridoKcalh <= 0) {
+    return { coberturaPct: 0, suficiente: false, faltanteKcalh: 0 };
+  }
+  return {
+    coberturaPct: Math.round((entregaKcalh / requeridoKcalh) * 100),
+    suficiente: entregaKcalh >= requeridoKcalh,
+    faltanteKcalh: Math.max(0, Math.round(requeridoKcalh - entregaKcalh)),
+  };
 }
 
 // ── Puerta de la zona ───────────────────────────────────────────────────────
@@ -258,7 +271,7 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
 // el panel, y la carga térmica calculada se reparte entre los circuitos.
 export interface DatosReales {
   areaM2: number          // área real de la habitación (del panel)
-  cargaKcalh: number | null // requerido calculado (cargaPisoKcalh)
+  cargaKcalh: number | null // requerido del ambiente (calculateRoomPower)
 }
 
 export function calcularCircuitosZona(
@@ -546,12 +559,11 @@ export function calcularCircuitosPlanta(
     // Colector asignado a mano en la zona; si no hay (o ya no existe), el más cercano
     const manual = zone.manifoldId ? manifolds.find(m => m.id === zone.manifoldId) : undefined
     const manifold = manual ?? colectorMasCercano(zone, manifolds)
-    // Habitación vinculada → la matemática usa su área real y reparte su carga
-    // de diseño de PISO RADIANTE (W/m² según aislación, no el factor
-    // volumétrico de radiadores — ver CARGA_PISO_WM2)
+    // Habitación vinculada → la matemática usa su área real y reparte la carga
+    // del ambiente entre los circuitos
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined
     const real: DatosReales | null = room
-      ? { areaM2: room.area, cargaKcalh: cargaPisoKcalh(room) }
+      ? { areaM2: room.area, cargaKcalh: calculateRoomPower(room) }
       : null
     const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC, real)
 

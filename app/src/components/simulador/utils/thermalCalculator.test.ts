@@ -6,6 +6,7 @@ import {
     isPowerSufficient,
     kcalToKw,
     kwToKcal,
+    CALDERA_MIN_KCALH,
 } from './thermalCalculator'
 import type { Room } from '../models/Room'
 import type { Radiator } from '../models/Radiator'
@@ -150,24 +151,64 @@ describe('isPowerSufficient', () => {
 })
 
 describe('calculateBoilerPower', () => {
-    it('dimensiona la caldera para que trabaje al 80% de su capacidad', () => {
+    it('dimensiona los emisores al 80% de capacidad', () => {
         const radiators = [makeRadiator({ power: 1000 }), makeRadiator({ power: 1000 })]
         const result = calculateBoilerPower(radiators)
         expect(result.totalRadiatorPower).toBe(2000)
-        expect(result.recommendedBoilerPower).toBe(2500) // 2000 / 0.80
+        expect(result.calculatedPower).toBe(2500) // 2000 / 0.80
         expect(result.workingPercentage).toBe(80)
     })
 
-    it('retorna 0 cuando no hay radiadores', () => {
-        const result = calculateBoilerPower([])
-        expect(result.totalRadiatorPower).toBe(0)
-        expect(result.recommendedBoilerPower).toBe(0)
+    it('nunca recomienda menos que la caldera más chica del mercado (24 kW)', () => {
+        // Una instalación chica no hace aparecer una caldera de 2.500 kcal/h:
+        // abajo de 24 kW no hay producto.
+        const result = calculateBoilerPower([makeRadiator({ power: 2000 })])
+        expect(result.calculatedPower).toBe(2500)
+        expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH) // 20.640
+        expect(result.limitadoPorMinimoComercial).toBe(true)
+        expect(kcalToKw(result.recommendedBoilerPower)).toBe(24)
     })
 
-    it('redondea la potencia recomendada de caldera', () => {
-        const radiators = [makeRadiator({ power: 1000 })]
+    it('sin emisores tampoco: era el bug de la caldera de juguete', () => {
+        const result = calculateBoilerPower([])
+        expect(result.totalEmittersPower).toBe(0)
+        expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
+    })
+
+    it('el piso radiante cuenta como emisor (antes lo ignoraba)', () => {
+        // Caso de la captura: sin radiadores, un piso de 731 kcal/h.
+        // Daba 914 kcal/h de caldera — no existe tal producto.
+        const result = calculateBoilerPower([], 731)
+        expect(result.totalEmittersPower).toBe(731)
+        expect(result.calculatedPower).toBe(914)
+        expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
+        expect(result.limitadoPorMinimoComercial).toBe(true)
+    })
+
+    it('casa promedio: 80 elementos de 500 entran en una de 24 kW', () => {
+        // 80 × 200 kcal/h = 16.000 instalados → 20.000 pedidos.
+        // Una de 24 kW (20.640) al 80% cubre 16.512: entra.
+        const radiators = [makeRadiator({ power: 16000 })]
         const result = calculateBoilerPower(radiators)
-        expect(result.recommendedBoilerPower).toBe(Math.round(1000 / 0.80))
+        expect(result.calculatedPower).toBe(20000)
+        expect(result.recommendedBoilerPower).toBe(CALDERA_MIN_KCALH)
+        expect(result.limitadoPorMinimoComercial).toBe(true)
+    })
+
+    it('casa grande: 120 elementos se pasan y ahí el cálculo sí elige', () => {
+        // 120 × 200 = 24.000 instalados ÷ 0,80 = 30.000 → ~35 kW
+        const radiators = [makeRadiator({ power: 24000 })]
+        const result = calculateBoilerPower(radiators)
+        expect(result.calculatedPower).toBe(30000)
+        expect(result.recommendedBoilerPower).toBe(30000)
+        expect(result.limitadoPorMinimoComercial).toBe(false)
+        expect(kcalToKw(result.recommendedBoilerPower)).toBeCloseTo(34.9, 1)
+    })
+
+    it('radiadores y piso se suman para elegir la caldera', () => {
+        const result = calculateBoilerPower([makeRadiator({ power: 14000 })], 10000)
+        expect(result.totalEmittersPower).toBe(24000)
+        expect(result.recommendedBoilerPower).toBe(30000)
     })
 })
 

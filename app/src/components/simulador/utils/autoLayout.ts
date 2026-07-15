@@ -8,9 +8,19 @@
 import type { Room } from '../models/Room';
 import { calculateRoomPower } from './thermalCalculator';
 
-// Alturas estándar de elemento y su potencia (criterio de Edgardo: 500 mm =
-// 200 kcal/h; 600 y 700 proporcionales — ajustar si el catálogo indica otra
-// cosa). El valor de 200 ya es conservador de por sí.
+// Alturas estándar de elemento y su potencia de diseño (criterio de Edgardo:
+// 500 mm = 200 kcal/h; 600 y 700 proporcionales). Es el valor de diseño para el
+// rango en que trabajan de verdad las instalaciones acá: 70°C de impulsión como
+// mínimo, 80°C lo habitual. Por eso no se parametriza por temperatura como el
+// piso radiante — el valor ya cubre el rango.
+// NO reemplazar por los valores nominales de catálogo del fabricante.
+// Altura de techo a partir de la cual el radiador deja de ser el emisor
+// adecuado (criterio de Edgardo). El radiador calefacciona por convección: el
+// aire caliente sube y estratifica, así que arriba de esta altura termina
+// calentando el volumen que está por encima de la gente. El piso radiante
+// transfiere por radiación y no estratifica, por eso no le afecta la altura.
+export const ALTURA_MAX_RADIADORES_M = 3;
+
 export type AlturaElementoMm = 500 | 600 | 700;
 export const ELEMENTOS_KCALH_POR_ALTURA: Record<AlturaElementoMm, number> = {
   500: 200,

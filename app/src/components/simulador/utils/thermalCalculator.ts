@@ -68,26 +68,49 @@ export function isPowerSufficient(room: Room, radiators: Radiator[]): {
   };
 }
 
+// Caldera más chica del mercado argentino: 24 kW. No es un mínimo térmico sino
+// COMERCIAL — abajo de eso no hay producto. Con la regla del 80% cubre 16.512
+// kcal/h, que es la casa promedio (unos 80 elementos de 500 × 200 kcal/h).
+// Por eso el cálculo casi nunca elige la caldera: su trabajo real es avisar
+// CUÁNDO te pasás de 24 kW y hay que ir a una más grande.
+export const CALDERA_MIN_KW = 24;
+export const CALDERA_MIN_KCALH = CALDERA_MIN_KW * 860; // 20.640 kcal/h
+
 /**
- * Calcula la potencia de caldera necesaria
- * La caldera debe trabajar al 80% de su capacidad máxima
- * Por lo tanto: Potencia Caldera = Potencia Total Radiadores ÷ 0.80
+ * Calcula la potencia de caldera necesaria a partir de los emisores instalados
+ * (radiadores + piso radiante), no de la pérdida de los ambientes: con el
+ * elemento valuado en 200 kcal/h —valor de obra, ver autoLayout— la potencia
+ * instalada no viene inflada, así que es lo que la caldera tiene que alimentar.
+ *
+ * La caldera trabaja al 80% de su capacidad → Caldera = Emisores ÷ 0,80,
+ * con piso en la más chica que existe (24 kW).
  */
-export function calculateBoilerPower(radiators: Radiator[]): {
+export function calculateBoilerPower(
+  radiators: Radiator[],
+  pisoRadianteKcalh = 0
+): {
   totalRadiatorPower: number;
+  totalEmittersPower: number;
+  /** Lo que pide la instalación (emisores ÷ 0,80), sin piso comercial */
+  calculatedPower: number;
+  /** La caldera a instalar: nunca menos que la más chica del mercado */
   recommendedBoilerPower: number;
+  /** true si manda el mínimo comercial y no el cálculo */
+  limitadoPorMinimoComercial: boolean;
   workingPercentage: number;
 } {
-  // Sumar potencia de todos los radiadores
   const totalRadiatorPower = radiators.reduce((sum, rad) => sum + rad.power, 0);
+  const totalEmittersPower = totalRadiatorPower + Math.max(0, pisoRadianteKcalh);
 
-  // La caldera debe tener capacidad para que trabaje al 80%
-  // Potencia Caldera = Potencia Radiadores ÷ 0.80
-  const recommendedBoilerPower = Math.round(totalRadiatorPower / 0.80);
+  const calculatedPower = Math.round(totalEmittersPower / 0.80);
+  const recommendedBoilerPower = Math.max(calculatedPower, CALDERA_MIN_KCALH);
 
   return {
     totalRadiatorPower,
+    totalEmittersPower,
+    calculatedPower,
     recommendedBoilerPower,
+    limitadoPorMinimoComercial: calculatedPower < CALDERA_MIN_KCALH,
     workingPercentage: 80
   };
 }

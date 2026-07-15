@@ -8,9 +8,7 @@ import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { calculateBoilerPower, calculateRoomPower } from './thermalCalculator';
-import { cargaPisoKcalh } from './floorHeating';
-import { MARGEN_SEGURIDAD } from './floorHeatingBudget';
+import { calculateBoilerPower, calculateRoomPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import { validarCircuitosPiso } from './hydraulicValidation';
@@ -227,13 +225,9 @@ export const generateQuotePDF = (
         ? Math.round(room.area * floorHeating.emisionKcalhM2)
         : 0;
       const instalado = radPower + pisoPower;
-      // Base del requerido: carga de piso (W/m² según aislación) + 15% de
-      // margen si el ambiente tiene piso radiante; con radiadores, el factor
-      // volumétrico SIN margen extra (ya viene sobredimensionado — criterio
-      // de Edgardo)
-      const requerido = tienePiso
-        ? Math.round(cargaPisoKcalh(room) * MARGEN_SEGURIDAD)
-        : Math.round(calculateRoomPower(room));
+      // Pérdida del ambiente: una sola base para todos los emisores, igual que
+      // la Calculadora de Potencia
+      const requerido = calculateRoomPower(room);
       const tieneEmisores = instalado > 0;
       const pct = tieneEmisores && requerido > 0
         ? Math.round((instalado / requerido) * 100)
@@ -280,18 +274,28 @@ export const generateQuotePDF = (
 
   // === EQUIPAMIENTO PRINCIPAL ===
   sectionTitle('EQUIPAMIENTO PRINCIPAL');
-  const potenciaEmisores =
-    calculateBoilerPower(radiators).totalRadiatorPower +
-    (floorHeating?.potenciaTotalKcalh ?? 0);
-  const calderaRecomendada = Math.round(potenciaEmisores / 0.80);
+  const caldera = calculateBoilerPower(radiators, floorHeating?.potenciaTotalKcalh ?? 0);
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text(`• Radiadores: ${radiators.length} unidades`, M + 2, yPosition);
   yPosition += 5.5;
   doc.text(
-    `• Caldera recomendada: ${calderaRecomendada.toLocaleString('es-AR')} Kcal/h ` +
-    `(dimensionada para trabajar al 80% de su capacidad)`,
+    `• Caldera recomendada: ${caldera.recommendedBoilerPower.toLocaleString('es-AR')} Kcal/h ` +
+    `(${kcalToKw(caldera.recommendedBoilerPower)} kW, dimensionada para trabajar al 80%)`,
+    M + 2, yPosition
+  );
+  yPosition += 5.5;
+  // Por qué esa caldera: si manda el mínimo comercial, el cálculo no la eligió
+  doc.setFontSize(8);
+  doc.setTextColor(...GRIS_TEXTO);
+  doc.text(
+    caldera.limitadoPorMinimoComercial
+      ? `  La instalacion pide ${caldera.calculatedPower.toLocaleString('es-AR')} Kcal/h; se adopta la ` +
+        `caldera mas chica del mercado (${CALDERA_MIN_KW} kW), que al 80% cubre hasta ` +
+        `${Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString('es-AR')} Kcal/h.`
+      : `  Los emisores instalados suman ${caldera.totalEmittersPower.toLocaleString('es-AR')} Kcal/h y superan ` +
+        `lo que cubre una de ${CALDERA_MIN_KW} kW.`,
     M + 2, yPosition
   );
   doc.setTextColor(0, 0, 0);
@@ -466,8 +470,8 @@ export const generateQuotePDF = (
     doc.setFont('helvetica', 'normal');
     floorHeating.zonas.forEach(z => {
       ensureSpace(5);
-      const requerido = z.requeridoConMargenKcalh !== null
-        ? ` — requiere ${z.requeridoConMargenKcalh.toLocaleString('es-AR')} kcal/h (margen 15% incluido) — cubre ${z.coberturaPct}% ` +
+      const requerido = z.requeridoKcalh !== null
+        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h — cubre ${z.coberturaPct}% ` +
           `${z.suficiente ? '(OK)' : '(INSUFICIENTE: ver consideraciones)'}`
         : '';
       doc.setTextColor(...(z.suficiente === false ? ROJO : z.suficiente === true ? OK_VERDE : GRIS_TEXTO));

@@ -3,7 +3,8 @@
 // circuitos generados (serpentín + acometidas ruteadas) y de las montantes
 // caldera→colector (Ø32), no estimaciones.
 
-import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, cargaPisoKcalh, TEMP_IMPULSION_DEFAULT } from './floorHeating';
+import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, TEMP_IMPULSION_DEFAULT } from './floorHeating';
+import { calculateRoomPower } from './thermalCalculator';
 import type { FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
 import { calcularMaterialesPisoRadiante } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { ResumenPresupuesto } from '../../../lib/pisoRadiante/types';
@@ -12,14 +13,11 @@ import type { Manifold } from '../models/Manifold';
 import type { Boiler } from '../models/Boiler';
 import type { Room } from '../models/Room';
 
-// Margen de seguridad del proyecto: los resultados deben ser conservadores,
-// el piso tiene que entregar el requerido MÁS un 15% (misma regla que las
-// calculadoras de potencia y el presupuesto de radiadores).
-export const MARGEN_SEGURIDAD = 1.15;
-
 // Potencia por zona: lo que el piso puede entregar (área × emisión según
-// temperatura de impulsión) contra lo que la habitación vinculada requiere
-// con el margen de seguridad aplicado.
+// temperatura de impulsión) contra la pérdida de la habitación vinculada.
+// El requerido NO lleva margen extra: es exactamente el que da la Calculadora
+// de Potencia (el factor volumétrico ya es conservador de por sí), así que
+// simulador y calculadora dicen siempre el mismo número.
 export interface ZonaPotencia {
   zoneId: string;
   zoneName: string;
@@ -27,10 +25,9 @@ export interface ZonaPotencia {
   areaM2: number;
   longitudM: number;          // m de tubo Ø20 de la zona
   potenciaKcalh: number;      // entrega máxima
-  requeridoKcalh: number | null;          // de la habitación vinculada (null si no hay)
-  requeridoConMargenKcalh: number | null; // requerido × 1,15
-  coberturaPct: number | null;            // entrega / requerido con margen × 100
-  suficiente: boolean | null;             // entrega ≥ requerido con margen
+  requeridoKcalh: number | null; // pérdida de la habitación vinculada (null si no hay)
+  coberturaPct: number | null;   // entrega / requerido × 100
+  suficiente: boolean | null;    // entrega ≥ requerido
 }
 
 export interface FloorHeatingBudget {
@@ -114,12 +111,10 @@ export function calcularPresupuestoPisoRadiante(
     const propios = circuits.filter(c => c.zoneId === zone.id);
     const potenciaKcalh = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined;
-    // Carga de diseño de piso radiante (W/m² según aislación), no el factor
-    // volumétrico de radiadores: contra ese el piso nunca llega (tope 86)
-    const requeridoKcalh = room ? cargaPisoKcalh(room) : null;
-    const requeridoConMargenKcalh = requeridoKcalh === null
-      ? null
-      : Math.round(requeridoKcalh * MARGEN_SEGURIDAD);
+    // Pérdida del ambiente: misma base que el panel y la Calculadora de
+    // Potencia. Si el piso no llega, el veredicto lo dice — no se ajusta la
+    // vara para que pase.
+    const requeridoKcalh = room ? calculateRoomPower(room) : null;
     return {
       zoneId: zone.id,
       zoneName: zone.name,
@@ -128,11 +123,10 @@ export function calcularPresupuestoPisoRadiante(
       longitudM: Math.round(propios.reduce((acc, c) => acc + c.longitudTotal, 0) * 100) / 100,
       potenciaKcalh,
       requeridoKcalh,
-      requeridoConMargenKcalh,
-      coberturaPct: requeridoConMargenKcalh === null
+      coberturaPct: requeridoKcalh === null
         ? null
-        : Math.round((potenciaKcalh / requeridoConMargenKcalh) * 100),
-      suficiente: requeridoConMargenKcalh === null ? null : potenciaKcalh >= requeridoConMargenKcalh,
+        : Math.round((potenciaKcalh / requeridoKcalh) * 100),
+      suficiente: requeridoKcalh === null ? null : potenciaKcalh >= requeridoKcalh,
     };
   });
   const potenciaTotalKcalh = zonasPotencia.reduce((acc, z) => acc + z.potenciaKcalh, 0);
