@@ -15,6 +15,7 @@ import { errorCalidadAgua, ErrorCalidadAguaDetalle } from './calidad-agua'
 import { errorRamalRobado, ErrorRamalRobadoDetalle } from './ramal-robado'
 import { errorPexMemoriaTermica, ErrorPexMemoriaTermicaDetalle } from './pex-memoria-termica'
 import { errorEmpalmesPisoRadiante, ErrorEmpalmesPisoRadianteDetalle } from './empalmes-piso-radiante'
+import { errorEmisorMalElegido, ErrorEmisorMalElegidoDetalle } from './emisor-mal-elegido'
 
 export type ErrorTier = 'free' | 'pro' | 'premium'
 
@@ -44,6 +45,7 @@ export const erroresList: ErrorMeta[] = [
     errorRamalRobado,
     errorPexMemoriaTermica,
     errorEmpalmesPisoRadiante,
+    errorEmisorMalElegido,
 ]
 
 // Componentes de detalle mapeados por ID
@@ -63,6 +65,7 @@ const erroresContent: Record<string, ComponentType> = {
     'ramal-robado': ErrorRamalRobadoDetalle,
     'pex-memoria-termica': ErrorPexMemoriaTermicaDetalle,
     'empalmes-piso-radiante': ErrorEmpalmesPisoRadianteDetalle,
+    'emisor-mal-elegido': ErrorEmisorMalElegidoDetalle,
 }
 
 export function getErrorMeta(id: string): ErrorMeta | null {

@@ -10,7 +10,7 @@ import {
   CALDERA_MIN_KCALH
 } from '../../utils/thermalCalculator';
 import { potenciaZonaKcalh, emisionKcalhM2, puertaEnLado } from '../../utils/floorHeating';
-import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
+import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA, ALTURA_MAX_RADIADORES_M } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
 import { analizarPlano } from '../../services/analizarPlano';
@@ -61,11 +61,22 @@ export const RoomPanel: React.FC = () => {
 
   // Auto-colocación (Etapa 1 del auto-diseño): habitaciones de la planta
   // actual con contorno marcado, sin radiadores asignados y sin piso radiante
-  // vinculado — nunca pisa trabajo manual ni ambientes ya calefaccionados
+  // vinculado — nunca pisa trabajo manual ni ambientes ya calefaccionados.
+  // Los ambientes de techo alto quedan afuera: ahí el radiador no es el emisor
+  // adecuado, así que el auto-diseño no los cuelga (va piso radiante).
   const roomsAutoColocables = rooms.filter(r =>
     r.floor === currentFloor &&
     r.bounds &&
     r.radiatorIds.length === 0 &&
+    r.height <= ALTURA_MAX_RADIADORES_M &&
+    !floorHeatingZones.some(z => z.roomId === r.id)
+  );
+  // Se saltearon por techo alto — hay que decirlo, no callarlo
+  const roomsTechoAlto = rooms.filter(r =>
+    r.floor === currentFloor &&
+    r.bounds &&
+    r.radiatorIds.length === 0 &&
+    r.height > ALTURA_MAX_RADIADORES_M &&
     !floorHeatingZones.some(z => z.roomId === r.id)
   );
 
@@ -379,6 +390,22 @@ export const RoomPanel: React.FC = () => {
               </select>
             </div>
           )}
+          {roomsTechoAlto.length > 0 && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 8px',
+              background: '#FFF3E0',
+              borderLeft: '3px solid #FF9800',
+              borderRadius: '3px',
+              fontSize: '11px',
+              color: '#5D4037',
+              lineHeight: 1.4
+            }}>
+              Sin radiadores por techo alto (+{ALTURA_MAX_RADIADORES_M} m):{' '}
+              <strong>{roomsTechoAlto.map(r => `${r.name} (${r.height} m)`).join(', ')}</strong>.
+              Ahí el radiador manda el calor al techo — va piso radiante.
+            </div>
+          )}
           {/* Las tuberías se trazan con "⚡ Conectar Auto" de la barra: sistema
               de troncales con reducción de diámetro (el estándar de obra) */}
         </div>
@@ -427,6 +454,10 @@ export const RoomPanel: React.FC = () => {
             const pisoNuncaAlcanza = roomZones.length > 0
               && room.radiatorIds.length === 0
               && topePisoKcalh < required;
+            // Radiador en techo alto: el emisor equivocado, por más que la
+            // potencia dé — el calor se va arriba
+            const radiadorEnTechoAlto = room.height > ALTURA_MAX_RADIADORES_M
+              && room.radiatorIds.length > 0;
 
             return (
               <div
@@ -520,6 +551,24 @@ export const RoomPanel: React.FC = () => {
                       }}>
                         {sufficient ? '✓ Suficiente' : '⚠ Insuficiente'} ({percentage}%)
                       </div>
+                      {radiadorEnTechoAlto && (
+                        <div style={{
+                          marginTop: '4px',
+                          padding: '6px',
+                          background: '#FFEBEE',
+                          borderLeft: '3px solid #f44336',
+                          borderRadius: '3px',
+                          color: '#5D4037',
+                          fontSize: '11px',
+                          lineHeight: 1.4
+                        }}>
+                          Techo de {room.height} m con radiadores. El radiador calienta por
+                          convección y el aire caliente sube: arriba de{' '}
+                          {ALTURA_MAX_RADIADORES_M} m calefacciona el volumen que queda por
+                          encima de la gente y abajo sigue frío. Sumar elementos lo empeora
+                          —más potencia, más calor al techo—. Acá va piso radiante.
+                        </div>
+                      )}
                       {pisoNuncaAlcanza && (
                         <div style={{
                           marginTop: '4px',
