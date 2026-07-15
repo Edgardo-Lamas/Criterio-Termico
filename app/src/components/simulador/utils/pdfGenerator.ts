@@ -8,7 +8,7 @@ import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { calculateBoilerPower, calculateRoomPower } from './thermalCalculator';
+import { calculateBoilerPower, calculateRoomPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import { validarCircuitosPiso } from './hydraulicValidation';
@@ -274,18 +274,28 @@ export const generateQuotePDF = (
 
   // === EQUIPAMIENTO PRINCIPAL ===
   sectionTitle('EQUIPAMIENTO PRINCIPAL');
-  const potenciaEmisores =
-    calculateBoilerPower(radiators).totalRadiatorPower +
-    (floorHeating?.potenciaTotalKcalh ?? 0);
-  const calderaRecomendada = Math.round(potenciaEmisores / 0.80);
+  const caldera = calculateBoilerPower(radiators, floorHeating?.potenciaTotalKcalh ?? 0);
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
   doc.text(`• Radiadores: ${radiators.length} unidades`, M + 2, yPosition);
   yPosition += 5.5;
   doc.text(
-    `• Caldera recomendada: ${calderaRecomendada.toLocaleString('es-AR')} Kcal/h ` +
-    `(dimensionada para trabajar al 80% de su capacidad)`,
+    `• Caldera recomendada: ${caldera.recommendedBoilerPower.toLocaleString('es-AR')} Kcal/h ` +
+    `(${kcalToKw(caldera.recommendedBoilerPower)} kW, dimensionada para trabajar al 80%)`,
+    M + 2, yPosition
+  );
+  yPosition += 5.5;
+  // Por qué esa caldera: si manda el mínimo comercial, el cálculo no la eligió
+  doc.setFontSize(8);
+  doc.setTextColor(...GRIS_TEXTO);
+  doc.text(
+    caldera.limitadoPorMinimoComercial
+      ? `  La instalacion pide ${caldera.calculatedPower.toLocaleString('es-AR')} Kcal/h; se adopta la ` +
+        `caldera mas chica del mercado (${CALDERA_MIN_KW} kW), que al 80% cubre hasta ` +
+        `${Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString('es-AR')} Kcal/h.`
+      : `  Los emisores instalados suman ${caldera.totalEmittersPower.toLocaleString('es-AR')} Kcal/h y superan ` +
+        `lo que cubre una de ${CALDERA_MIN_KW} kW.`,
     M + 2, yPosition
   );
   doc.setTextColor(0, 0, 0);

@@ -5,7 +5,9 @@ import type { Room } from '../../models/Room';
 import {
   isPowerSufficient,
   calculateBoilerPower,
-  kcalToKw
+  kcalToKw,
+  CALDERA_MIN_KW,
+  CALDERA_MIN_KCALH
 } from '../../utils/thermalCalculator';
 import { potenciaZonaKcalh, emisionKcalhM2, puertaEnLado } from '../../utils/floorHeating';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA } from '../../utils/autoLayout';
@@ -176,13 +178,9 @@ export const RoomPanel: React.FC = () => {
     }
   };
 
-  // Calcular totales para la caldera: radiadores + piso radiante.
-  // El piso aporta su entrega máxima (área × emisión a la impulsión de diseño)
-  // y la caldera se dimensiona con la misma regla del 80% de capacidad.
-  const boilerCalc = calculateBoilerPower(radiators);
-  // Zonas vinculadas a una habitación: entrega según el ÁREA REAL del panel
-  // (la escala de la imagen del plano no es la del canvas). Zonas sueltas:
-  // según el área dibujada, único dato disponible.
+  // Entrega del piso radiante. Zonas vinculadas a una habitación: según el
+  // ÁREA REAL del panel (la escala de la imagen del plano no es la del canvas).
+  // Zonas sueltas: según el área dibujada, único dato disponible.
   const roomsConPiso = rooms.filter(room =>
     floorHeatingZones.some(z => z.roomId === room.id)
   );
@@ -193,8 +191,10 @@ export const RoomPanel: React.FC = () => {
     .filter(z => !z.roomId || !rooms.some(r => r.id === z.roomId))
     .reduce((acc, z) => acc + potenciaZonaKcalh(z, floorHeatingTempC), 0);
   const pisoTotalPower = pisoVinculado + pisoSinVincular;
-  const totalEmittersPower = boilerCalc.totalRadiatorPower + pisoTotalPower;
-  const recommendedBoilerPower = Math.round(totalEmittersPower / 0.80);
+  // Caldera: radiadores + piso, al 80% de capacidad y nunca abajo de 24 kW
+  const boilerCalc = calculateBoilerPower(radiators, pisoTotalPower);
+  const totalEmittersPower = boilerCalc.totalEmittersPower;
+  const recommendedBoilerPower = boilerCalc.recommendedBoilerPower;
 
   // Si está colapsado, solo mostrar botón flotante
   if (isCollapsed) {
@@ -836,9 +836,20 @@ export const RoomPanel: React.FC = () => {
               ({kcalToKw(recommendedBoilerPower)} kW)
             </div>
           </div>
-          <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '4px' }}>
-            * Trabajando al {boilerCalc.workingPercentage}% de capacidad
-          </div>
+          {boilerCalc.limitadoPorMinimoComercial ? (
+            <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '6px', lineHeight: 1.5 }}>
+              La instalación pide {boilerCalc.calculatedPower.toLocaleString()} Kcal/h, pero la
+              caldera más chica del mercado es de {CALDERA_MIN_KW} kW. Va esa: al{' '}
+              {boilerCalc.workingPercentage}% cubre hasta{' '}
+              {Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString()} Kcal/h, así que te sobra margen.
+            </div>
+          ) : (
+            <div style={{ fontSize: '11px', color: '#B0BEC5', marginTop: '6px', lineHeight: 1.5 }}>
+              * Trabajando al {boilerCalc.workingPercentage}% de capacidad. Te pasaste de los{' '}
+              {Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString()} Kcal/h que cubre una de{' '}
+              {CALDERA_MIN_KW} kW — acá el cálculo sí decide la caldera.
+            </div>
+          )}
         </div>
       </div>
     </div>
