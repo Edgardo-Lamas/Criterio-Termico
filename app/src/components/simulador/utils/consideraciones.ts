@@ -61,17 +61,19 @@ export function generarConsideraciones({
     // Zonas donde el piso no cubre la pérdida del ambiente
     const insuficientes = floorHeating.zonas.filter(z => z.suficiente === false);
     if (insuficientes.length > 0) {
-      const lista = insuficientes
-        .map(z => `${z.zoneName} (${z.coberturaPct}%)`)
-        .join(', ');
-      // Si ya se diseñó a 45°C el piso está en su tope físico (superficie 29°C
-      // máx, EN 1264): subir impulsión o achicar el paso no dan más potencia,
-      // y prometerlo manda al instalador a rehacer el trazado al pedo.
+      // Sin porcentaje: la carga del piso es cuenta interna y no se muestra en
+      // ningún lado, así que un "(55%)" acá sería un número contra una vara
+      // invisible. Va el ambiente y el motivo, que es lo accionable.
+      const lista = insuficientes.map(z => z.zoneName).join(', ');
+      // Si ya se diseñó a 45°C el piso está en su tope: la superficie no pasa
+      // de ~29°C sin que moleste pisarla. Subir impulsión o achicar el paso no
+      // dan más potencia, y prometerlo manda al instalador a rehacer el
+      // trazado al pedo.
       const enElTope = floorHeating.tempImpulsionC >= 45;
       const palancaTemp = enElTope
-        ? 'Ojo: a 45°C el piso ya está en su tope físico (la superficie no puede pasar de 29°C), ' +
-          'así que ni subir la impulsión ni achicar el paso dan más potencia — el faltante no se ' +
-          'arregla con el trazado. '
+        ? 'Ojo: a 45°C el piso ya está en su tope (la superficie no puede pasar de 29°C sin que ' +
+          'moleste pisarla), así que ni subir la impulsión ni achicar el paso dan más potencia — ' +
+          'el faltante no se arregla con el trazado. '
         : `Está diseñado a ${floorHeating.tempImpulsionC}°C: subir la impulsión hasta 45°C da más ` +
           'margen si la caldera lo permite. ';
       criticas.push({
@@ -79,6 +81,8 @@ export function generarConsideraciones({
         titulo: `Cobertura térmica insuficiente: ${lista}`,
         detalle:
           'El piso radiante no cubre la pérdida de esos ambientes. ' + palancaTemp +
+          'Sumar metros de caño tampoco: la emisión sale de la superficie del piso, no del tubo ' +
+          '—el paso solo define cuánta temperatura de agua hace falta para llegar al mismo techo—. ' +
           'Lo que sí mueve la aguja: bajar la pérdida del ambiente —en vivienda de nivel único ' +
           'el techo se lleva el 30-40% del total, así que aislar la losa es lo que más pesa— o ' +
           'cubrir el faltante con un panel eléctrico, que no agrega otro circuito hidráulico. ' +

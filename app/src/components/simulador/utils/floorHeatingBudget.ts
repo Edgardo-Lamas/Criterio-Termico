@@ -3,8 +3,7 @@
 // circuitos generados (serpentín + acometidas ruteadas) y de las montantes
 // caldera→colector (Ø32), no estimaciones.
 
-import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, TEMP_IMPULSION_DEFAULT } from './floorHeating';
-import { calculateRoomPower } from './thermalCalculator';
+import { calcularCircuitosPlanta, calcularMontantes, PIXELS_PER_METER, emisionKcalhM2, TEMP_IMPULSION_DEFAULT, cargaDeDisenoKcalh } from './floorHeating';
 import type { FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
 import { calcularMaterialesPisoRadiante } from '../../../lib/pisoRadiante/PresupuestoService';
 import type { ResumenPresupuesto } from '../../../lib/pisoRadiante/types';
@@ -111,10 +110,12 @@ export function calcularPresupuestoPisoRadiante(
     const propios = circuits.filter(c => c.zoneId === zone.id);
     const potenciaKcalh = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined;
-    // Pérdida del ambiente: misma base que el panel y la Calculadora de
-    // Potencia. Si el piso no llega, el veredicto lo dice — no se ajusta la
-    // vara para que pase.
-    const requeridoKcalh = room ? calculateRoomPower(room) : null;
+    // La zona es de piso; la vara la decide si además hay radiadores (ver
+    // cargaDeDisenoKcalh). Si el piso no llega, el veredicto lo dice — no se
+    // ajusta la vara para que pase.
+    const requeridoKcalh = room
+      ? cargaDeDisenoKcalh(room, room.radiatorIds.length > 0, true)
+      : null;
     return {
       zoneId: zone.id,
       zoneName: zone.name,

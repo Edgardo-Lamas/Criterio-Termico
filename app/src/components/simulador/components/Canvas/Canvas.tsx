@@ -8,8 +8,7 @@ import type { Manifold } from '../../models/Manifold';
 import type { FloorHeatingZone } from '../../models/FloorHeatingZone';
 import { CATALOG } from '../../data/catalog';
 import { isPointNearPipe } from '../../utils/geometry';
-import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, crearPuerta, puntoPuerta } from '../../utils/floorHeating';
-import { calculateRoomPower } from '../../utils/thermalCalculator';
+import { calcularCircuitosPlanta, calcularMontantes, circuitosPorColector, MAX_CIRCUITOS_POR_COLECTOR, TEMPERATURAS_IMPULSION, emisionKcalhM2, crearPuerta, puntoPuerta, PASO_CM, DENSIDAD_M_POR_M2 } from '../../utils/floorHeating';
 import { etiquetasRadiadores } from '../../utils/planilla';
 import type { FloorHeatingCircuit, Montante, CanvasPoint } from '../../utils/floorHeating';
 
@@ -362,9 +361,14 @@ export const Canvas = () => {
       ctx.textBaseline = 'alphabetic';
     });
 
-    // Cobertura térmica sobre el plano: lo que entregan los circuitos de la
-    // zona contra lo que la habitación vinculada requiere (+15% de margen),
-    // el mismo criterio del panel y del presupuesto.
+    // Datos del piso sobre el plano: los METROS que entran en la habitación,
+    // que es el dato de obra. NO va un veredicto de cobertura: el instalador
+    // recibe la carga térmica (una sola, en la ficha del ambiente) y los
+    // metros, como se los da cualquier proveedor. Un "el piso rinde X de Y ·
+    // Z%" al lado de una carga térmica distinta se lee como contradicción, y
+    // no hay texto que lo salve — el sistema se descarta antes de que alguien
+    // pregunte de dónde sale la cuenta. El confort se ajusta con la
+    // temperatura de impulsión.
     if (visibleLayers.circuitos) currentFloorZones.forEach((zone) => {
       if (!zone.roomId) return;
       const room = rooms.find(r => r.id === zone.roomId);
@@ -372,18 +376,11 @@ export const Canvas = () => {
       const propios = floorHeatingCircuits.filter(c => c.zoneId === zone.id);
       if (propios.length === 0) return;
 
-      const entrega = propios.reduce((acc, c) => acc + c.potenciaKcalh, 0);
-      // Pérdida del ambiente — misma base que el panel, el presupuesto y la
-      // Calculadora de Potencia
-      const requerido = calculateRoomPower(room);
-      const pct = requerido > 0 ? Math.round((entrega / requerido) * 100) : 0;
-      const ok = entrega >= requerido;
-      // Compacto para no tapar los circuitos; el detalle completo aparece
-      // al seleccionar la zona (y en el panel / presupuesto).
+      const metros = Math.round(propios.reduce((acc, c) => acc + c.longitudTotal, 0));
       const texto = zone.id === selectedElementId
-        ? `${ok ? '\u2713' : '\u26A0'} el piso rinde ${entrega.toLocaleString('es-AR')} de ${requerido.toLocaleString('es-AR')} kcal/h \u00B7 ${pct}%`
-        : `${ok ? '\u2713' : '\u26A0'} piso ${pct}%`;
-      const color = ok ? '#2E7D32' : '#C62828';
+        ? `${metros} m de \u00D820 \u00B7 paso ${PASO_CM} \u00B7 agua a ${floorHeatingTempC}\u00B0`
+        : `${metros} m`;
+      const color = '#2E7D32';
 
       ctx.font = 'bold 9px Arial';
       ctx.textAlign = 'left';
@@ -1348,7 +1345,6 @@ export const Canvas = () => {
           y: zy,
           width: zw,
           height: zh,
-          pasoCm: 15,
         };
         addFloorHeatingZone(newZone);
         setTool('select');
@@ -1697,25 +1693,12 @@ export const Canvas = () => {
               ))}
             </select>
             <span style={{ color: '#ccc' }}>|</span>
-            <span style={{ color: '#666' }}>Paso:</span>
-            {([15, 20] as const).map(paso => (
-              <button
-                key={paso}
-                onClick={() => updateElement(selectedZone.id, { pasoCm: paso })}
-                style={{
-                  padding: '2px 8px',
-                  borderRadius: '3px',
-                  border: '1px solid #E67E22',
-                  background: selectedZone.pasoCm === paso ? '#E67E22' : 'white',
-                  color: selectedZone.pasoCm === paso ? 'white' : '#E67E22',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                }}
-                title={`Separación entre tubos: ${paso} cm`}
-              >
-                {paso} cm
-              </button>
-            ))}
+            <span
+              style={{ color: '#666' }}
+              title={`Separación entre tubos: ${PASO_CM} cm · ${DENSIDAD_M_POR_M2} m de tubo por m²`}
+            >
+              Paso {PASO_CM} cm · Ø20
+            </span>
             <span style={{ color: '#ccc' }}>|</span>
             <button
               onClick={() => setPlacingDoorZoneId(

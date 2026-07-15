@@ -409,21 +409,17 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                                         ⚡ {z.zoneName}
                                         <small>
                                             {' '}({z.areaM2.toLocaleString('es-AR')} m²
-                                            {z.requeridoKcalh !== null
-                                                ? ` · requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h`
-                                                : ' · sin habitación asignada'})
+                                            {z.roomId === null ? ' · sin habitación asignada' : ''})
                                         </small>
                                     </span>
-                                    <span className="breakdown-cost" style={{ color: z.suficiente === false ? '#D32F2F' : z.suficiente === true ? '#2E7D32' : undefined }}>
-                                        {z.suficiente === false ? '⚠ ' : z.suficiente === true ? '✓ ' : ''}
-                                        {z.potenciaKcalh.toLocaleString('es-AR')} kcal/h
-                                        {z.coberturaPct !== null ? ` (${z.coberturaPct}%)` : ''}
+                                    <span className="breakdown-cost">
+                                        {Math.round(z.longitudM).toLocaleString('es-AR')} m
                                     </span>
                                 </div>
                             ))}
                         </div>
                         <div style={{ fontSize: '0.75rem', color: '#888', marginBottom: '8px' }}>
-                            Impulsión {floorHeatingBudget.tempImpulsionC}°C → {floorHeatingBudget.emisionKcalhM2} kcal/h·m² (piso pétreo) · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 5)} kcal/h por metro a paso 20 · ≈{Math.round(floorHeatingBudget.emisionKcalhM2 / 6.7)} a paso 15
+                            Impulsión {floorHeatingBudget.tempImpulsionC}°C → {floorHeatingBudget.emisionKcalhM2} kcal/h·m² (piso pétreo) · la emisión la da la superficie del piso, no los metros de tubo
                         </div>
                         <div className="breakdown-list">
                             {floorHeatingBudget.circuits.map((c) => {

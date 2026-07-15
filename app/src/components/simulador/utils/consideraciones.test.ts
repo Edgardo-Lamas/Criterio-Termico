@@ -16,7 +16,6 @@ function zona(id: string, xM: number, yM: number, anchoM: number, altoM: number)
     y: yM * PIXELS_PER_METER,
     width: anchoM * PIXELS_PER_METER,
     height: altoM * PIXELS_PER_METER,
-    pasoCm: 15,
     floor: 'ground',
   };
 }
@@ -134,15 +133,27 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
   });
 
   it('zona con cobertura insuficiente genera una crítica y va primera', () => {
-    // 15 m² × 2,5 × 50 = 1.875 requerido > 1.290 que entrega el piso a 45°C
-    const r = room('r1', 15);
+    // Casa mal aislada (factor 60 → 100 W/m²): 15 × 100 × 0,86 = 1.290 y a
+    // 40°C el piso entrega 15 × 68 = 1.020. No llega.
+    const r = room('r1', 15, { thermalFactor: 60 });
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
-    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r], 40);
     const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
 
     expect(cons[0].nivel).toBe('critica');
     expect(cons[0].titulo).toContain('Cobertura térmica insuficiente');
     expect(cons[0].titulo).toContain('Zona z1');
+  });
+
+  it('la casa aislada con el piso bien puesto NO genera crítica', () => {
+    // Regresión del bug de fondo: comparar el piso contra la vara del radiador
+    // daba insuficiente en las 144 configuraciones posibles. Una recámara
+    // normal con piso a 45°C tiene que dar verde.
+    const r = room('r1', 15);
+    const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
+    expect(cons.find(c => c.titulo.includes('Cobertura térmica insuficiente'))).toBeUndefined();
   });
 
   it('sistema mixto radiadores + piso pide válvula mezcladora', () => {
@@ -160,13 +171,16 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
   });
 
   it('la cobertura insuficiente no empuja a un sistema mixto hidráulico', () => {
-    const r = room('r1', 15);
+    const r = room('r1', 15, { thermalFactor: 60 });
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
-    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r], 40);
     const cons = generarConsideraciones({ rooms: [r], radiators: [], floorHeating: budget });
     const critica = cons.find(c => c.titulo.includes('Cobertura térmica insuficiente'));
     expect(critica?.detalle).toContain('eléctrico');
     expect(critica?.detalle).not.toContain('complementar con un radiador');
+    // Tampoco puede prometer que sumando caño se arregla: la emisión sale de
+    // la superficie del piso, no del tubo.
+    expect(critica?.detalle).toContain('no del tubo');
   });
 
   it('radiadores que no cubren el requerido generan una crítica (sin margen extra)', () => {
@@ -217,9 +231,10 @@ describe('generarConsideraciones — alertas desde el diseño real', () => {
   });
 
   it('el orden es críticas → atención → recomendaciones', () => {
+    // Mal aislada + agua a 40°C → el piso no llega y hay crítica de cobertura
     const r = room('r1', 15, { thermalFactor: 60 });
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
-    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r]);
+    const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [r], 40);
     const cons = generarConsideraciones({
       rooms: [r],
       radiators: [radiador('rad1', 1000)],

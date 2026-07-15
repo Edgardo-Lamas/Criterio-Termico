@@ -8,7 +8,8 @@ import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { calculateBoilerPower, calculateRoomPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
+import { calculateBoilerPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
+import { cargaDeDisenoKcalh, PASO_CM } from './floorHeating';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import { validarCircuitosPiso } from './hydraulicValidation';
@@ -225,9 +226,9 @@ export const generateQuotePDF = (
         ? Math.round(room.area * floorHeating.emisionKcalhM2)
         : 0;
       const instalado = radPower + pisoPower;
-      // Pérdida del ambiente: una sola base para todos los emisores, igual que
-      // la Calculadora de Potencia
-      const requerido = calculateRoomPower(room);
+      // La vara depende del emisor: con piso solo se mide por m² de zona
+      // ocupada; con radiadores, por volumen (ver cargaDeDisenoKcalh).
+      const requerido = cargaDeDisenoKcalh(room, radPower > 0, tienePiso);
       const tieneEmisores = instalado > 0;
       const pct = tieneEmisores && requerido > 0
         ? Math.round((instalado / requerido) * 100)
@@ -274,7 +275,13 @@ export const generateQuotePDF = (
 
   // === EQUIPAMIENTO PRINCIPAL ===
   sectionTitle('EQUIPAMIENTO PRINCIPAL');
-  const caldera = calculateBoilerPower(radiators, floorHeating?.potenciaTotalKcalh ?? 0);
+  // La caldera sale de la carga térmica de los ambientes calefaccionados, no
+  // de los emisores (ver calculateBoilerPower).
+  const roomsCalefaccionados = rooms.filter(room =>
+    room.radiatorIds.length > 0 ||
+    (floorHeating?.zonas ?? []).some(z => z.roomId === room.id)
+  );
+  const caldera = calculateBoilerPower(roomsCalefaccionados, radiators);
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(40, 40, 40);
@@ -294,8 +301,8 @@ export const generateQuotePDF = (
       ? `  La instalacion pide ${caldera.calculatedPower.toLocaleString('es-AR')} Kcal/h; se adopta la ` +
         `caldera mas chica del mercado (${CALDERA_MIN_KW} kW), que al 80% cubre hasta ` +
         `${Math.round(CALDERA_MIN_KCALH * 0.8).toLocaleString('es-AR')} Kcal/h.`
-      : `  Los emisores instalados suman ${caldera.totalEmittersPower.toLocaleString('es-AR')} Kcal/h y superan ` +
-        `lo que cubre una de ${CALDERA_MIN_KW} kW.`,
+      : `  La carga termica de la instalacion es de ${caldera.totalCargaTermica.toLocaleString('es-AR')} Kcal/h y supera ` +
+        `lo que cubre una de ${CALDERA_MIN_KW} kW trabajando al 80%.`,
     M + 2, yPosition
   );
   doc.setTextColor(0, 0, 0);
@@ -468,15 +475,14 @@ export const generateQuotePDF = (
     yPosition += 6;
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
+    // Por zona van los METROS, que es el dato de obra. La carga térmica va una
+    // sola vez, en la planilla de ambientes: dos números de potencia distintos
+    // para la misma pieza se leen como error de cálculo.
     floorHeating.zonas.forEach(z => {
       ensureSpace(5);
-      const requerido = z.requeridoKcalh !== null
-        ? ` — requiere ${z.requeridoKcalh.toLocaleString('es-AR')} kcal/h — cubre ${z.coberturaPct}% ` +
-          `${z.suficiente ? '(OK)' : '(INSUFICIENTE: ver consideraciones)'}`
-        : '';
-      doc.setTextColor(...(z.suficiente === false ? ROJO : z.suficiente === true ? OK_VERDE : GRIS_TEXTO));
+      doc.setTextColor(...GRIS_TEXTO);
       doc.text(
-        `• ${z.zoneName}: ${z.areaM2.toLocaleString('es-AR')} m² — entrega hasta ${z.potenciaKcalh.toLocaleString('es-AR')} kcal/h${requerido}`,
+        `• ${z.zoneName}: ${z.areaM2.toLocaleString('es-AR')} m² — ${Math.round(z.longitudM).toLocaleString('es-AR')} m de PE-X Ø20 a paso ${PASO_CM} cm`,
         M + 2, yPosition
       );
       doc.setTextColor(0, 0, 0);
@@ -487,8 +493,8 @@ export const generateQuotePDF = (
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(...GRIS_TEXTO);
     doc.text(
-      `Cálculo con agua de impulsión a ${floorHeating.tempImpulsionC}°C (suelo pétreo, EN 1264): el piso entrega ${floorHeating.emisionKcalhM2} kcal/h·m² — ` +
-      `aprox. ${Math.round(floorHeating.emisionKcalhM2 / 5)} kcal/h por metro de tubo a paso 20 y ${Math.round(floorHeating.emisionKcalhM2 / 6.7)} a paso 15.`,
+      `Agua de impulsión a ${floorHeating.tempImpulsionC}°C sobre suelo pétreo: el piso entrega ${floorHeating.emisionKcalhM2} kcal/h·m². ` +
+      `La emisión sale de la superficie del piso, no de los metros de tubo: el paso define la temperatura de agua necesaria y el largo de circuito es un límite hidráulico.`,
       M, yPosition
     );
     doc.setTextColor(0, 0, 0);

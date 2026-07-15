@@ -13,7 +13,6 @@ const zona: FloorHeatingZone = {
   y: 100,
   width: 400,
   height: 80,
-  pasoCm: 20,
 }
 
 describe('crearPuerta — orientación según la pared más cercana', () => {
