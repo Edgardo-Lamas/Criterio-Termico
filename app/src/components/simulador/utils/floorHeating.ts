@@ -42,18 +42,16 @@ export const PASO_CM = 15 as const;
 export const DENSIDAD_M_POR_M2 = 7.0;
 
 // Mobiliario fijo: bajo la bañadera, el mueble bajo mesada o el placard no se
-// serpentea, así que la superficie útil es menor que la del ambiente. Sin este
-// descuento el metraje se sobrepresupuesta: una recámara de 9,8 m² daba 94 m
-// contra los ~90 que se manejan en obra.
+// serpentea. Sin este descuento el metraje se sobrepresupuesta: una recámara
+// de 9,8 m² daba 94 m contra los ~90 que se manejan en obra. Ahora da 87.
 //
-// Aplica a los METROS y a la EMISIÓN (esa franja no lleva caño, así que no
-// emite), pero NO a la carga del ambiente: la pieza pierde lo mismo tenga o no
-// un placard adentro.
+// Aplica SOLO a los metros de tubería. NO toca la emisión ni la carga: la
+// emisión del piso se sigue calculando sobre la superficie del ambiente.
 export const DESCUENTO_MOBILIARIO_FIJO = 0.10;
 
-/** Superficie que efectivamente se serpentea, descontando el mobiliario fijo. */
-export function areaEmisoraM2(areaM2: number): number {
-  return areaM2 * (1 - DESCUENTO_MOBILIARIO_FIJO);
+/** Metros de tubo del serpentín, ya descontado el mobiliario fijo. */
+export function metrosSerpentin(areaM2: number): number {
+  return areaM2 * DENSIDAD_M_POR_M2 * (1 - DESCUENTO_MOBILIARIO_FIJO);
 }
 
 // Emisión del piso según la temperatura de impulsión del agua. Suelo pétreo,
@@ -240,9 +238,7 @@ export function potenciaZonaKcalh(
   tempImpulsionC: TempImpulsion
 ): number {
   const areaM2 = (zone.width / PIXELS_PER_METER) * (zone.height / PIXELS_PER_METER);
-  // Emite la superficie serpenteada, no la del ambiente: bajo el mobiliario
-  // fijo no hay caño (ver DESCUENTO_MOBILIARIO_FIJO).
-  return Math.round(areaEmisoraM2(areaM2) * emisionKcalhM2(tempImpulsionC));
+  return Math.round(areaM2 * emisionKcalhM2(tempImpulsionC));
 }
 
 export interface CanvasPoint {
@@ -439,13 +435,11 @@ export function calcularCircuitosZona(
 
       // Longitud presupuestada por densidad (regla de obra), no por el dibujo.
       // Con habitación vinculada, el área de la franja se escala al área REAL.
-      // El caño va sobre la superficie útil: bajo el mobiliario fijo no se
-      // serpentea (ver DESCUENTO_MOBILIARIO_FIJO). El areaM2 sin descontar se
-      // conserva para los materiales que sí cubren todo el piso —placa
-      // aislante, malla, banda perimetral—.
+      // Los metros llevan el descuento por mobiliario fijo (ver
+      // metrosSerpentin); la emisión y los materiales van sobre el área
+      // completa del ambiente.
       const areaM2 = redondear(anchoM * altoM * escala)
-      const areaUtil = areaEmisoraM2(areaM2)
-      const longitudSerpentin = redondear(areaUtil * DENSIDAD_M_POR_M2)
+      const longitudSerpentin = redondear(metrosSerpentin(areaM2))
       const longitudTotal = redondear(longitudSerpentin + longitudAcometida)
       if (longitudTotal > MAX_CIRCUIT_LENGTH_M) algunoExcede = true
 
@@ -463,7 +457,7 @@ export function calcularCircuitosZona(
         acometidaRetorno,
         pasoCm: PASO_CM,
         areaM2,
-        potenciaKcalh: Math.round(areaUtil * emisionKcalhM2(tempImpulsionC)),
+        potenciaKcalh: Math.round(areaM2 * emisionKcalhM2(tempImpulsionC)),
         // Carga de diseño de la habitación repartida en partes iguales
         // (las franjas son iguales entre sí)
         cargaKcalh: real?.cargaKcalh != null

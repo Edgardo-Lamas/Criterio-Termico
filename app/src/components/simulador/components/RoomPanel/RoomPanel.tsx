@@ -10,7 +10,7 @@ import {
   CALDERA_MIN_KW,
   CALDERA_MIN_KCALH
 } from '../../utils/thermalCalculator';
-import { emisionKcalhM2, puertaEnLado, cargaPisoKcalh, impulsionMinimaParaCarga, calcularCircuitosPlanta, PASO_CM, areaEmisoraM2 } from '../../utils/floorHeating';
+import { emisionKcalhM2, puertaEnLado, cargaPisoKcalh, impulsionMinimaParaCarga, calcularCircuitosPlanta, PASO_CM } from '../../utils/floorHeating';
 import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA, ALTURA_MAX_RADIADORES_M } from '../../utils/autoLayout';
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
@@ -451,13 +451,10 @@ export const RoomPanel: React.FC = () => {
             // decide qué impulsión sugerir y si el caso es genuinamente
             // inviable.
             const cargaPiso = soloPiso ? cargaPisoKcalh(room) : 0;
-            const topePisoKcalh = Math.round(areaEmisoraM2(room.area) * emisionKcalhM2(45));
+            const topePisoKcalh = Math.round(room.area * emisionKcalhM2(45));
             const pisoNuncaAlcanza = soloPiso && topePisoKcalh < cargaPiso;
-            // La carga se reparte sobre la superficie que EMITE (sin el
-            // mobiliario fijo), no sobre la del ambiente: menos superficie
-            // caliente pide agua un poco más alta para el mismo resultado.
             const impulsionMinima = soloPiso && !pisoNuncaAlcanza
-              ? impulsionMinimaParaCarga(cargaPiso / areaEmisoraM2(room.area))
+              ? impulsionMinimaParaCarga(cargaPiso / room.area)
               : null;
             const puedeBajarImpulsion = impulsionMinima !== null
               && impulsionMinima < floorHeatingTempC;

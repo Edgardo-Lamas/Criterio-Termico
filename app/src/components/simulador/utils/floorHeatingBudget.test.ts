@@ -237,10 +237,10 @@ describe('calcularMontantes — primaria caldera→colector Ø32', () => {
 });
 
 describe('regla de obra: metros por m² y potencia térmica', () => {
-  it('el mobiliario fijo descuenta caño y emisión, pero no la carga ni los materiales', () => {
-    // Bajo la bañadera o el placard no se serpentea. Esa franja no lleva tubo
-    // ni emite, pero la pieza pierde lo mismo y la placa aislante sigue
-    // cubriendo todo el piso.
+  it('el mobiliario fijo descuenta SOLO los metros de caño', () => {
+    // Bajo la bañadera o el placard no se serpentea: son 10% menos de tubo.
+    // No toca la emisión, ni la carga del ambiente, ni los materiales que
+    // cubren todo el piso.
     const room = {
       id: 'r1', name: 'Recámara', area: 12, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -249,9 +249,10 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room])!;
 
-    // Caño y emisión: sobre el 90%
+    // Caño: 10% menos → 12 × 7 × 0,90 = 75,6
     expect(budget.zonas[0].longitudM).toBeCloseTo(75.6 + budget.circuits[0].longitudAcometida, 1);
-    expect(budget.zonas[0].potenciaKcalh).toBe(929);   // 12 × 0,90 × 86
+    // Emisión: sin descontar, sobre el área del ambiente
+    expect(budget.zonas[0].potenciaKcalh).toBe(1032);  // 12 × 86
     // Carga del ambiente: sin descontar — la pieza pierde lo mismo
     expect(budget.zonas[0].requeridoKcalh).toBe(826);  // 12 × 80 × 0,86
     // Materiales que cubren todo el piso: sobre los 12 m² completos
@@ -276,11 +277,12 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(serpentin).toBeCloseTo(75.6, 1);
   });
 
-  it('potencia: 86 kcal/h por m² a 45°C sobre la superficie útil (12 m² → 929)', () => {
-    // Emite la superficie serpenteada: 12 × 0,90 × 86 = 929.
+  it('potencia: 86 kcal/h por m² con suelo pétreo a 45°C (12 m² → 1.032 kcal/h)', () => {
+    // La emisión va sobre el área del ambiente: el descuento por mobiliario
+    // fijo es solo de metros de caño, no toca el cálculo térmico.
     const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)]);
     const potencia = circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0);
-    expect(potencia).toBe(929);
+    expect(potencia).toBe(1032);
   });
 
   it('la emisión depende de la temperatura de impulsión (misma para todo el sistema)', () => {
@@ -288,20 +290,20 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(emisionKcalhM2(40)).toBe(68);
     expect(emisionKcalhM2(35)).toBe(48);
 
-    // A 35°C la misma zona de 12 m² entrega 12 × 0,90 × 48 = 518 kcal/h
+    // A 35°C la misma zona de 12 m² entrega 12 × 48 = 576 kcal/h
     const circuits = calcularCircuitosPlanta([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)], 35);
-    expect(circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0)).toBe(518);
+    expect(circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0)).toBe(576);
 
     // Y el presupuesto arrastra la misma temperatura
     const budget = calcularPresupuestoPisoRadiante([zona('z1', 2, 2, 4, 3)], [colector('m1', 1, 1)], [], [], 35);
     expect(budget?.tempImpulsionC).toBe(35);
     expect(budget?.emisionKcalhM2).toBe(48);
-    expect(budget?.potenciaTotalKcalh).toBe(518);
+    expect(budget?.potenciaTotalKcalh).toBe(576);
   });
 
   it('el requerido de la zona es la carga del piso: por m², sin la altura', () => {
     // 15 m² × 80 W/m² × 0,86 = 1.032 kcal/h (factor 50 → aislación media).
-    // Entrega: 15 × 0,90 × 86 = 1.161 → cubre 113%, alcanza y sobra.
+    // Entrega con área REAL: 15 × 86 = 1.290 → cubre 125%, alcanza y sobra.
     const room = {
       id: 'r1', name: 'Recámara 2', area: 15, height: 2.5,
       thermalFactor: 50 as const, hasExteriorWall: false,
@@ -312,11 +314,11 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     expect(budget).not.toBeNull();
     if (!budget) return;
     expect(budget.zonas).toHaveLength(1);
-    expect(budget.zonas[0].potenciaKcalh).toBe(1161); // 15 × 0,90 × 86
+    expect(budget.zonas[0].potenciaKcalh).toBe(1290);
     expect(budget.zonas[0].requeridoKcalh).toBe(1032);
-    expect(budget.zonas[0].coberturaPct).toBe(113);
+    expect(budget.zonas[0].coberturaPct).toBe(125);
     expect(budget.zonas[0].suficiente).toBe(true);
-    expect(budget.potenciaTotalKcalh).toBe(1161);
+    expect(budget.potenciaTotalKcalh).toBe(1290);
   });
 
   it('la carga del piso NO escala con la altura del techo', () => {
@@ -387,15 +389,14 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Estar' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room], 40);
     expect(budget?.zonas[0].requeridoKcalh).toBe(1290);       // 15 × 100 × 0,86
-    expect(budget?.zonas[0].potenciaKcalh).toBe(918);         // 15 × 0,90 × 68
+    expect(budget?.zonas[0].potenciaKcalh).toBe(1020);        // 15 × 68
     expect(budget?.zonas[0].suficiente).toBe(false);
   });
 
-  it('la casa mal aislada no llega ni a 45°C: emite el 90% de la superficie', () => {
-    // 100 W/m² es a la vez la carga de "mal aislada" y el tope del piso a 45°C,
-    // así que sin descuento daría exactamente 100%. Con el mobiliario fijo
-    // descontado emite 0,90 de la superficie → 90%: en el peor ambiente el piso
-    // solo ya no alcanza, y eso es lo que hay que decir.
+  it('a 45°C la casa mal aislada queda justo al filo, no insuficiente', () => {
+    // 100 W/m² es a la vez la carga de "mal aislada" y el tope del piso a 45°C:
+    // la cobertura da exactamente 100%. Por eso el rango no puede ser 100 fijo
+    // para todas — compararía un número contra sí mismo.
     const room = {
       id: 'r1', name: 'Estar', area: 15, height: 2.5,
       thermalFactor: 60 as const, hasExteriorWall: false,
@@ -403,8 +404,8 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     };
     const z = { ...zona('z1', 2, 2, 4, 3), roomId: 'r1', name: 'Estar' };
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room], 45);
-    expect(budget?.zonas[0].coberturaPct).toBe(90);
-    expect(budget?.zonas[0].suficiente).toBe(false);
+    expect(budget?.zonas[0].coberturaPct).toBe(100);
+    expect(budget?.zonas[0].suficiente).toBe(true);
   });
 
   it('la zona vinculada usa el área REAL de la habitación, no la dibujada', () => {
@@ -420,7 +421,7 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
     const budget = calcularPresupuestoPisoRadiante([z], [colector('m1', 1, 1)], [], [room]);
     expect(budget).not.toBeNull();
     if (!budget) return;
-    expect(budget.zonas[0].potenciaKcalh).toBe(387); // 5 × 0,90 × 86
+    expect(budget.zonas[0].potenciaKcalh).toBe(430);
     expect(budget.zonas[0].areaM2).toBeCloseTo(5, 1);
     expect(budget.zonas[0].requeridoKcalh).toBe(344);
     expect(budget.zonas[0].suficiente).toBe(true);
@@ -474,11 +475,10 @@ describe('regla de obra: metros por m² y potencia térmica', () => {
   });
 
   it('potenciaZonaKcalh: la misma cuenta que suman los circuitos, sin serpentines', () => {
-    // Zona de 4×3 m = 12 m², de los que emite el 90% (mobiliario fijo):
-    // a 45°C → 10,8 × 86 = 929, a 35°C → 10,8 × 48 = 518.
+    // Zona de 4×3 m = 12 m²: a 45°C → 12 × 86 = 1.032, a 35°C → 12 × 48 = 576.
     const z = zona('z1', 2, 2, 4, 3);
-    expect(potenciaZonaKcalh(z, 45)).toBe(929);
-    expect(potenciaZonaKcalh(z, 35)).toBe(518);
+    expect(potenciaZonaKcalh(z, 45)).toBe(1032);
+    expect(potenciaZonaKcalh(z, 35)).toBe(576);
 
     const circuits = calcularCircuitosPlanta([z], [colector('m1', 1, 1)]);
     expect(circuits.reduce((acc, c) => acc + c.potenciaKcalh, 0)).toBe(potenciaZonaKcalh(z, 45));
