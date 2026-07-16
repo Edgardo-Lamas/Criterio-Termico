@@ -208,7 +208,6 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         boiler.id === id ? { ...boiler, power } : boiler
       ),
     }));
-    console.log(`🔥 Potencia de caldera actualizada: ${power} Kcal/h (${(power / 860).toFixed(1)} kW)`);
   },
 
   startPipe: (startPoint, pipeType, fromElementId) => {

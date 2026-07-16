@@ -18,13 +18,13 @@ export function Home() {
                         "@context": "https://schema.org",
                         "@type": "WebSite",
                         "name": "Criterio Térmico",
-                        "url": "https://edgardo-lamas.github.io/Criterio-Termico/",
+                        "url": "https://criterio-termico.vercel.app/",
                         "description": "Plataforma técnica independiente para instaladores de calefacción por radiadores",
                         "inLanguage": "es",
                         "publisher": {
                             "@type": "Organization",
                             "name": "Criterio Térmico",
-                            "url": "https://edgardo-lamas.github.io/Criterio-Termico/"
+                            "url": "https://criterio-termico.vercel.app/"
                         }
                     })
                 }}

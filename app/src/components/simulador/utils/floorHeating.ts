@@ -171,22 +171,6 @@ export function impulsionMinimaParaCarga(cargaKcalhM2: number): TempImpulsion | 
   return TEMPERATURAS_IMPULSION.find(t => emisionKcalhM2(t) >= cargaKcalhM2) ?? null;
 }
 
-// Cobertura del piso sobre la carga del ambiente. Devuelve el veredicto en
-// crudo para que la UI, el PDF y el presupuesto cuenten todos lo mismo.
-export function coberturaPiso(
-  entregaKcalh: number,
-  requeridoKcalh: number
-): { coberturaPct: number; suficiente: boolean; faltanteKcalh: number } {
-  if (requeridoKcalh <= 0) {
-    return { coberturaPct: 0, suficiente: false, faltanteKcalh: 0 };
-  }
-  return {
-    coberturaPct: Math.round((entregaKcalh / requeridoKcalh) * 100),
-    suficiente: entregaKcalh >= requeridoKcalh,
-    faltanteKcalh: Math.max(0, Math.round(requeridoKcalh - entregaKcalh)),
-  };
-}
-
 // ── Puerta de la zona ───────────────────────────────────────────────────────
 // En obra la acometida entra a la habitación por la puerta, no atraviesa una
 // pared (tipos LadoZona/PuertaZona en el modelo FloorHeatingZone).

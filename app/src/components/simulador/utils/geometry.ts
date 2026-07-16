@@ -1,6 +1,4 @@
 import type { Point } from '../models/PipeSegment';
-import type { Radiator } from '../models/Radiator';
-import type { Boiler } from '../models/Boiler';
 
 /**
  * Verifica si un punto está dentro de un rectángulo
@@ -34,37 +32,6 @@ export const distanceBetween = (p1: Point, p2: Point): number => {
  */
 export const distance = (p1: Point, p2: Point): number => {
   return distanceBetween(p1, p2);
-};
-
-/**
- * Verifica si un punto está cerca de un elemento (radiador o caldera)
- */
-export const isPointNearElement = (
-  point: Point,
-  element: Radiator | Boiler,
-  threshold: number = 20
-): boolean => {
-  // Verificar si está dentro del elemento
-  const isInside = isPointInsideRect(
-    point,
-    element.x,
-    element.y,
-    element.width,
-    element.height
-  );
-
-  if (isInside) return true;
-
-  // Verificar si está cerca (dentro del rectángulo expandido)
-  const isNear = isPointInsideRect(
-    point,
-    element.x - threshold,
-    element.y - threshold,
-    element.width + threshold * 2,
-    element.height + threshold * 2
-  );
-
-  return isNear;
 };
 
 /**
