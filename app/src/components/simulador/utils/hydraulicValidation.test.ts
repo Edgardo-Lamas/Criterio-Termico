@@ -29,6 +29,7 @@ function pisoBudget(longitudTotal: number, cargaKcalh: number, montanteM = 4): F
     etiqueta: 'C1',
     pasoCm: PASO_CM,
     cargaKcalh,
+    aporteAmbienteKcalh: cargaKcalh,
     patron: 'espiral',
     ida: [],
     retorno: [],

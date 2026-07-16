@@ -338,12 +338,13 @@ export const Canvas = () => {
       drawPolyline(c.retorno, '#29B6F6', 1.5);
 
       // Etiqueta del circuito: SOLO en hover sostenido sobre el serpentín —
-      // ninguna etiqueta queda fija sobre el plano (pedido de Edgardo). Con
-      // habitación vinculada muestra la CARGA de diseño (lo que el circuito
-      // debe cubrir); sin vínculo, la entrega máxima. "C2" = colector 2.
+      // ninguna etiqueta queda fija sobre el plano (pedido de Edgardo). Muestra
+      // el aporte térmico del AMBIENTE según el Calculador de Potencia (el mismo
+      // valor de la ficha del ambiente), nunca la carga de diseño del piso: dos
+      // números distintos para la misma pieza se leen como error. "C2" = colector 2.
       if (hoveredCircuitKey !== `${c.zoneId}:${c.numero}`) return;
-      const potenciaTxt = c.cargaKcalh != null
-        ? `carga ${c.cargaKcalh.toLocaleString('es-AR')}`
+      const potenciaTxt = c.aporteAmbienteKcalh != null
+        ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')}`
         : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
       const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${potenciaTxt} kcal/h`;
       ctx.font = 'bold 10px Arial';

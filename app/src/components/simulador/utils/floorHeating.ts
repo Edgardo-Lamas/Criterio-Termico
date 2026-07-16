@@ -253,7 +253,8 @@ export interface FloorHeatingCircuit {
   numero: number;              // número de circuito dentro de la zona (1..n)
   colectorNumero: number | null; // índice 1..n del colector en la planta (null sin colector)
   etiqueta: string;            // "C2" = va al colector 2; "C2.1" si la zona tiene varios circuitos
-  cargaKcalh: number | null;   // carga térmica de diseño (requerido de la habitación repartido)
+  cargaKcalh: number | null;   // carga térmica de diseño del piso (cuenta interna: verificación hidráulica); NO se muestra
+  aporteAmbienteKcalh: number | null; // aporte térmico del AMBIENTE según el Calculador de Potencia — el único valor que se muestra en las etiquetas
   patron: 'espiral' | 'meandro';
   ida: CanvasPoint[];          // px absolutos del canvas
   retorno: CanvasPoint[];      // px absolutos del canvas
@@ -378,7 +379,8 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
 // el panel, y la carga térmica calculada se reparte entre los circuitos.
 export interface DatosReales {
   areaM2: number          // área real de la habitación (del panel)
-  cargaKcalh: number | null // carga del ambiente para piso (cargaPisoKcalh)
+  cargaKcalh: number | null // carga del ambiente para piso (cargaPisoKcalh) — cuenta interna
+  aporteCalculadorKcalh: number | null // aporte térmico del ambiente (Calculador de Potencia) — lo que se muestra
 }
 
 export function calcularCircuitosZona(
@@ -463,6 +465,9 @@ export function calcularCircuitosZona(
         cargaKcalh: real?.cargaKcalh != null
           ? Math.round(real.cargaKcalh / franjas.length)
           : null,
+        // Aporte del Calculador de Potencia: es del AMBIENTE (uno solo), no se
+        // reparte entre franjas — cada etiqueta del ambiente muestra el mismo valor
+        aporteAmbienteKcalh: real?.aporteCalculadorKcalh ?? null,
         longitudSerpentin,
         longitudAcometida,
         longitudTotal,
@@ -673,7 +678,12 @@ export function calcularCircuitosPlanta(
     // del ambiente entre los circuitos
     const room = zone.roomId ? rooms.find(r => r.id === zone.roomId) : undefined
     const real: DatosReales | null = room
-      ? { areaM2: room.area, cargaKcalh: cargaDeDisenoKcalh(room, room.radiatorIds.length > 0, true) }
+      ? {
+          areaM2: room.area,
+          cargaKcalh: cargaDeDisenoKcalh(room, room.radiatorIds.length > 0, true),
+          // El único aporte térmico que se muestra: el del Calculador de Potencia
+          aporteCalculadorKcalh: Math.round(calculateRoomPower(room)),
+        }
       : null
     const propios = calcularCircuitosZona(zone, manifold, tempImpulsionC, real)
 

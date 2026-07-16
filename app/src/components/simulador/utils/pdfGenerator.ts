@@ -9,7 +9,7 @@ import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { calculateBoilerPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
-import { cargaDeDisenoKcalh, PASO_CM } from './floorHeating';
+import { PASO_CM } from './floorHeating';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import { validarCircuitosPiso } from './hydraulicValidation';
@@ -194,84 +194,11 @@ export const generateQuotePDF = (
   doc.addImage(canvasImage, 'PNG', M, yPosition, imgWidth, imgHeight);
   yPosition += imgHeight + 10;
 
-  // === RESUMEN TÉRMICO POR AMBIENTE ===
-  // La misma verificación del panel: requerido +15% de margen contra lo
-  // instalado (radiadores + piso radiante con su base de cálculo propia).
-  if (rooms.length > 0) {
-    sectionTitle('RESUMEN TÉRMICO POR AMBIENTE');
-
-    const cols = [
-      { texto: 'Ambiente', x: M + 2 },
-      { texto: 'Área', x: 96, align: 'right' as const },
-      { texto: 'Requerido', x: 130, align: 'right' as const },
-      { texto: 'Instalado', x: 160, align: 'right' as const },
-      { texto: 'Cobertura', x: tableRight - 2, align: 'right' as const },
-    ];
-    tableHead(cols);
-    resetZebra();
-
-    let hayAmbientesConPiso = false;
-    doc.setFontSize(8.5);
-    rooms.forEach((room) => {
-      const zonasDelRoom = (floorHeating?.zonas ?? []).filter(z => z.roomId === room.id);
-      const tienePiso = zonasDelRoom.length > 0;
-      if (tienePiso) hayAmbientesConPiso = true;
-
-      const radPower = room.radiatorIds.reduce((sum, id) => {
-        const rad = radiators.find((r) => r.id === id);
-        return sum + (rad?.power || 0);
-      }, 0);
-      // Piso: entrega máxima con el área real (misma cuenta que el panel)
-      const pisoPower = tienePiso && floorHeating
-        ? Math.round(room.area * floorHeating.emisionKcalhM2)
-        : 0;
-      const instalado = radPower + pisoPower;
-      // La vara depende del emisor: con piso solo se mide por m² de zona
-      // ocupada; con radiadores, por volumen (ver cargaDeDisenoKcalh).
-      const requerido = cargaDeDisenoKcalh(room, radPower > 0, tienePiso);
-      const tieneEmisores = instalado > 0;
-      const pct = tieneEmisores && requerido > 0
-        ? Math.round((instalado / requerido) * 100)
-        : null;
-      const ok = pct !== null && instalado >= requerido;
-
-      zebraRow();
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(40, 40, 40);
-      const nombre = room.name.length > 32 ? room.name.substring(0, 32) + '...' : room.name;
-      doc.text(`${nombre}${tienePiso ? ' *' : ''}`, M + 2, yPosition);
-      doc.text(`${room.area.toLocaleString('es-AR')} m²`, 96, yPosition, { align: 'right' });
-      doc.text(`${requerido.toLocaleString('es-AR')} kcal/h`, 130, yPosition, { align: 'right' });
-      doc.text(
-        tieneEmisores ? `${instalado.toLocaleString('es-AR')} kcal/h` : '—',
-        160, yPosition, { align: 'right' }
-      );
-      if (pct === null) {
-        doc.setTextColor(...GRIS_TEXTO);
-        doc.text('sin emisores', tableRight - 2, yPosition, { align: 'right' });
-      } else {
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...(ok ? OK_VERDE : ROJO));
-        doc.text(`${pct}% ${ok ? 'OK' : 'REVISAR'}`, tableRight - 2, yPosition, { align: 'right' });
-      }
-      doc.setTextColor(0, 0, 0);
-      yPosition += 5.5;
-    });
-
-    if (hayAmbientesConPiso) {
-      ensureSpace(6);
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'italic');
-      doc.setTextColor(...GRIS_TEXTO);
-      doc.text(
-        '* Ambientes con piso radiante: carga de diseño en W/m² según aislación (EN 1264) + margen 15%. Resto: factor volumétrico sin margen extra.',
-        M, yPosition
-      );
-      doc.setTextColor(0, 0, 0);
-      yPosition += 5;
-    }
-    yPosition += 4;
-  }
+  // La verificación de cobertura (requerido vs instalado por ambiente) se quitó
+  // a propósito: mostrar dos números de potencia distintos para la misma pieza
+  // genera controversia y hace que el instalador descarte el sistema. El aporte
+  // térmico va una sola vez, con el valor del Calculador de Potencia (etiquetas
+  // del plano y ficha del ambiente).
 
   // === EQUIPAMIENTO PRINCIPAL ===
   sectionTitle('EQUIPAMIENTO PRINCIPAL');
@@ -384,11 +311,14 @@ export const generateQuotePDF = (
     doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...GRIS_TEXTO);
+    // El aporte térmico va una sola vez, con el valor del Calculador de Potencia.
+    // Acá van solo datos de obra (superficie, circuitos, metros, agua): no se
+    // informa la potencia de entrega del piso para no mostrar dos números.
     doc.text(
       `Superficie: ${floorHeating.areaM2.toLocaleString('es-AR')} m²  ·  ` +
       `Circuitos: ${floorHeating.circuits.length}  ·  ` +
       `Tubería: ${floorHeating.longitudTotalM.toLocaleString('es-AR')} m  ·  ` +
-      `Potencia: hasta ${floorHeating.potenciaTotalKcalh.toLocaleString('es-AR')} kcal/h (impulsión ${floorHeating.tempImpulsionC}°C)`,
+      `Agua a ${floorHeating.tempImpulsionC}°C`,
       M, yPosition
     );
     doc.setTextColor(0, 0, 0);
@@ -811,8 +741,12 @@ export const generateFloorPlanPDF = (
     }
     drawCircuitPolyline(c.retorno, 30, 90, 200);
 
-    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · 645 kcal/h" con fondo blanco
-    const potenciaTxt = c.cargaKcalh != null ? `carga ${c.cargaKcalh}` : `${c.potenciaKcalh}`;
+    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · carga 645 kcal/h" con fondo blanco.
+    // El aporte térmico es el del AMBIENTE (Calculador de Potencia), el mismo de
+    // la ficha del ambiente; nunca la carga de diseño del piso (cuenta interna).
+    const potenciaTxt = c.aporteAmbienteKcalh != null
+      ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')}`
+      : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
     const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${potenciaTxt} kcal/h`;
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
