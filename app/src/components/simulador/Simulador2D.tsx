@@ -49,14 +49,19 @@ export function Simulador2D() {
             <div className={styles.mobileBlock}>
                 <div className={styles.mobileBlockContent}>
                     <span className={styles.mobileIcon}>🖥️</span>
-                    <h2>Solo disponible en Desktop</h2>
+                    <h2>El Simulador necesita una pantalla grande</h2>
                     <p>
-                        El Simulador 2D requiere una pantalla de al menos <strong>1024px</strong> de ancho
-                        para poder trabajar con precisión.
+                        Para diseñar con precisión —arrastrar radiadores, trazar cañerías y armar
+                        el presupuesto— el Simulador 2D funciona en <strong>tablet en horizontal,
+                        notebook o PC</strong> (pantallas de al menos 1024px de ancho).
                     </p>
                     <p className={styles.mobileHint}>
-                        Abrí esta herramienta desde una notebook o PC de escritorio.
+                        Desde el celular podés usar todas las calculadoras del instalador, que
+                        andan perfecto en pantalla chica.
                     </p>
+                    <Link to="/herramientas" className={styles.mobileCtaButton}>
+                        🔧 Ir a las Calculadoras
+                    </Link>
                 </div>
             </div>
         )
