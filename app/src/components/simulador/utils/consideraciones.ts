@@ -325,6 +325,24 @@ export function generarConsideraciones({
     });
   }
 
+  // Ubicación de radiadores: el auto-diseño deja un borrador contra la pared
+  // más larga; la posición real la decide el instalador según el punto frío del
+  // ambiente y, sobre todo, las cortinas (ver caso "cortinas-radiadores").
+  if (radiators.length > 0) {
+    recomendaciones.push({
+      nivel: 'recomendacion',
+      titulo: 'Ubicación de radiadores: confirmá el punto más frío de cada ambiente',
+      detalle:
+        'Las ubicaciones del auto-diseño son un borrador apoyado contra la pared más larga. ' +
+        'El radiador rinde en el punto más frío del ambiente —casi siempre bajo la ventana, ' +
+        'donde corta la caída de aire frío del vidrio—. Antes de fijar cada uno, verificá el ' +
+        'mobiliario y las cortinas: si van cortinas hasta el piso tapan el radiador y anulan la ' +
+        'convección; en ese caso recomendá cortinas blackout (cortan la pérdida por el vidrio ' +
+        'sin tapar el emisor) o mové el radiador a la otra pared más fría. El recorrido de ' +
+        'cañería también es sugerido y totalmente modificable según convenga en obra.',
+    });
+  }
+
   // Buenas prácticas generales de obra (casos y protocolo de Criterio Térmico)
   if (radiators.length > 0 || floorHeating) {
     // Protocolo de obra: la tubería queda cargada y vigilada hasta la entrega.

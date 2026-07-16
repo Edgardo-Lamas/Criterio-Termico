@@ -406,6 +406,24 @@ export const RoomPanel: React.FC = () => {
               Ahí el radiador manda el calor al techo — va piso radiante.
             </div>
           )}
+          {currentFloorRadiators.length > 0 && (
+            <div style={{
+              marginTop: '6px',
+              padding: '6px 8px',
+              background: '#E3F2FD',
+              borderLeft: '3px solid #2196F3',
+              borderRadius: '3px',
+              fontSize: '11px',
+              color: '#0D47A1',
+              lineHeight: 1.4
+            }}>
+              ⚡ <strong>Ubicaciones estimadas — confirmalas vos.</strong> El radiador va
+              en el punto más frío del ambiente, casi siempre bajo la ventana. Antes de
+              fijarlo mirá el mobiliario y las cortinas: si van cortinas hasta el piso
+              tapan el radiador — recomendá blackout o movelo a la otra pared más fría.
+              La cañería también es un trazado sugerido: arrastrala si querés otro recorrido.
+            </div>
+          )}
           {/* Las tuberías se trazan con "⚡ Conectar Auto" de la barra: sistema
               de troncales con reducción de diámetro (el estándar de obra) */}
         </div>
