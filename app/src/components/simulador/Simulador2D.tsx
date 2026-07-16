@@ -9,6 +9,8 @@ import { ConfigPanel } from './components/ConfigPanel/ConfigPanel'
 import { BudgetPanel } from './components/BudgetPanel/BudgetPanel'
 import { PriceConfigPanel } from './components/PriceConfigPanel/PriceConfigPanel'
 import { useToolsStore } from './store/useToolsStore'
+import { useElementsStore } from './store/useElementsStore'
+import { loadFromLocalStorage } from './utils/projectStorage'
 import styles from './Simulador2D.module.css'
 import './SimuladorApp.css'
 
@@ -26,6 +28,19 @@ export function Simulador2D() {
         }
         window.addEventListener('resize', handleResize)
         return () => window.removeEventListener('resize', handleResize)
+    }, [])
+
+    // Restaura el último proyecto autoguardado (localStorage) al abrir, así una
+    // recarga o una actualización de la PWA no borra el trabajo. Solo si el store
+    // está vacío: si el usuario ya tiene un diseño en curso (volvió de otra página),
+    // no se pisa. El plano de fondo no se persiste; se conservan los datos de obra.
+    useEffect(() => {
+        const s = useElementsStore.getState()
+        const vacio = s.radiators.length === 0 && s.boilers.length === 0 && s.pipes.length === 0 &&
+            s.manifolds.length === 0 && s.floorHeatingZones.length === 0 && s.rooms.length === 0
+        if (!vacio) return
+        const proyecto = loadFromLocalStorage()
+        if (proyecto) s.loadProject(proyecto)
     }, [])
 
     // ── Mobile/Tablet block ──

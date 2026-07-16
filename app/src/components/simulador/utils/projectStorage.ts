@@ -37,10 +37,11 @@ export interface Project {
 }
 
 const CURRENT_PROJECT_KEY = 'currentProject';
-const AUTOSAVE_KEY = 'autosave';
 
 /**
- * Guardar proyecto en localStorage
+ * Guardar proyecto en localStorage (autoguardado). El plano de fondo no se
+ * persiste: son imágenes grandes para localStorage. Se conservan los datos de
+ * obra (elementos, circuitos, habitaciones), que es lo que cuesta rehacer.
  */
 export const saveToLocalStorage = (
   radiators: Radiator[],
@@ -69,7 +70,8 @@ export const saveToLocalStorage = (
 };
 
 /**
- * Cargar proyecto desde localStorage
+ * Cargar el proyecto autoguardado desde localStorage. Lo consume Simulador2D al
+ * montar para restaurar el trabajo tras una recarga o actualización de la PWA.
  */
 export const loadFromLocalStorage = (): Project | null => {
   try {
@@ -82,114 +84,4 @@ export const loadFromLocalStorage = (): Project | null => {
   } catch {
     return null;
   }
-};
-
-/**
- * Descargar proyecto como archivo JSON
- */
-export const downloadProjectAsJSON = (
-  radiators: Radiator[],
-  boilers: Boiler[],
-  pipes: PipeSegment[],
-  projectName: string
-): void => {
-  const project: Project = {
-    projectName,
-    version: '1.0',
-    createdAt: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-    radiators,
-    boilers,
-    pipes,
-    scale: 50,
-  };
-
-  const json = JSON.stringify(project, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${projectName.replace(/\s+/g, '_')}_${Date.now()}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
-};
-
-/**
- * Cargar proyecto desde archivo JSON
- */
-export const loadProjectFromFile = (file: File): Promise<Project> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const project: Project = JSON.parse(content);
-
-        // Validar estructura básica
-        if (!project.radiators || !project.boilers || !project.pipes) {
-          throw new Error('Archivo de proyecto inválido');
-        }
-        project.floorHeatingZones = migrarPuertas(project.floorHeatingZones);
-        resolve(project);
-      } catch (error) {
-        reject(error);
-      }
-    };
-
-    reader.onerror = () => {
-      reject(new Error('Error al leer el archivo'));
-    };
-
-    reader.readAsText(file);
-  });
-};
-
-/**
- * Auto-guardar proyecto (cada X segundos)
- */
-export const autoSave = (
-  radiators: Radiator[],
-  boilers: Boiler[],
-  pipes: PipeSegment[]
-): void => {
-  const project: Project = {
-    projectName: 'Autoguardado',
-    version: '1.0',
-    createdAt: new Date().toISOString(),
-    lastModified: new Date().toISOString(),
-    radiators,
-    boilers,
-    pipes,
-    scale: 50,
-  };
-
-  localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(project));
-};
-
-/**
- * Recuperar autoguardado
- */
-export const loadAutoSave = (): Project | null => {
-  try {
-    const saved = localStorage.getItem(AUTOSAVE_KEY);
-    if (!saved) return null;
-
-    const project: Project = JSON.parse(saved);
-    project.floorHeatingZones = migrarPuertas(project.floorHeatingZones);
-    return project;
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Limpiar localStorage
- */
-export const clearStorage = (): void => {
-  localStorage.removeItem(CURRENT_PROJECT_KEY);
-  localStorage.removeItem(AUTOSAVE_KEY);
 };

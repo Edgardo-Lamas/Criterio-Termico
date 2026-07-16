@@ -533,6 +533,12 @@ export const useElementsStore = create<ElementsStore>((set) => ({
       radiators: project.radiators,
       boilers: project.boilers,
       pipes: project.pipes,
+      // El autoguardado también persiste piso radiante y habitaciones: hay que
+      // restaurarlas o el proyecto vuelve sin circuitos, colectores ni ambientes.
+      // Opcionales por retrocompatibilidad con proyectos guardados antes de v1.2.
+      manifolds: project.manifolds ?? [],
+      floorHeatingZones: project.floorHeatingZones ?? [],
+      rooms: project.rooms ?? [],
       projectName: project.projectName,
       tempPipe: null,
       selectedElementId: null,
