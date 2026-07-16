@@ -743,11 +743,13 @@ export const generateFloorPlanPDF = (
 
     // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · carga 645 kcal/h" con fondo blanco.
     // El aporte térmico es el del AMBIENTE (Calculador de Potencia), el mismo de
-    // la ficha del ambiente; nunca la carga de diseño del piso (cuenta interna).
-    const potenciaTxt = c.aporteAmbienteKcalh != null
-      ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')}`
-      : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
-    const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${potenciaTxt} kcal/h`;
+    // la ficha del ambiente; nunca la carga de diseño del piso (cuenta interna,
+    // potenciaKcalh). Sin habitación vinculada no hay carga del Calculador: se
+    // pide asignarla en vez de mostrar el número interno.
+    const cargaTxt = c.aporteAmbienteKcalh != null
+      ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')} kcal/h`
+      : 'asigná habitación';
+    const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${cargaTxt}`;
     doc.setFontSize(5.5);
     doc.setFont('helvetica', 'bold');
     const tw = doc.getTextWidth(texto);

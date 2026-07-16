@@ -31,6 +31,11 @@ export const Canvas = () => {
   const [placingDoorZoneId, setPlacingDoorZoneId] = useState<string | null>(null);
   // Zona cuya puerta se está arrastrando (se pega al borde, como un radiador)
   const [draggingDoorZoneId, setDraggingDoorZoneId] = useState<string | null>(null);
+  // Desplazamiento manual del cartel de la zona (Habitación/Colector/Paso/Puerta):
+  // arranca anclado a la zona (0,0) y el usuario lo arrastra de la manija para
+  // que no le tape la puerta ni el circuito. Se resetea al cambiar de zona.
+  const [toolbarDrag, setToolbarDrag] = useState({ dx: 0, dy: 0 });
+  const toolbarDragRef = useRef<{ pointerId: number; startX: number; startY: number; baseDx: number; baseDy: number } | null>(null);
   // Circuito con la etiqueta visible por hover ("zoneId:numero"); el candidato
   // y su timer viven en refs para no redibujar mientras corre la espera
   const [hoveredCircuitKey, setHoveredCircuitKey] = useState<string | null>(null);
@@ -67,6 +72,12 @@ export const Canvas = () => {
     setFloorPlanDimensions,
     createManualPipe,
   } = useElementsStore();
+
+  // Al cambiar de zona seleccionada, el cartel vuelve a su posición anclada:
+  // el desplazamiento manual es por-zona, no global.
+  useEffect(() => {
+    setToolbarDrag({ dx: 0, dy: 0 });
+  }, [selectedElementId]);
 
   // Filtrar elementos por planta actual
   const currentFloorRadiators = radiators.filter(r => r.floor === currentFloor);
@@ -343,10 +354,16 @@ export const Canvas = () => {
       // valor de la ficha del ambiente), nunca la carga de diseño del piso: dos
       // números distintos para la misma pieza se leen como error. "C2" = colector 2.
       if (hoveredCircuitKey !== `${c.zoneId}:${c.numero}`) return;
-      const potenciaTxt = c.aporteAmbienteKcalh != null
-        ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')}`
-        : `${c.potenciaKcalh.toLocaleString('es-AR')}`;
-      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${potenciaTxt} kcal/h`;
+      // La carga es SIEMPRE la del Calculador de Potencia (aporteAmbienteKcalh =
+      // calculateRoomPower del ambiente, el mismo número de la ficha), nunca el
+      // cálculo interno del piso (potenciaKcalh = área × emisión/m²): dos números
+      // distintos para la misma pieza se leen como error. Sin habitación vinculada
+      // no hay carga del Calculador, así que se pide asignarla en vez de mostrar
+      // el número interno.
+      const cargaTxt = c.aporteAmbienteKcalh != null
+        ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')} kcal/h`
+        : 'asigná habitación';
+      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · p${c.pasoCm} · ${cargaTxt}`;
       ctx.font = 'bold 10px Arial';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -1625,8 +1642,8 @@ export const Canvas = () => {
           <div
             style={{
               position: 'absolute',
-              left: `${screenX}px`,
-              top: `${screenY}px`,
+              left: `${screenX + toolbarDrag.dx}px`,
+              top: `${screenY + toolbarDrag.dy}px`,
               transform: 'translateX(-50%)',
               display: 'flex',
               gap: '4px',
@@ -1638,8 +1655,52 @@ export const Canvas = () => {
               zIndex: 1000,
               alignItems: 'center',
               fontSize: '11px',
+              userSelect: 'none',
             }}
           >
+            {/* Manija: se agarra para correr el cartel cuando tapa la puerta o el
+                circuito. Usa pointer capture para seguir el puntero aunque salga
+                de la manija. El offset es relativo a la zona (se mueve con el pan). */}
+            <span
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+                toolbarDragRef.current = {
+                  pointerId: e.pointerId,
+                  startX: e.clientX,
+                  startY: e.clientY,
+                  baseDx: toolbarDrag.dx,
+                  baseDy: toolbarDrag.dy,
+                };
+              }}
+              onPointerMove={(e) => {
+                const d = toolbarDragRef.current;
+                if (!d || d.pointerId !== e.pointerId) return;
+                setToolbarDrag({
+                  dx: d.baseDx + (e.clientX - d.startX),
+                  dy: d.baseDy + (e.clientY - d.startY),
+                });
+              }}
+              onPointerUp={(e) => {
+                const d = toolbarDragRef.current;
+                if (d && d.pointerId === e.pointerId) {
+                  (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+                  toolbarDragRef.current = null;
+                }
+              }}
+              style={{
+                cursor: 'move',
+                color: '#E67E22',
+                fontSize: '13px',
+                lineHeight: 1,
+                padding: '0 2px',
+                touchAction: 'none',
+              }}
+              title="Arrastrá para mover el cartel (si te tapa la puerta o el circuito)"
+            >
+              ⠿
+            </span>
             <span style={{ color: '#666' }}>Habitación:</span>
             <select
               value={selectedZone.roomId ?? ''}
