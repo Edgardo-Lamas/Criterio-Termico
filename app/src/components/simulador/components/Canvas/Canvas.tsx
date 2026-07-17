@@ -1438,10 +1438,11 @@ export const Canvas = () => {
         }}
       />
 
-      {/* Controles de Zoom */}
+      {/* Controles de Zoom — corridos hacia arriba: la esquina inferior
+          derecha la ocupa el FAB del asistente Criterio (56px + margen) */}
       <div style={{
         position: 'absolute',
-        bottom: 20,
+        bottom: 96,
         right: 20,
         display: 'flex',
         flexDirection: 'column',

@@ -171,7 +171,11 @@
 .simulatorFullscreen {
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    /* Por encima del header sticky (--z-dropdown: 100) pero por debajo del
+       asistente Criterio (--z-modal: 200): el FAB tiene que verse también
+       acá. Los z-index internos del simulador apilan dentro de este
+       contenedor, así que no compiten con los de la app. */
+    z-index: 150;
     background: #1a1f2e;
     display: flex;
     flex-direction: column;
