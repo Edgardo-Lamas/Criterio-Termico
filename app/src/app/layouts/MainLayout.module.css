@@ -40,8 +40,8 @@
     font-weight: 700;
 }
 
-.logoIcon {
-    color: var(--color-primary);
+.logoImg {
+    display: block;
     flex-shrink: 0;
 }
 

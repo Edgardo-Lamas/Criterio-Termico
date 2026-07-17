@@ -23,8 +23,8 @@
     margin-bottom: var(--spacing-md);
 }
 
-.heroIcon {
-    color: var(--color-primary);
+.heroLogo {
+    display: block;
     flex-shrink: 0;
 }
 
@@ -182,9 +182,9 @@
         gap: var(--spacing-sm);
     }
 
-    .heroIcon {
-        width: 40px;
-        height: 40px;
+    .heroLogo {
+        width: 64px;
+        height: 64px;
     }
 
     .heroSubtitle {

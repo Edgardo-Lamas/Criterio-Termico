@@ -34,7 +34,13 @@ export function Home() {
             <section className={styles.hero}>
                 <div className={styles.heroContent}>
                     <h1 className={styles.heroTitle}>
-                        <Icon name="flame" size={48} className={styles.heroIcon} />
+                        <img
+                            src="/logo-emblema.png"
+                            alt=""
+                            width={96}
+                            height={96}
+                            className={styles.heroLogo}
+                        />
                         Criterio Térmico
                     </h1>
                     <p className={styles.heroSubtitle}>

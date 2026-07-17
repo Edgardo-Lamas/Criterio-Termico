@@ -12,7 +12,13 @@ export function MainLayout() {
             <header className={styles.header}>
                 <div className={styles.headerContent}>
                     <NavLink to="/" className={styles.logo} aria-label="Criterio Térmico — Inicio">
-                        <Icon name="flame" size={26} className={styles.logoIcon} />
+                        <img
+                            src="/logo-emblema.png"
+                            alt=""
+                            width={36}
+                            height={36}
+                            className={styles.logoImg}
+                        />
                         <span className={styles.logoText}>Criterio Térmico</span>
                     </NavLink>
 

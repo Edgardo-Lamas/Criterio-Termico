@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'logo.svg'],
+      includeAssets: ['favicon.svg', 'apple-touch-icon.png', 'logo-emblema.png'],
       manifest: {
         name: 'Criterio Térmico',
         short_name: 'Criterio',
