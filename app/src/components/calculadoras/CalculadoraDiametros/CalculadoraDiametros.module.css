@@ -39,9 +39,9 @@
 .input {
     flex: 1;
     padding: 0.6rem 0.75rem;
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
-    background: var(--color-surface);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-primary);
     font-size: 1rem;
 }
@@ -104,15 +104,15 @@
 .table th {
     text-align: left;
     padding: 0.5rem 0.75rem;
-    background: var(--color-surface-elevated, var(--color-surface));
+    background: var(--color-surface-elevated, var(--color-bg-tertiary));
     color: var(--color-text-secondary);
     font-weight: 600;
-    border-bottom: 2px solid var(--color-border);
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .table td {
     padding: 0.55rem 0.75rem;
-    border-bottom: 1px solid var(--color-border);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--color-text-primary);
 }
 

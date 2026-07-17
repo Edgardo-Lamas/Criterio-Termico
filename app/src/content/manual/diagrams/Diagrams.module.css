@@ -6,8 +6,8 @@
     padding: 0;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid var(--color-border);
-    background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--color-bg-primary) 80%, transparent);
 }
 
 .svg {
@@ -16,10 +16,10 @@
     height: auto;
     max-height: 360px;
     /* Inyectar variables para los colores del diagrama */
-    --ct-ext-bg: color-mix(in srgb, var(--color-bg) 60%, #1e293b);
-    --ct-int-bg: var(--color-bg);
-    --ct-wall-ext: color-mix(in srgb, var(--color-surface) 80%, #374151);
-    --ct-wall-stroke: var(--color-border);
+    --ct-ext-bg: color-mix(in srgb, var(--color-bg-primary) 60%, #1e293b);
+    --ct-int-bg: var(--color-bg-primary);
+    --ct-wall-ext: color-mix(in srgb, var(--color-bg-tertiary) 80%, #374151);
+    --ct-wall-stroke: rgba(255, 255, 255, 0.1);
     --ct-int-text: var(--color-text-secondary);
     --ct-int-text-dim: var(--color-text-muted);
     --ct-ext-text: var(--color-text-muted);
@@ -38,8 +38,8 @@
     font-size: 0.8rem;
     color: var(--color-text-muted);
     line-height: 1.5;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-surface);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-tertiary);
     font-style: italic;
 }
 
@@ -49,7 +49,7 @@
     margin: 2rem 0;
     border-radius: 10px;
     overflow: hidden;
-    border: 1px solid var(--color-border);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .photoSlot img {
@@ -65,8 +65,8 @@
     font-size: 0.8rem;
     color: var(--color-text-muted);
     line-height: 1.5;
-    border-top: 1px solid var(--color-border);
-    background: var(--color-surface);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--color-bg-tertiary);
     font-style: italic;
 }
 
@@ -78,11 +78,11 @@
     justify-content: center;
     gap: 0.5rem;
     height: 200px;
-    background: var(--color-surface);
+    background: var(--color-bg-tertiary);
     color: var(--color-text-muted);
     font-size: 0.85rem;
     border-radius: 10px;
-    border: 2px dashed var(--color-border);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
     margin: 2rem 0;
     text-align: center;
     padding: 1rem;

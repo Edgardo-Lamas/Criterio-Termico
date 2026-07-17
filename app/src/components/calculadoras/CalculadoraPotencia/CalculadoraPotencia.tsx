@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { calculateRoomPower, kcalToKw } from '../../simulador/utils/thermalCalculator'
 import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
@@ -53,6 +53,8 @@ export function CalculadoraPotencia() {
     const [ambientes, setAmbientes] = useState<Ambiente[]>([])
     const [form, setForm] = useState<Omit<Ambiente, 'id'>>({ nombre: '', ...DEFAULT_AMBIENTE })
     const [editingId, setEditingId] = useState<string | null>(null)
+    const [formError, setFormError] = useState<string | null>(null)
+    const areaInputRef = useRef<HTMLInputElement>(null)
 
     // Totales
     const totalKcal = ambientes.reduce((sum, a) => sum + calculateRoomPower(a), 0)
@@ -61,7 +63,12 @@ export function CalculadoraPotencia() {
     const calderaKw = kcalToKw(calderaKcal)
 
     function handleAdd() {
-        if (!form.area || form.area <= 0) return
+        if (!form.area || form.area <= 0) {
+            setFormError('Ingresá la superficie del ambiente en m² para poder agregarlo.')
+            areaInputRef.current?.focus()
+            return
+        }
+        setFormError(null)
         const nombre = form.nombre.trim() || `Ambiente ${ambientes.length + 1}`
         if (editingId) {
             setAmbientes(prev => prev.map(a => a.id === editingId ? { ...form, nombre, id: editingId } : a))
@@ -102,7 +109,7 @@ export function CalculadoraPotencia() {
             {/* Formulario */}
             <section className={styles.formSection}>
                 <h2 className={styles.sectionTitle}>
-                    {editingId ? '✏️ Editar ambiente' : '➕ Agregar ambiente'}
+                    {editingId ? 'Editar ambiente' : 'Agregar ambiente'}
                 </h2>
 
                 <div className={styles.formGrid}>
@@ -120,14 +127,22 @@ export function CalculadoraPotencia() {
                     <div className={styles.fieldGroup}>
                         <label className={styles.label}>Superficie (m²)</label>
                         <input
-                            className={styles.input}
+                            ref={areaInputRef}
+                            className={`${styles.input} ${formError ? styles.inputError : ''}`}
                             type="number"
                             min="1"
                             step="0.5"
-                            placeholder="20"
+                            placeholder="Ej: 20"
+                            aria-invalid={!!formError}
                             value={form.area || ''}
-                            onChange={e => setForm(f => ({ ...f, area: parseFloat(e.target.value) || 0 }))}
+                            onChange={e => {
+                                setForm(f => ({ ...f, area: parseFloat(e.target.value) || 0 }))
+                                setFormError(null)
+                            }}
                         />
+                        {formError && (
+                            <p className={styles.formError} role="alert">{formError}</p>
+                        )}
                     </div>
 
                     <div className={styles.fieldGroup}>
@@ -184,10 +199,11 @@ export function CalculadoraPotencia() {
                 </div>
 
                 <div className={styles.formActions}>
+                    {/* Sin disabled: al tocar con datos incompletos se explica
+                        qué falta y se enfoca el campo, en vez de no responder. */}
                     <button
                         className={styles.btnPrimary}
                         onClick={handleAdd}
-                        disabled={!form.area || form.area <= 0}
                     >
                         {editingId ? 'Guardar cambios' : 'Agregar ambiente'}
                     </button>
