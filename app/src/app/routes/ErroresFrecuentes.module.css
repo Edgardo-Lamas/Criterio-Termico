@@ -8,7 +8,15 @@
 }
 
 .header h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
+}
+
+.titleIcon {
+    color: var(--color-warning);
+    flex-shrink: 0;
 }
 
 .description {
@@ -123,7 +131,9 @@
 }
 
 .lockHint {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
     margin-top: var(--spacing-md);
     font-size: var(--font-size-sm);
     color: var(--color-text-muted);

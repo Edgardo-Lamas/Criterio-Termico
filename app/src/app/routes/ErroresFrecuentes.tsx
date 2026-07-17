@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
+import { Icon } from '../../components/ui/Icon/Icon'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
 import { erroresList } from '../../content/errores'
 import styles from './ErroresFrecuentes.module.css'
@@ -22,15 +23,15 @@ export function ErroresFrecuentes() {
     return (
         <div className={styles.page}>
             <div className={styles.header}>
-                <h1>⚠️ Errores Frecuentes</h1>
+                <h1><Icon name="alert" size={28} className={styles.titleIcon} /> Errores Frecuentes</h1>
                 <p className={styles.description}>
                     Casos reales documentados de problemas en instalaciones de calefacción.
-                    Cada caso incluye <strong>problema</strong>, <strong>causa</strong> y <strong>solución</strong>
-                    — basados en experiencia de +200 obras.
+                    Cada caso incluye <strong>problema</strong>, <strong>causa</strong> y <strong>solución</strong>,
+                    basados en experiencia de +200 obras.
                 </p>
                 <div className={styles.stats}>
                     <span className={styles.statItem}>
-                        📊 {casosGratis} casos gratuitos / {casosTotal} total
+                        {casosGratis} casos gratuitos / {casosTotal} total
                     </span>
                 </div>
             </div>
@@ -62,7 +63,7 @@ export function ErroresFrecuentes() {
                                 </Link>
                             ) : (
                                 <span className={styles.lockHint}>
-                                    🔒 Requiere suscripción {error.tier}
+                                    <Icon name="lock" size={14} /> Se desbloquea con {error.tier === 'pro' ? 'PRO' : 'Premium'}
                                 </span>
                             )}
                         </div>

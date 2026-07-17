@@ -5,6 +5,7 @@
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
 import styles from './AsistenteTermico.module.css'
+import { Icon } from '../ui/Icon/Icon'
 
 // ── Burbuja de mensaje ────────────────────────────────────────────────────────
 
@@ -71,7 +72,7 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
             {/* Header */}
             <div className={styles.panelHeader}>
                 <div className={styles.panelTitle}>
-                    <span className={styles.panelIcon} aria-hidden="true">🔥</span>
+                    <span className={styles.panelIcon} aria-hidden="true"><Icon name="flame" size={22} /></span>
                     <div>
                         <span className={styles.panelName}>Criterio</span>
                         <span className={styles.panelSub}>Asistente técnico</span>
@@ -203,7 +204,7 @@ export function AsistenteTermico() {
                 aria-expanded={open}
             >
                 <span className={styles.fabIcon} aria-hidden="true">
-                    {open ? '✕' : '🔥'}
+                    <Icon name={open ? 'close' : 'flame'} size={26} />
                 </span>
             </button>
         </div>

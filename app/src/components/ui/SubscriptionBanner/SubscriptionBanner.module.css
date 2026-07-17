@@ -23,7 +23,7 @@
 }
 
 .icon {
-    font-size: 2.5rem;
+    color: var(--color-premium);
     flex-shrink: 0;
 }
 

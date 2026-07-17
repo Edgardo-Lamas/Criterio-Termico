@@ -8,7 +8,15 @@
 }
 
 .header h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
     margin-bottom: var(--spacing-sm);
+}
+
+.titleIcon {
+    color: var(--color-primary);
+    flex-shrink: 0;
 }
 
 .description {

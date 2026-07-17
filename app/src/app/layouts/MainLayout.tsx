@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { Icon } from '../../components/ui/Icon/Icon'
 import styles from './MainLayout.module.css'
 
 export function MainLayout() {
@@ -10,29 +11,35 @@ export function MainLayout() {
             {/* Header */}
             <header className={styles.header}>
                 <div className={styles.headerContent}>
-                    <NavLink to="/" className={styles.logo}>
-                        <span className={styles.logoIcon}>🔥</span>
+                    <NavLink to="/" className={styles.logo} aria-label="Criterio Térmico — Inicio">
+                        <Icon name="flame" size={26} className={styles.logoIcon} />
                         <span className={styles.logoText}>Criterio Térmico</span>
                     </NavLink>
 
                     <nav className={styles.nav}>
                         <NavLink
                             to="/herramientas"
+                            aria-label="Herramientas"
                             className={({ isActive }) => isActive ? styles.navLinkActive : styles.navLink}
                         >
-                            🔧 Herramientas
+                            <Icon name="wrench" size={18} />
+                            <span className={styles.navLabel}>Herramientas</span>
                         </NavLink>
                         <NavLink
                             to="/manual"
+                            aria-label="Manual"
                             className={({ isActive }) => isActive ? styles.navLinkActive : styles.navLink}
                         >
-                            📖 Manual
+                            <Icon name="book" size={18} />
+                            <span className={styles.navLabel}>Manual</span>
                         </NavLink>
                         <NavLink
                             to="/errores"
+                            aria-label="Errores"
                             className={({ isActive }) => isActive ? styles.navLinkActive : styles.navLink}
                         >
-                            ⚠️ Errores
+                            <Icon name="alert" size={18} />
+                            <span className={styles.navLabel}>Errores</span>
                         </NavLink>
                     </nav>
 

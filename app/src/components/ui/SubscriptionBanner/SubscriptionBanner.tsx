@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { SubscriptionTier } from '../../../stores/useAuthStore'
+import { Icon } from '../Icon/Icon'
 import styles from './SubscriptionBanner.module.css'
 
 interface SubscriptionBannerProps {
@@ -14,7 +15,7 @@ export function SubscriptionBanner({ requiredTier, feature }: SubscriptionBanner
     return (
         <div className={styles.banner}>
             <div className={styles.content}>
-                <div className={styles.icon}>💎</div>
+                <div className={styles.icon}><Icon name="gem" size={40} /></div>
                 <div className={styles.text}>
                     <h3 className={styles.title}>
                         Accede a {feature}

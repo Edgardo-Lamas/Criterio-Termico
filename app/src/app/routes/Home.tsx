@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../../lib/usePageMeta'
+import { Icon } from '../../components/ui/Icon/Icon'
 import styles from './Home.module.css'
 
 export function Home() {
@@ -33,22 +34,22 @@ export function Home() {
             <section className={styles.hero}>
                 <div className={styles.heroContent}>
                     <h1 className={styles.heroTitle}>
-                        <span className={styles.heroIcon}>🔥</span>
+                        <Icon name="flame" size={48} className={styles.heroIcon} />
                         Criterio Térmico
                     </h1>
                     <p className={styles.heroSubtitle}>
                         Plataforma técnica independiente para instaladores de calefacción por radiadores
                     </p>
                     <p className={styles.heroDescription}>
-                        Combina <strong>criterio técnico aplicado</strong>, <strong>herramientas de cálculo reales</strong>
+                        Combina <strong>criterio técnico aplicado</strong>, <strong>herramientas de cálculo reales</strong>{' '}
                         y <strong>experiencia de obra documentada</strong>.
                     </p>
                     <div className={styles.heroCTA}>
                         <Link to="/herramientas" className={styles.primaryButton}>
-                            🔧 Explorar Herramientas
+                            Explorar herramientas
                         </Link>
                         <Link to="/manual" className={styles.secondaryButton}>
-                            📖 Ver Manual
+                            Ver el manual
                         </Link>
                     </div>
                 </div>
@@ -60,7 +61,7 @@ export function Home() {
                 <div className={styles.featuresGrid}>
                     {/* Herramientas */}
                     <Link to="/herramientas" className={styles.featureCard}>
-                        <div className={styles.featureIcon}>🔧</div>
+                        <div className={styles.featureIcon}><Icon name="wrench" size={36} /></div>
                         <h3 className={styles.featureTitle}>Herramientas del Instalador</h3>
                         <p className={styles.featureDescription}>
                             Calculadoras de potencia, diámetros, caudales. Simulador 2D para diseño de instalaciones.
@@ -70,7 +71,7 @@ export function Home() {
 
                     {/* Manual */}
                     <Link to="/manual" className={styles.featureCard}>
-                        <div className={styles.featureIcon}>📖</div>
+                        <div className={styles.featureIcon}><Icon name="book" size={36} /></div>
                         <h3 className={styles.featureTitle}>Manual Técnico</h3>
                         <p className={styles.featureDescription}>
                             Criterios técnicos claros y prácticos. No es un curso académico, es una guía de decisiones.
@@ -80,7 +81,7 @@ export function Home() {
 
                     {/* Errores */}
                     <Link to="/errores" className={styles.featureCard}>
-                        <div className={styles.featureIcon}>⚠️</div>
+                        <div className={styles.featureIcon}><Icon name="alert" size={36} /></div>
                         <h3 className={styles.featureTitle}>Errores Frecuentes</h3>
                         <p className={styles.featureDescription}>
                             Casos reales documentados: problema, causa y solución. Experiencia de +200 obras.
@@ -95,22 +96,22 @@ export function Home() {
                 <h2 className={styles.sectionTitle}>¿Por qué Criterio Térmico?</h2>
                 <div className={styles.differentiatorGrid}>
                     <div className={styles.diffItem}>
-                        <span className={styles.diffIcon}>🏗️</span>
+                        <span className={styles.diffIcon}><Icon name="hard-hat" size={30} /></span>
                         <h3>Desde el oficio</h3>
                         <p>Nace de la experiencia real de obra, no de la academia ni del marketing.</p>
                     </div>
                     <div className={styles.diffItem}>
-                        <span className={styles.diffIcon}>🚫</span>
+                        <span className={styles.diffIcon}><Icon name="ban" size={30} /></span>
                         <h3>Sin marcas</h3>
                         <p>Independiente de fabricantes. Valoramos el criterio por sobre la marca.</p>
                     </div>
                     <div className={styles.diffItem}>
-                        <span className={styles.diffIcon}>⚡</span>
+                        <span className={styles.diffIcon}><Icon name="zap" size={30} /></span>
                         <h3>Decisiones rápidas</h3>
                         <p>Herramientas que resuelven problemas reales, cuando los necesitás.</p>
                     </div>
                     <div className={styles.diffItem}>
-                        <span className={styles.diffIcon}>📱</span>
+                        <span className={styles.diffIcon}><Icon name="smartphone" size={30} /></span>
                         <h3>Donde estés</h3>
                         <p>Accesible desde cualquier dispositivo. Instalable como aplicación.</p>
                     </div>

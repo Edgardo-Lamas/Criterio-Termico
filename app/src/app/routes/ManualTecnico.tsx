@@ -1,5 +1,6 @@
 import { useParams, Link } from 'react-router-dom'
 import { usePageMeta } from '../../lib/usePageMeta'
+import { Icon } from '../../components/ui/Icon/Icon'
 import { getCapituloContent } from '../../content/manual'
 import styles from './ManualTecnico.module.css'
 
@@ -252,13 +253,13 @@ export function ManualTecnico() {
     return (
         <div className={styles.page}>
             <div className={styles.header}>
-                <h1>📖 Manual Técnico</h1>
+                <h1><Icon name="book" size={28} className={styles.titleIcon} /> Manual Técnico</h1>
                 <p className={styles.description}>
                     <strong>Base técnica viva</strong> para diseñar, calcular e instalar sistemas de calefacción por radiadores.
                     No es un curso cerrado — es criterio profesional que crece con experiencia real de obra.
                 </p>
                 <div className={styles.versionBadge}>
-                    <span>📋 Índice v1.0</span>
+                    <span>Índice v1.0</span>
                     <span className={styles.versionNote}>14 capítulos · 5 partes</span>
                 </div>
             </div>

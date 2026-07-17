@@ -23,6 +23,13 @@
     gap: var(--spacing-md);
 }
 
+@media (max-width: 640px) {
+    .headerContent {
+        padding: var(--spacing-sm);
+        gap: var(--spacing-sm);
+    }
+}
+
 /* Logo */
 .logo {
     display: flex;
@@ -34,11 +41,13 @@
 }
 
 .logoIcon {
-    font-size: var(--font-size-2xl);
+    color: var(--color-primary);
+    flex-shrink: 0;
 }
 
 .logoText {
     font-size: var(--font-size-lg);
+    white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -80,14 +89,17 @@
 
 @media (max-width: 640px) {
 
+    /* Solo íconos: los tres links + logo + Ingresar tienen que entrar
+       en 320px sin desbordar el header. Target táctil mínimo 44px. */
     .navLink,
     .navLinkActive {
         padding: var(--spacing-sm);
-        font-size: var(--font-size-lg);
+        min-width: 44px;
+        min-height: 44px;
+        justify-content: center;
     }
 
-    .navLink span:last-child,
-    .navLinkActive span:last-child {
+    .navLabel {
         display: none;
     }
 }

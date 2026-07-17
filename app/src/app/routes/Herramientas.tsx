@@ -2,6 +2,7 @@ import type { ComponentType } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
+import { Icon, type IconName } from '../../components/ui/Icon/Icon'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
 import { CalculadoraPisoRadiante } from '../../components/calculadoras/CalculadoraPisoRadiante/CalculadoraPisoRadiante'
 import { CalculadoraPotencia } from '../../components/calculadoras/CalculadoraPotencia/CalculadoraPotencia'
@@ -16,7 +17,7 @@ const herramientas = [
         id: 'potencia',
         name: 'Calculadora de Potencia',
         description: 'Calcula la potencia térmica necesaria para un ambiente.',
-        icon: '🔥',
+        icon: 'flame' as IconName,
         tier: 'free' as const,
         available: true
     },
@@ -24,7 +25,7 @@ const herramientas = [
         id: 'diametro',
         name: 'Calculadora de Diámetros',
         description: 'Determina el diámetro óptimo de tuberías según caudal.',
-        icon: '📏',
+        icon: 'ruler' as IconName,
         tier: 'pro' as const,
         available: true
     },
@@ -32,7 +33,7 @@ const herramientas = [
         id: 'caudal',
         name: 'Calculadora de Caudal',
         description: 'Calcula el caudal necesario para un circuito.',
-        icon: '💧',
+        icon: 'droplet' as IconName,
         tier: 'pro' as const,
         available: true
     },
@@ -40,7 +41,7 @@ const herramientas = [
         id: 'piso-radiante',
         name: 'Calculadora de Piso Radiante',
         description: 'Calcula tubería, circuitos y materiales para instalaciones de piso radiante.',
-        icon: '🌡️',
+        icon: 'thermometer' as IconName,
         tier: 'pro' as const,
         available: true
     },
@@ -48,7 +49,7 @@ const herramientas = [
         id: 'bombas',
         name: 'Calculadora de Bombas',
         description: 'Dimensiona la bomba circuladora y verifica si necesitás presurizadora para llenar el circuito.',
-        icon: '⚙️',
+        icon: 'settings' as IconName,
         tier: 'pro' as const,
         available: true
     },
@@ -56,7 +57,7 @@ const herramientas = [
         id: 'simulador',
         name: 'Simulador 2D',
         description: 'Diseña instalaciones completas en canvas 2D. Solo desktop.',
-        icon: '🖥️',
+        icon: 'monitor' as IconName,
         tier: 'premium' as const,
         available: true,
         desktopOnly: true
@@ -65,7 +66,7 @@ const herramientas = [
         id: 'presupuesto',
         name: 'Generador de Presupuestos',
         description: 'Crea presupuestos automáticos con materiales y mano de obra.',
-        icon: '💰',
+        icon: 'file-text' as IconName,
         tier: 'premium' as const,
         available: false
     }
@@ -110,7 +111,7 @@ export function Herramientas() {
                 <div className={styles.page}>
                     <div className={styles.header}>
                         <Link to="/herramientas" className={styles.backLink}>← Herramientas</Link>
-                        <h1>{tool.icon} {tool.name}</h1>
+                        <h1><Icon name={tool.icon} size={28} className={styles.titleIcon} /> {tool.name}</h1>
                     </div>
                     <div className={styles.toolContainer}>
                         <div className={styles.placeholder}>
@@ -126,7 +127,7 @@ export function Herramientas() {
                 <div className={styles.page}>
                     <div className={styles.header}>
                         <Link to="/herramientas" className={styles.backLink}>← Herramientas</Link>
-                        <h1>{tool.icon} {tool.name}</h1>
+                        <h1><Icon name={tool.icon} size={28} className={styles.titleIcon} /> {tool.name}</h1>
                     </div>
                     <SubscriptionBanner
                         requiredTier={tool.tier}
@@ -147,7 +148,7 @@ export function Herramientas() {
             <div className={styles.page}>
                 <div className={styles.header}>
                     <Link to="/herramientas" className={styles.backLink}>← Herramientas</Link>
-                    <h1>{tool.icon} {tool.name}</h1>
+                    <h1><Icon name={tool.icon} size={28} className={styles.titleIcon} /> {tool.name}</h1>
                     <p className={styles.description}>{tool.description}</p>
                 </div>
 
@@ -156,7 +157,7 @@ export function Herramientas() {
                         <ToolComponent />
                     ) : (
                         <div className={styles.placeholder}>
-                            <p>🚧 Herramienta en desarrollo</p>
+                            <p>Herramienta en desarrollo</p>
                             <p className={styles.placeholderSub}>
                                 Esta herramienta estará disponible próximamente.
                             </p>
@@ -171,7 +172,7 @@ export function Herramientas() {
     return (
         <div className={styles.page}>
             <div className={styles.header}>
-                <h1>🔧 Herramientas del Instalador</h1>
+                <h1><Icon name="wrench" size={28} className={styles.titleIcon} /> Herramientas del Instalador</h1>
                 <p className={styles.description}>
                     Calculadoras y simuladores para diseñar y dimensionar instalaciones de calefacción.
                 </p>
@@ -194,7 +195,7 @@ export function Herramientas() {
                             onClick={e => isLocked && e.preventDefault()}
                         >
                             <div className={styles.cardHeader}>
-                                <span className={styles.cardIcon}>{tool.icon}</span>
+                                <span className={styles.cardIcon}><Icon name={tool.icon} size={30} /></span>
                                 {tool.tier !== 'free' && (
                                     <span className={`${styles.badge} ${styles[`badge${tool.tier.charAt(0).toUpperCase() + tool.tier.slice(1)}`]}`}>
                                         {tool.tier === 'pro' ? 'PRO' : 'PREMIUM'}
@@ -213,7 +214,7 @@ export function Herramientas() {
 
                             {tool.available && !hasAccess && (
                                 <span className={styles.unlockHint}>
-                                    🔒 Requiere suscripción {tool.tier}
+                                    <Icon name="lock" size={14} /> Se desbloquea con {tool.tier === 'pro' ? 'PRO' : 'Premium'}
                                 </span>
                             )}
                         </Link>
