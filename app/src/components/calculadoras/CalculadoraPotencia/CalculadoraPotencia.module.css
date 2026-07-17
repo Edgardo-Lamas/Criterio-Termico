@@ -313,6 +313,31 @@
 
 /* ── Callout ─────────────────────────────────────────────────────── */
 
+.nextStep {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-primary) 30%, transparent);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.nextStep strong {
+    color: var(--color-text-primary);
+}
+
+.nextStep a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.nextStep a:hover {
+    text-decoration: underline;
+}
+
 .calloutInfo {
     background: color-mix(in srgb, var(--color-accent) 8%, transparent);
     border-left: 3px solid var(--color-accent);

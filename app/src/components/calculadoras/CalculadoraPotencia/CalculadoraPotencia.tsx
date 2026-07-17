@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { calculateRoomPower, kcalToKw } from '../../simulador/utils/thermalCalculator'
+import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
 import styles from './CalculadoraPotencia.module.css'
 
 // ── Tipos ────────────────────────────────────────────────────────────────────
@@ -91,6 +93,12 @@ export function CalculadoraPotencia() {
 
     return (
         <div className={styles.root}>
+            <ToolIntro
+                responde={<>Cuántas <strong>Kcal/h</strong> necesita cada ambiente y qué <strong>potencia de caldera</strong> pide la suma de toda la casa.</>}
+                cuando={<>Es el primer número de la obra: antes de elegir radiadores, caldera o cañerías, y antes de pasar un presupuesto.</>}
+                despues={<>Con la potencia de cada ambiente elegís sus radiadores. Para seguir con el circuito, pasá el total a la <Link to="/herramientas/caudal">Calculadora de Caudal</Link>.</>}
+            />
+
             {/* Formulario */}
             <section className={styles.formSection}>
                 <h2 className={styles.sectionTitle}>
@@ -243,6 +251,12 @@ export function CalculadoraPotencia() {
                                 {calderaKcal.toLocaleString('es-AR')} Kcal/h — {calderaKw} kW
                             </span>
                         </div>
+                    </div>
+
+                    <div className={styles.nextStep}>
+                        Siguiente paso: con <strong>{totalKw} kW</strong> de potencia total, calculá cuántos litros
+                        por hora necesita mover el circuito en la{' '}
+                        <Link to="/herramientas/caudal">Calculadora de Caudal</Link>.
                     </div>
 
                     <div className={styles.calloutInfo}>

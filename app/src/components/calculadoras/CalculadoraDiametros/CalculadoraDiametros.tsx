@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { calcularDiametros } from '../../../lib/diametros/DiametroService'
 import type { DiametroOutput } from '../../../lib/diametros/DiametroService'
+import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
 import styles from './CalculadoraDiametros.module.css'
 
 export function CalculadoraDiametros() {
@@ -21,10 +23,11 @@ export function CalculadoraDiametros() {
 
     return (
         <div className={styles.calc}>
-            <p className={styles.intro}>
-                Ingresá el caudal del circuito para ver qué diámetro de cañería conviene usar.
-                Si no conocés el caudal, calculalo primero con la <strong>Calculadora de Caudal</strong>.
-            </p>
+            <ToolIntro
+                responde={<>Qué <strong>medida de cañería</strong> lleva el circuito para que el agua circule a la velocidad correcta: ni tan rápida que haga ruido, ni tan lenta que sobredimensione la instalación.</>}
+                cuando={<>Con el caudal en mano, antes de comprar la cañería. Si no lo conocés, sacalo primero en la <Link to="/herramientas/caudal">Calculadora de Caudal</Link>.</>}
+                despues={<>Con el diámetro definido, verificá la bomba del circuito en la <Link to="/herramientas/bombas">Calculadora de Bombas</Link>.</>}
+            />
 
             <div className={styles.form}>
                 <div className={styles.field}>

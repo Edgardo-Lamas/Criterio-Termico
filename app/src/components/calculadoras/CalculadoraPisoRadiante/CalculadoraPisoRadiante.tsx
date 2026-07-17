@@ -3,6 +3,7 @@ import { TipoDeSuelo, AdvisoryLevel } from '../../../lib/pisoRadiante/types'
 import type { UnderfloorCalculationOutput, ResumenPresupuesto } from '../../../lib/pisoRadiante/types'
 import { calcularPisoRadiante } from '../../../lib/pisoRadiante/UnderfloorService'
 import { calcularPresupuesto } from '../../../lib/pisoRadiante/PresupuestoService'
+import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
 import styles from './CalculadoraPisoRadiante.module.css'
 
 const TIPO_SUELO_LABELS: Record<TipoDeSuelo, string> = {
@@ -86,6 +87,12 @@ export function CalculadoraPisoRadiante() {
 
     return (
         <div className={styles.wrapper}>
+            <ToolIntro
+                responde={<>Cuántos <strong>metros de tubo</strong> lleva la superficie, en cuántos <strong>circuitos</strong> se divide y qué materiales pide la instalación.</>}
+                cuando={<>Al presupuestar o diseñar un piso radiante, con el ambiente medido y la carga térmica del proyecto definida.</>}
+                despues={<>Con el metraje y los circuitos armás la compra de materiales y el presupuesto de la obra.</>}
+            />
+
             {/* Formulario */}
             <section className={styles.formSection}>
                 <h2 className={styles.sectionTitle}>Datos del ambiente</h2>

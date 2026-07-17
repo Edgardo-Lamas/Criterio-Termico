@@ -1,6 +1,8 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { calcularCaudal } from '../../../lib/caudal/CaudalService'
 import type { CaudalOutput } from '../../../lib/caudal/CaudalService'
+import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
 import styles from './CalculadoraCaudal.module.css'
 
 const DELTA_T_OPTIONS = [
@@ -31,10 +33,11 @@ export function CalculadoraCaudal() {
 
     return (
         <div className={styles.calc}>
-            <p className={styles.intro}>
-                Calculá el caudal que necesita tu circuito a partir de la potencia térmica y el salto de temperatura.
-                El resultado te sirve como entrada para la <strong>Calculadora de Diámetros</strong>.
-            </p>
+            <ToolIntro
+                responde={<>Cuántos <strong>litros por hora</strong> tienen que circular para transportar la potencia del circuito con el salto térmico elegido.</>}
+                cuando={<>Con la potencia ya calculada, antes de definir diámetros de cañería o elegir la bomba.</>}
+                despues={<>Entrás con los l/h a la <Link to="/herramientas/diametro">Calculadora de Diámetros</Link> para elegir la cañería, y los usás en la <Link to="/herramientas/bombas">Calculadora de Bombas</Link>.</>}
+            />
 
             <div className={styles.form}>
                 <div className={styles.field}>
@@ -113,8 +116,8 @@ export function CalculadoraCaudal() {
                     </div>
 
                     <div className={styles.hint}>
-                        Con este resultado podés ir a la <strong>Calculadora de Diámetros</strong> e ingresar{' '}
-                        <strong>{Math.round(resultado.caudal).toLocaleString('es-AR')} l/h</strong> para elegir la cañería correcta.
+                        Siguiente paso: entrá con <strong>{Math.round(resultado.caudal).toLocaleString('es-AR')} l/h</strong> a
+                        la <Link to="/herramientas/diametro">Calculadora de Diámetros</Link> para elegir la cañería correcta.
                     </div>
                 </div>
             )}

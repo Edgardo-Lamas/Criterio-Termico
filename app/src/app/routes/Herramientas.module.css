@@ -24,6 +24,67 @@
     font-size: var(--font-size-lg);
 }
 
+/* Flujo de la obra: Potencia → Caudal → Diámetros → Bombas */
+.flow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin: var(--spacing-md) 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: paso;
+}
+
+.flow li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    counter-increment: paso;
+}
+
+.flow li::before {
+    content: counter(paso);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: var(--border-radius-full);
+    background: var(--color-primary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+}
+
+.flow li + li {
+    position: relative;
+    margin-left: var(--spacing-md);
+}
+
+.flow li + li::after {
+    content: '→';
+    position: absolute;
+    left: calc(-1 * var(--spacing-md) - 4px);
+    color: var(--color-text-muted);
+}
+
+.pasoChip {
+    padding: 2px var(--spacing-sm);
+    background: rgba(233, 69, 96, 0.12);
+    color: var(--color-primary);
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+}
+
 .backLink {
     display: inline-flex;
     align-items: center;

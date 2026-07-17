@@ -12,44 +12,51 @@ import { CalculadoraCaudal } from '../../components/calculadoras/CalculadoraCaud
 import { Simulador2D } from '../../components/simulador/Simulador2D'
 import styles from './Herramientas.module.css'
 
+// Los pasos 1-4 siguen el orden real del proyecto: primero la carga térmica,
+// después el caudal que la transporta, la cañería que lo lleva y la bomba
+// que lo mueve. El resto son herramientas de diseño y presupuesto.
 const herramientas = [
     {
         id: 'potencia',
         name: 'Calculadora de Potencia',
-        description: 'Calcula la potencia térmica necesaria para un ambiente.',
+        description: 'Cuántas Kcal/h necesita cada ambiente y qué caldera pide la suma. El primer número de toda obra.',
         icon: 'flame' as IconName,
         tier: 'free' as const,
-        available: true
-    },
-    {
-        id: 'diametro',
-        name: 'Calculadora de Diámetros',
-        description: 'Determina el diámetro óptimo de tuberías según caudal.',
-        icon: 'ruler' as IconName,
-        tier: 'pro' as const,
-        available: true
+        available: true,
+        paso: 1
     },
     {
         id: 'caudal',
         name: 'Calculadora de Caudal',
-        description: 'Calcula el caudal necesario para un circuito.',
+        description: 'Cuántos litros por hora tienen que circular para transportar esa potencia.',
         icon: 'droplet' as IconName,
         tier: 'pro' as const,
-        available: true
+        available: true,
+        paso: 2
     },
     {
-        id: 'piso-radiante',
-        name: 'Calculadora de Piso Radiante',
-        description: 'Calcula tubería, circuitos y materiales para instalaciones de piso radiante.',
-        icon: 'thermometer' as IconName,
+        id: 'diametro',
+        name: 'Calculadora de Diámetros',
+        description: 'Qué medida de cañería lleva ese caudal sin hacer ruido ni encarecer de más.',
+        icon: 'ruler' as IconName,
         tier: 'pro' as const,
-        available: true
+        available: true,
+        paso: 3
     },
     {
         id: 'bombas',
         name: 'Calculadora de Bombas',
-        description: 'Dimensiona la bomba circuladora y verifica si necesitás presurizadora para llenar el circuito.',
+        description: 'Qué bomba mueve el circuito, y si necesitás presurizadora para llenarlo.',
         icon: 'settings' as IconName,
+        tier: 'pro' as const,
+        available: true,
+        paso: 4
+    },
+    {
+        id: 'piso-radiante',
+        name: 'Calculadora de Piso Radiante',
+        description: 'Metros de tubo, circuitos y materiales para instalaciones de piso radiante.',
+        icon: 'thermometer' as IconName,
         tier: 'pro' as const,
         available: true
     },
@@ -149,7 +156,11 @@ export function Herramientas() {
                 <div className={styles.header}>
                     <Link to="/herramientas" className={styles.backLink}>← Herramientas</Link>
                     <h1><Icon name={tool.icon} size={28} className={styles.titleIcon} /> {tool.name}</h1>
-                    <p className={styles.description}>{tool.description}</p>
+                    {/* Las calculadoras explican su propósito con ToolIntro; el
+                        subtítulo solo hace falta cuando no hay componente aún. */}
+                    {!TOOL_COMPONENTS[tool.id] && (
+                        <p className={styles.description}>{tool.description}</p>
+                    )}
                 </div>
 
                 <div className={styles.toolContainer}>
@@ -174,8 +185,14 @@ export function Herramientas() {
             <div className={styles.header}>
                 <h1><Icon name="wrench" size={28} className={styles.titleIcon} /> Herramientas del Instalador</h1>
                 <p className={styles.description}>
-                    Calculadoras y simuladores para diseñar y dimensionar instalaciones de calefacción.
+                    Cada calculadora resuelve un paso del proyecto. Seguí el orden de la obra:
                 </p>
+                <ol className={styles.flow} aria-label="Orden sugerido de cálculo">
+                    <li>Potencia</li>
+                    <li>Caudal</li>
+                    <li>Diámetros</li>
+                    <li>Bombas</li>
+                </ol>
             </div>
 
             <div className={styles.grid}>
@@ -196,6 +213,9 @@ export function Herramientas() {
                         >
                             <div className={styles.cardHeader}>
                                 <span className={styles.cardIcon}><Icon name={tool.icon} size={30} /></span>
+                                {'paso' in tool && (
+                                    <span className={styles.pasoChip}>Paso {tool.paso}</span>
+                                )}
                                 {tool.tier !== 'free' && (
                                     <span className={`${styles.badge} ${styles[`badge${tool.tier.charAt(0).toUpperCase() + tool.tier.slice(1)}`]}`}>
                                         {tool.tier === 'pro' ? 'PRO' : 'PREMIUM'}

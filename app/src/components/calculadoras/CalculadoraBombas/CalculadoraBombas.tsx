@@ -3,6 +3,7 @@ import { DIAMETROS_CAÑERIA } from '../../../lib/bombas/types'
 import type { BombaOutput, PresurizadoraOutput } from '../../../lib/bombas/types'
 import { calcularBomba } from '../../../lib/bombas/BombaService'
 import { calcularPresurizadora } from '../../../lib/bombas/PresurizadoraService'
+import { ToolIntro } from '../../ui/ToolIntro/ToolIntro'
 import styles from './CalculadoraBombas.module.css'
 
 // ── Tipos de tab ─────────────────────────────────────────────────────────────
@@ -155,6 +156,11 @@ export function CalculadoraBombas() {
     // ── Render ────────────────────────────────────────────────────────────────
     return (
         <div className={styles.wrapper}>
+            <ToolIntro
+                responde={<>Qué <strong>bomba circuladora</strong> pide el circuito (caudal y altura manométrica) y, en la pestaña Presurizadora, si la presión de red alcanza para llenar el sistema o necesitás una presurizadora.</>}
+                cuando={<>Con la potencia y el recorrido del circuito definidos, antes de comprar la bomba o de llenar la instalación.</>}
+                despues={<>Elegís la bomba por su categoría y verificás en obra la velocidad de trabajo que indica el resultado.</>}
+            />
 
             {/* Selector de tab */}
             <div className={styles.tabs}>

@@ -195,3 +195,13 @@
     color: var(--color-text-secondary);
     line-height: 1.5;
 }
+
+.hint a {
+    color: var(--color-primary);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.hint a:hover {
+    text-decoration: underline;
+}
