@@ -189,6 +189,20 @@
     flex-shrink: 0;
 }
 
+/* Franja de contexto: Criterio ve el proyecto abierto en el Simulador */
+.contextStrip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-xs);
+    padding: 6px 16px;
+    flex-shrink: 0;
+}
+
 /* ── Área de mensajes ─────────────────────────────────────────────────────── */
 
 .messages {

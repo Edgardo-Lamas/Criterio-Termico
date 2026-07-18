@@ -2,6 +2,7 @@
 // Gestiona estado del chat, streaming SSE y cancelación con AbortController.
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 // ── Tipos exportados ──────────────────────────────────────────────────────────
@@ -25,6 +26,8 @@ export interface UseAsistente extends AsistenteState {
     clearMessages: () => void
     isOnline: boolean
     error: string | null
+    /** true si el usuario está en el Simulador 2D: Criterio ve el proyecto abierto */
+    enSimulador: boolean
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -38,6 +41,11 @@ export function useAsistente(): UseAsistente {
     const [error, setError] = useState<string | null>(null)
 
     const abortRef = useRef<AbortController | null>(null)
+
+    // En el Simulador, cada consulta viaja con el resumen del proyecto abierto
+    // (AsistenteTermico se monta dentro de BrowserRouter, así que hay Router).
+    const location = useLocation()
+    const enSimulador = location.pathname.startsWith('/herramientas/simulador')
 
     // Detectar cambios de conectividad
     useEffect(() => {
@@ -92,6 +100,19 @@ export function useAsistente(): UseAsistente {
                 throw new Error('Sesión no válida. Iniciá sesión nuevamente.')
             }
 
+            // Contexto del Simulador: se arma fresco en cada envío para que
+            // refleje el estado actual del canvas. Import dinámico: el módulo
+            // vive en el chunk del Simulador y no engorda el bundle principal.
+            let contextoSimulador: string | null = null
+            if (enSimulador) {
+                try {
+                    const { resumenProyectoSimulador } = await import('../components/simulador/utils/asistenteContext')
+                    contextoSimulador = resumenProyectoSimulador()
+                } catch {
+                    // Sin contexto el asistente responde igual que siempre
+                }
+            }
+
             const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
             const response = await fetch(
                 `${supabaseUrl}/functions/v1/asistente-termico`,
@@ -101,7 +122,10 @@ export function useAsistente(): UseAsistente {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${session.access_token}`,
                     },
-                    body: JSON.stringify({ messages: updatedMessages }),
+                    body: JSON.stringify({
+                        messages: updatedMessages,
+                        ...(contextoSimulador ? { contextoSimulador } : {}),
+                    }),
                     signal: abortRef.current.signal,
                 }
             )
@@ -185,7 +209,7 @@ export function useAsistente(): UseAsistente {
         } finally {
             setStreaming(false)
         }
-    }, [input, messages, streaming, isOnline])
+    }, [input, messages, streaming, isOnline, enSimulador])
 
     const clearMessages = useCallback(() => {
         abortRef.current?.abort()
@@ -201,6 +225,7 @@ export function useAsistente(): UseAsistente {
         open,
         isOnline,
         error,
+        enSimulador,
         setInput,
         setOpen,
         sendMessage,

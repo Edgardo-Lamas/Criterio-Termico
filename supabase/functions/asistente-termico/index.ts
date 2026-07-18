@@ -117,9 +117,30 @@ fragmento no aplica realmente a la consulta, ignoralo.`
     }
 }
 
+// ── Contexto del Simulador 2D ─────────────────────────────────────────────────
+// El frontend manda un resumen del proyecto abierto (lo arma asistenteContext.ts
+// con los mismos números que muestra la plataforma). Acá solo se formatea con
+// las reglas de uso; la validación de tier y tamaño se hace en el handler.
+
+function formatearContextoSimulador(contexto: string): string {
+    if (!contexto) return ''
+    return `
+
+PROYECTO ABIERTO EN EL SIMULADOR 2D (estado actual del diseño del instalador, generado por la plataforma al momento de esta consulta):
+${contexto}
+
+CÓMO USAR ESTE CONTEXTO:
+- Las cargas y potencias ya vienen calculadas por la plataforma: usá esos números tal cual, no los recalcules ni los corrijas
+- Nombrá los elementos como figuran en el resumen (R1, R2, nombres de ambientes y zonas)
+- Si un ambiente tiene menos potencia instalada que su carga, o hay radiadores sin ambiente asignado, avisalo aunque no te lo pregunten
+- Si preguntan por la caldera: se dimensiona con la suma de cargas de los ambientes calefaccionados ÷ 0,80 — nunca desde los emisores
+- No inventes elementos que no estén en el resumen; si falta un dato, pedíselo al instalador
+- Si la consulta no tiene relación con el proyecto, respondé normal sin forzar el contexto`
+}
+
 // ── System prompt de Criterio ─────────────────────────────────────────────────
 
-function buildSystemPrompt(tier: Tier, userName: string, ragContext: string): string {
+function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, contextoSimulador: string): string {
     const herramientasDisponibles = [
         '- Calculadora de Potencia (gratis): calcula la potencia térmica por ambiente',
         ...(tier !== 'free' ? [
@@ -196,7 +217,7 @@ LIMITACIONES QUE MENCIONÁS CUANDO APLICAN:
   gas en sí (conexión de artefactos, modificación o extensión de cañerías de gas,
   habilitaciones y certificaciones) debe ser ejecutada o certificada por un gasista
   matriculado según normativa ENARGAS — aclaralo cuando la consulta implique ese tipo
-  de intervención, sin negarte a explicar la parte técnica${ragContext}`
+  de intervención, sin negarte a explicar la parte técnica${formatearContextoSimulador(contextoSimulador)}${ragContext}`
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -280,9 +301,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // ── 5. Parsear y validar el body ─────────────────────────────────────
         const MAX_MESSAGES = 50
         const MAX_CONTENT_LENGTH = 4000
+        const MAX_CONTEXTO_SIMULADOR_LENGTH = 4000
 
-        const body = await req.json() as { messages: Message[] }
+        const body = await req.json() as { messages: Message[]; contextoSimulador?: unknown }
         const { messages } = body
+
+        // Contexto del Simulador 2D: solo premium (el Simulador es Premium) y
+        // con tope de tamaño — es texto que entra al system prompt y cuesta tokens.
+        const contextoSimulador = tier === 'premium' && typeof body.contextoSimulador === 'string'
+            ? body.contextoSimulador.slice(0, MAX_CONTEXTO_SIMULADOR_LENGTH)
+            : ''
 
         if (!messages || !Array.isArray(messages) || messages.length === 0) {
             return new Response(
@@ -328,7 +356,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const stream = await anthropic.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: tierConfig.maxTokens,
-            system: buildSystemPrompt(tier, userName, ragContext),
+            system: buildSystemPrompt(tier, userName, ragContext, contextoSimulador),
             messages: sanitizedMessages,
         })
 

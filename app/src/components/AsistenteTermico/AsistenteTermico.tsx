@@ -40,7 +40,7 @@ interface ChatPanelProps {
 
 function ChatPanel({ asistente, onClose }: ChatPanelProps) {
     const {
-        messages, input, streaming, isOnline,
+        messages, input, streaming, isOnline, enSimulador,
         setInput, sendMessage, clearMessages,
     } = asistente
 
@@ -107,6 +107,13 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
                 </div>
             )}
 
+            {/* En el Simulador: Criterio recibe el proyecto abierto en cada consulta */}
+            {enSimulador && (
+                <div className={styles.contextStrip}>
+                    <Icon name="ruler" size={13} /> Veo el proyecto abierto en el Simulador
+                </div>
+            )}
+
             {/* Mensajes */}
             <div className={styles.messages} role="log" aria-live="polite" aria-label="Conversación">
                 {messages.length === 0 ? (
@@ -116,11 +123,15 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
                             Describime tu consulta o el problema que tenés en obra y te ayudo.
                         </p>
                         <div className={styles.welcomeSuggestions}>
-                            {[
+                            {(enSimulador ? [
+                                '¿La caldera alcanza para este proyecto?',
+                                'Revisame las cargas por ambiente',
+                                '¿Qué me falta para cerrar el diseño?',
+                            ] : [
                                 'Radiadores fríos en planta baja',
                                 'Qué diámetro de tubería uso',
                                 'Cómo purgar una instalación',
-                            ].map(s => (
+                            ]).map(s => (
                                 <button
                                     key={s}
                                     className={styles.suggestion}
