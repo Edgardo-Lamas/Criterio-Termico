@@ -23,42 +23,81 @@
 
 /* ── FAB — Botón flotante ─────────────────────────────────────────────────── */
 
+/* Píldora etiquetada: la llama sola no decía qué era. El brillo respira para
+   marcar presencia sin ser un banner (se apaga con prefers-reduced-motion). */
 .fab {
-    width: 56px;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
     height: 56px;
+    padding: 0 20px 0 13px;
     border-radius: var(--border-radius-full);
-    background: var(--color-primary);
+    background: linear-gradient(160deg, #f0566f, #cf2d49);
     color: #fff;
     border: none;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color var(--transition-fast), transform var(--transition-fast);
+    transition: transform var(--transition-fast), filter var(--transition-fast);
     box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
+    animation: fabGlow 3.2s ease-in-out infinite;
     flex-shrink: 0;
 }
 
 .fab:hover {
-    background: var(--color-primary-light);
+    filter: brightness(1.08);
+    transform: translateY(-1px);
 }
 
 .fab:active {
-    transform: scale(0.94);
+    transform: scale(0.96);
+}
+
+.fabLabel {
+    font-family: var(--font-family);
+    font-size: var(--font-size-sm);
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
 }
 
 .fabOpen {
+    width: 56px;
+    padding: 0;
+    justify-content: center;
     background: var(--color-bg-tertiary);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    animation: none;
 }
 
 .fabOpen:hover {
+    filter: none;
     background: var(--color-bg-secondary);
 }
 
 .fabIcon {
-    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
     line-height: 1;
+    /* La llama proyecta un halo propio sobre el fondo rojo */
+    filter: drop-shadow(0 0 6px rgba(255, 177, 92, 0.55));
+}
+
+.fabOpen .fabIcon {
+    filter: none;
+}
+
+@keyframes fabGlow {
+    0%, 100% {
+        box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
+    }
+    50% {
+        box-shadow: 0 4px 28px rgba(233, 69, 96, 0.75);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .fab {
+        animation: none;
+    }
 }
 
 /* ── Panel wrapper — controla apertura con animación ─────────────────────── */

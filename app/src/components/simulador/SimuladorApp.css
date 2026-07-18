@@ -14,11 +14,12 @@
   position: relative;
 }
 
-/* Autosave indicator — corrido a la izquierda del FAB del asistente */
+/* Autosave indicator — corrido a la izquierda del FAB del asistente
+   (la píldora "Asistente Criterio" ocupa ~190px desde el borde derecho) */
 .autosave-indicator {
   position: fixed;
   bottom: 20px;
-  right: 96px;
+  right: 236px;
   background: rgba(76, 175, 80, 0.9);
   color: white;
   padding: 8px 16px;

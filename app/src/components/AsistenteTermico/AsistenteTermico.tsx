@@ -2,10 +2,44 @@
 // Botón FAB fijo en pantalla + panel de chat con streaming SSE.
 // Solo se monta si el usuario está autenticado (lo controla App.tsx).
 
-import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
 import styles from './AsistenteTermico.module.css'
 import { Icon } from '../ui/Icon/Icon'
+
+// ── Llama de Criterio ─────────────────────────────────────────────────────────
+// Marca del asistente: llama rellena con gradiente cálido y núcleo claro, en
+// vez del trazo genérico de Lucide. useId evita ids de gradiente duplicados
+// cuando conviven varias instancias (FAB + header del panel).
+
+function FlameMark({ size = 28 }: { size?: number }) {
+    const uid = useId()
+    const outerId = `flame-outer-${uid}`
+    const coreId = `flame-core-${uid}`
+    return (
+        <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
+            <defs>
+                <linearGradient id={outerId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#ffb15c" />
+                    <stop offset="0.55" stopColor="#ff7a3d" />
+                    <stop offset="1" stopColor="#e94560" />
+                </linearGradient>
+                <linearGradient id={coreId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#fff3c4" />
+                    <stop offset="1" stopColor="#ffc25e" />
+                </linearGradient>
+            </defs>
+            <path
+                fill={`url(#${outerId})`}
+                d="M16 2c1.1 4.8 3.9 7.4 6.4 10.1C24.8 14.6 26 17.2 26 20a10 10 0 0 1-20 0c0-2.4.8-4.5 2.2-6.3.6 1.5 1.6 2.6 3 3.2C10.4 12.1 12.4 7 16 2z"
+            />
+            <path
+                fill={`url(#${coreId})`}
+                d="M16.2 14.6c2.3 2.5 3.6 4.4 3.6 6.5a3.8 3.8 0 0 1-7.6 0c0-2.1 1.6-4 4-6.5z"
+            />
+        </svg>
+    )
+}
 
 // ── Burbuja de mensaje ────────────────────────────────────────────────────────
 
@@ -72,7 +106,7 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
             {/* Header */}
             <div className={styles.panelHeader}>
                 <div className={styles.panelTitle}>
-                    <span className={styles.panelIcon} aria-hidden="true"><Icon name="flame" size={22} /></span>
+                    <span className={styles.panelIcon} aria-hidden="true"><FlameMark size={24} /></span>
                     <div>
                         <span className={styles.panelName}>Criterio</span>
                         <span className={styles.panelSub}>Asistente técnico</span>
@@ -207,16 +241,25 @@ export function AsistenteTermico() {
                 {open && <ChatPanel asistente={asistente} onClose={() => setOpen(false)} />}
             </div>
 
-            {/* Botón FAB */}
+            {/* Botón FAB — píldora etiquetada cerrado, círculo de cierre abierto */}
             <button
                 className={`${styles.fab} ${open ? styles.fabOpen : ''}`}
                 onClick={() => setOpen(!open)}
                 aria-label={open ? 'Cerrar asistente técnico' : 'Abrir asistente técnico Criterio'}
                 aria-expanded={open}
             >
-                <span className={styles.fabIcon} aria-hidden="true">
-                    <Icon name={open ? 'close' : 'flame'} size={26} />
-                </span>
+                {open ? (
+                    <span className={styles.fabIcon} aria-hidden="true">
+                        <Icon name="close" size={24} />
+                    </span>
+                ) : (
+                    <>
+                        <span className={styles.fabIcon} aria-hidden="true">
+                            <FlameMark size={30} />
+                        </span>
+                        <span className={styles.fabLabel}>Asistente Criterio</span>
+                    </>
+                )}
             </button>
         </div>
     )
