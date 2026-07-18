@@ -1,0 +1,77 @@
+/* Sección Novedades de la Home — cards con imagen, etiqueta y bajada */
+
+.novedades {
+    padding: var(--spacing-2xl) 0;
+}
+
+.titulo {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    color: inherit;
+    text-decoration: none;
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+a.card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(233, 69, 96, 0.45);
+}
+
+.imagenWrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--color-bg-tertiary);
+}
+
+.imagen {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.etiqueta {
+    position: absolute;
+    top: var(--spacing-sm);
+    left: var(--spacing-sm);
+    background: var(--color-primary);
+    color: #fff;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--border-radius-full);
+    letter-spacing: 0.3px;
+}
+
+.cuerpo {
+    padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+}
+
+.cardTitulo {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+    line-height: 1.35;
+}
+
+.cardBajada {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    margin: 0;
+}

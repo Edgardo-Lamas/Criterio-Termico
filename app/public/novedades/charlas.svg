@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Charla técnica: pantalla frente a un auditorio de instaladores">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151b38"/>
+      <stop offset="1" stop-color="#1d2547"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg3)"/>
+  <!-- pantalla -->
+  <g>
+    <rect x="200" y="52" width="240" height="140" rx="10" fill="#1a2144" stroke="#ffffff" stroke-opacity="0.7" stroke-width="3"/>
+    <path d="M310 152c-9-5-13-14-10-23 2-6 6-9 9-15 2 6 6 9 9 14 5 8 3 18-8 24z" fill="#e94560"/>
+    <path d="M224 80h70M224 96h96" stroke="#ffffff" stroke-opacity="0.35" stroke-width="4" stroke-linecap="round"/>
+    <path d="M320 206v-14" stroke="#ffffff" stroke-opacity="0.5" stroke-width="3"/>
+  </g>
+  <!-- orador -->
+  <g stroke="#e94560" stroke-width="3" fill="none">
+    <circle cx="488" cy="150" r="14"/>
+    <path d="M488 164v34m0-26 18 10m-18-8-14 12" stroke-linecap="round"/>
+  </g>
+  <!-- auditorio: dos filas -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="3" stroke-linecap="round">
+    <circle cx="180" cy="264" r="12"/><path d="M162 300c2-12 9-18 18-18s16 6 18 18"/>
+    <circle cx="252" cy="264" r="12"/><path d="M234 300c2-12 9-18 18-18s16 6 18 18"/>
+    <circle cx="324" cy="264" r="12"/><path d="M306 300c2-12 9-18 18-18s16 6 18 18"/>
+    <circle cx="396" cy="264" r="12"/><path d="M378 300c2-12 9-18 18-18s16 6 18 18"/>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.3" stroke-width="3" stroke-linecap="round">
+    <circle cx="216" cy="318" r="11"/><path d="M200 350c2-10 8-16 16-16s14 6 16 16"/>
+    <circle cx="288" cy="318" r="11"/><path d="M272 350c2-10 8-16 16-16s14 6 16 16"/>
+    <circle cx="360" cy="318" r="11"/><path d="M344 350c2-10 8-16 16-16s14 6 16 16"/>
+  </g>
+</svg>

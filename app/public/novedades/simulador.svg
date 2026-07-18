@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Plano con radiadores y caldera en el Simulador 2D">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151b38"/>
+      <stop offset="1" stop-color="#1d2547"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <!-- retícula sutil del canvas -->
+  <g stroke="#ffffff" stroke-opacity="0.04" stroke-width="1">
+    <path d="M80 0V360M160 0V360M240 0V360M320 0V360M400 0V360M480 0V360M560 0V360"/>
+    <path d="M0 72H640M0 144H640M0 216H640M0 288H640"/>
+  </g>
+  <!-- muros del plano -->
+  <g fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="3" stroke-linecap="round">
+    <path d="M120 70H520V290H120Z"/>
+    <path d="M300 70V180"/>
+    <path d="M300 240V290"/>
+    <path d="M120 180H210"/>
+    <path d="M260 180H300"/>
+  </g>
+  <!-- radiador 1: batería de elementos -->
+  <g stroke="#e94560" stroke-width="3" stroke-linecap="round">
+    <path d="M150 96V132M162 96V132M174 96V132M186 96V132M198 96V132"/>
+    <path d="M144 96H204M144 132H204" stroke-opacity="0.7"/>
+  </g>
+  <!-- radiador 2 -->
+  <g stroke="#e94560" stroke-width="3" stroke-linecap="round">
+    <path d="M440 230V266M452 230V266M464 230V266M476 230V266"/>
+    <path d="M434 230H482M434 266H482" stroke-opacity="0.7"/>
+  </g>
+  <!-- caldera -->
+  <g>
+    <rect x="410" y="96" width="60" height="72" rx="8" fill="none" stroke="#ffffff" stroke-opacity="0.8" stroke-width="3"/>
+    <path d="M433 148c0-7 3-10 5-14 1 5 5 7 7 11 2 5-1 11-6 11s-8-4-6-8z" fill="#e94560"/>
+    <circle cx="440" cy="112" r="4" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="2"/>
+  </g>
+  <!-- tuberías ida/retorno -->
+  <g fill="none" stroke-width="2.5" stroke-linecap="round">
+    <path d="M204 114H240V152H410" stroke="#e94560" stroke-opacity="0.85"/>
+    <path d="M204 122H232V160H410" stroke="#7d8bd4" stroke-opacity="0.8"/>
+    <path d="M456 168V230" stroke="#e94560" stroke-opacity="0.85"/>
+  </g>
+  <!-- cursor de diseño -->
+  <g stroke="#ffffff" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round">
+    <path d="M556 300l-14-34 34 14-14 6z" fill="#ffffff" fill-opacity="0.9" stroke="none"/>
+  </g>
+</svg>

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { Icon } from '../../components/ui/Icon/Icon'
+import { Novedades } from '../../components/Novedades/Novedades'
 import styles from './Home.module.css'
 
 export function Home() {
@@ -96,6 +97,9 @@ export function Home() {
                     </Link>
                 </div>
             </section>
+
+            {/* Novedades — contenido administrable desde Supabase */}
+            <Novedades />
 
             {/* Differentiator Section */}
             <section className={styles.differentiator}>
