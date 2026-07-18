@@ -47,6 +47,14 @@ export function MainLayout() {
                             <Icon name="alert" size={18} />
                             <span className={styles.navLabel}>Errores</span>
                         </NavLink>
+                        <NavLink
+                            to="/guia"
+                            aria-label="Guía de uso"
+                            className={({ isActive }) => isActive ? styles.navLinkActive : styles.navLink}
+                        >
+                            <Icon name="hard-hat" size={18} />
+                            <span className={styles.navLabel}>Guía</span>
+                        </NavLink>
                     </nav>
 
                     <div className={styles.userArea}>

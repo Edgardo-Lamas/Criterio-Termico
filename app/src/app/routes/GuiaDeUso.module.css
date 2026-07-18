@@ -1,0 +1,215 @@
+/* Guía de uso — vista panorámica de la plataforma para quien entra por primera vez */
+
+.guia {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) var(--spacing-md) var(--spacing-2xl);
+}
+
+/* ── Encabezado ── */
+
+.hero {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.titulo {
+    font-size: var(--font-size-3xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.subtitulo {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-secondary);
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* ── Secciones ── */
+
+.seccion {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.seccionTitulo {
+    font-size: var(--font-size-xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* ── Pasos del flujo ── */
+
+.pasos {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.paso {
+    display: flex;
+    gap: var(--spacing-md);
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.pasoNumero {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 700;
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-base);
+}
+
+.pasoCuerpo {
+    min-width: 0;
+}
+
+.pasoNombre {
+    font-size: var(--font-size-base);
+    font-weight: 700;
+    color: var(--color-primary-light);
+    text-decoration: none;
+}
+
+.pasoNombre:hover {
+    text-decoration: underline;
+}
+
+.pasoPregunta {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    margin: 4px 0 2px;
+}
+
+.pasoDetalle {
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+}
+
+/* Cierre: Simulador */
+
+.cierre {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: flex-start;
+    margin-top: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.cierreIcono {
+    flex-shrink: 0;
+    color: var(--color-primary);
+    display: flex;
+    align-items: center;
+}
+
+.nota {
+    margin-top: var(--spacing-md);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+    line-height: 1.55;
+}
+
+/* ── Capacidades ── */
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+}
+
+.card {
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-lg);
+    padding: var(--spacing-lg);
+}
+
+.cardIcono {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.cardTitulo {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.cardTexto {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ── Por dónde empezar ── */
+
+.empezar {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.empezarItem {
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.empezarItem strong {
+    color: var(--color-text-primary);
+}
+
+.linkInline {
+    color: var(--color-primary-light);
+    text-decoration: none;
+}
+
+.linkInline:hover {
+    text-decoration: underline;
+}
+
+/* ── Mobile ── */
+
+@media (max-width: 640px) {
+    .guia {
+        padding-top: var(--spacing-lg);
+    }
+
+    .titulo {
+        font-size: var(--font-size-2xl);
+    }
+
+    .subtitulo {
+        font-size: var(--font-size-base);
+    }
+
+    .paso,
+    .cierre {
+        padding: var(--spacing-md);
+    }
+}

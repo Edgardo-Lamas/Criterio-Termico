@@ -104,6 +104,18 @@
     }
 }
 
+/* Con el cuarto link (Guía) los 320px quedan justos si además está el botón
+   Ingresar: se achica el target a 40px (sigue siendo táctil aceptable). */
+@media (max-width: 360px) {
+
+    .navLink,
+    .navLinkActive {
+        padding: var(--spacing-xs);
+        min-width: 40px;
+        min-height: 40px;
+    }
+}
+
 /* User Area */
 .userArea {
     display: flex;
