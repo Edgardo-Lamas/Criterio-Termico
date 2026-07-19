@@ -225,22 +225,25 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           type="button"
           className={`toolbar-btn ${tool === 'select' ? 'active' : ''}`}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('select'); }}
+          title="Seleccionar y mover elementos"
         >
-          <span>↖</span> Seleccionar
+          <span>↖</span> <span className="toolbar-btn-label">Seleccionar</span>
         </button>
         <button
           type="button"
           className={`toolbar-btn ${tool === 'radiator' ? 'active' : ''}`}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('radiator'); }}
+          title="Colocar radiador"
         >
-          <span>▥</span> Radiador
+          <span>▥</span> <span className="toolbar-btn-label">Radiador</span>
         </button>
         <button
           type="button"
           className={`toolbar-btn ${tool === 'boiler' ? 'active' : ''}`}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('boiler'); }}
+          title="Colocar caldera"
         >
-          <span>🔥</span> Caldera
+          <span>🔥</span> <span className="toolbar-btn-label">Caldera</span>
         </button>
         <button
           type="button"
@@ -248,7 +251,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('floor-heating-zone'); }}
           title="Dibujar zona de piso radiante (arrastrá un rectángulo sobre el ambiente)"
         >
-          <span>🌀</span> Piso Radiante
+          <span>🌀</span> <span className="toolbar-btn-label">Piso Radiante</span>
         </button>
         <button
           type="button"
@@ -256,7 +259,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTool('manifold'); }}
           title="Colocar colector distribuidor de piso radiante"
         >
-          <span>⊞</span> Colector
+          <span>⊞</span> <span className="toolbar-btn-label">Colector</span>
         </button>
       </div>
 
@@ -270,7 +273,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         style={{ color: '#E67E22' }} // Orange override for specific tool
         title="Generar tuberías automáticamente"
       >
-        <span>⚡</span> Conectar Auto
+        <span>⚡</span> <span className="toolbar-btn-label">Conectar Auto</span>
       </button>
 
       <div className="toolbar-separator" />
@@ -299,8 +302,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           type="button"
           className="toolbar-btn"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleLoadFloorPlan(); }}
+          title="Cargar plano de fondo"
         >
-          <span>📁</span> Plano
+          <span>📁</span> <span className="toolbar-btn-label">Plano</span>
         </button>
 
         {backgroundImage && (
@@ -309,8 +313,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
             className="toolbar-btn"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveFloorPlan(); }}
             style={{ color: '#E74C3C' }}
+            title="Quitar el plano de fondo"
           >
-            <span>🗑️</span> Quitar Plano
+            <span>🗑️</span> <span className="toolbar-btn-label">Quitar Plano</span>
           </button>
         )}
 
@@ -323,7 +328,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onOpenPriceConfig(); }}
             title="Configurar precios de materiales"
           >
-            <span>🏷️</span> Precios
+            <span>🏷️</span> <span className="toolbar-btn-label">Precios</span>
           </button>
         )}
 
@@ -333,7 +338,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBudgetPanelOpen(!isBudgetPanelOpen); }}
           title={isBudgetPanelOpen ? 'Cerrar el panel de presupuesto' : 'Abrir el panel de presupuesto'}
         >
-          <span>💰</span> Presupuesto
+          <span>💰</span> <span className="toolbar-btn-label">Presupuesto</span>
         </button>
 
         <button
@@ -346,8 +351,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
             if (radiators.length === 0 && boilers.length === 0) return alert('Sin elementos');
             downloadIFCFile({ boilers, pipes, projectName: projectName || 'Proyecto' }, `${projectName}.ifc`);
           }}
+          title="Exportar modelo BIM (formato IFC)"
         >
-          <span>🏗️</span> Exportar IFC
+          <span>🏗️</span> <span className="toolbar-btn-label">Exportar IFC</span>
         </button>
 
         <button
@@ -361,13 +367,14 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           title="Limpiar todos los elementos"
           style={{ color: '#E74C3C' }}
         >
-          <span>🧹</span> Limpiar
+          <span>🧹</span> <span className="toolbar-btn-label">Limpiar</span>
         </button>
 
         <button
           type="button"
           className="toolbar-btn"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowHelp(true); }}
+          title="Ayuda"
         >
           ❓
         </button>

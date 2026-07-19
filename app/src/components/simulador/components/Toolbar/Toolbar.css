@@ -9,6 +9,15 @@
   box-shadow: var(--shadow-sm);
   z-index: 100;
   position: relative;
+  /* Red de seguridad: si aún así no entra, la barra scrollea en vez de
+     esconder botones fuera de la pantalla */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Los botones no se aplastan; el que absorbe el sobrante es el spacer flex */
+.toolbar-container > * {
+  flex-shrink: 0;
 }
 
 .toolbar-btn {
@@ -79,4 +88,38 @@
 .autosave-indicator {
   font-weight: 600;
   border: 1px solid transparent;
+}
+
+.toolbar-btn .toolbar-btn-label {
+  font-size: inherit;
+}
+
+/* La barra completa (con autoguardado visible) pasa los 1900px: debajo de
+   2000px se compacta para que entren todos los botones */
+@media (max-width: 1999px) {
+  .toolbar-container {
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .toolbar-btn {
+    padding: 8px 8px;
+    font-size: 0.85rem;
+    gap: 4px;
+  }
+
+  .toolbar-separator {
+    margin: 0 2px;
+  }
+}
+
+/* Laptops: solo íconos — el nombre de cada botón queda en el tooltip (title) */
+@media (max-width: 1600px) {
+  .toolbar-btn .toolbar-btn-label {
+    display: none;
+  }
+
+  .toolbar-btn span {
+    font-size: 1.2rem;
+  }
 }
