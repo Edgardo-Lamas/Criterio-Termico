@@ -214,7 +214,10 @@ export const RoomPanel: React.FC = () => {
         onClick={() => setIsCollapsed(false)}
         style={{
           position: 'fixed',
-          bottom: '20px',
+          // Columna superior derecha, debajo del engranaje de ConfigPanel
+          // (top 100 + 50 de alto): la esquina inferior derecha la ocupa el
+          // FAB del asistente Criterio (píldora ancha, z-modal)
+          top: '162px',
           right: rightOffset,
           width: '60px',
           height: '60px',
