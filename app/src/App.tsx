@@ -13,6 +13,7 @@ const ErroresFrecuentes = lazy(() => import('./app/routes/ErroresFrecuentes').th
 const ErrorDetalle     = lazy(() => import('./app/routes/ErrorDetalle').then(m => ({ default: m.ErrorDetalle })))
 const GuiaDeUso        = lazy(() => import('./app/routes/GuiaDeUso').then(m => ({ default: m.GuiaDeUso })))
 const Cuenta           = lazy(() => import('./app/routes/Cuenta').then(m => ({ default: m.Cuenta })))
+const Panel            = lazy(() => import('./app/routes/Panel').then(m => ({ default: m.Panel })))
 const TerminosDeUso    = lazy(() => import('./app/routes/TerminosDeUso').then(m => ({ default: m.TerminosDeUso })))
 const PoliticaPrivacidad = lazy(() => import('./app/routes/PoliticaPrivacidad').then(m => ({ default: m.PoliticaPrivacidad })))
 
@@ -40,6 +41,7 @@ function App() {
               <Route path="errores/:errorId" element={<ErrorDetalle />} />
               <Route path="guia" element={<GuiaDeUso />} />
               <Route path="cuenta" element={<Cuenta />} />
+              <Route path="panel" element={<Panel />} />
               <Route path="terminos" element={<TerminosDeUso />} />
               <Route path="privacidad" element={<PoliticaPrivacidad />} />
             </Route>
