@@ -8,6 +8,31 @@ por la que un instalador lo buscaría; las respuestas no están escritas a prop�
 
 ---
 
+## 0. PRIORIDAD: auditar el contenido existente
+
+**Abierto el 2026-07-24, antes que cualquier caso nuevo.**
+
+Revisando `prueba-hidraulica` (tier **pro**, o sea contenido pago) apareció una frase
+con dos errores técnicos, detectados por Edgardo:
+
+> *"purgar completamente el aire del sistema: el aire comprimido es peligroso y
+> además genera lecturas de presión falsas"*
+
+1. **No es aire comprimido.** El comprimido es el que se inyecta con una herramienta.
+   Lo que se purga es el aire natural que ya estaba en radiadores y tuberías y quedó
+   encerrado al llenar con agua; se junta en las partes altas, y para eso existen los
+   purgadores.
+2. **Ese aire no genera lecturas falsas.** El manómetro no distingue densidades de
+   fluido: lee la presión del circuito y nada más.
+
+Ya está corregido (commit `8aea7ae`), pero **el hallazgo importa más que la
+corrección**: si esto estaba publicado en un caso pro, hay que revisar los 17 con
+Edgardo antes de sumar contenido nuevo. Un error técnico en contenido pago le cuesta
+al negocio mucho más que la falta de un caso.
+
+**Cómo hacerlo:** caso por caso, Edgardo leyendo y marcando; yo corrijo y dejo
+registro de qué se cambió y por qué. Prioridad a los `pro` y `premium`.
+
 ## 1. Qué hay hoy: 17 casos
 
 8 free · 8 pro · 1 premium. Entre 616 y 2.050 palabras cada uno.
@@ -130,9 +155,15 @@ No se habló del tema en ningún caso, y es el único bloque donde el error no a
 una instalación sino que lastima a alguien. Temas candidatos, para que Edgardo marque
 cuáles vio pasar de verdad:
 
+> **Corrección 2026-07-24.** Acá figuraba "probar con aire comprimido en vez de
+> agua" como caso candidato. **Estaba mal planteado y lo saqué**: según Edgardo, en
+> calefacción no es un error que se cometa — se prueba con agua justamente porque con
+> aire no se ve de dónde sale la pérdida. La prueba con aire es el procedimiento de
+> **gas** (hermeticidad), otro oficio. Salió de conocimiento general de ingeniería,
+> no del contenido ni del criterio de obra.
+
 | Tema | Por qué |
 |---|---|
-| **Probar con aire comprimido en vez de agua** | El agua casi no se comprime; el aire acumula energía y una falla deja de ser un chorro para ser una proyección. Se conecta directo con `prueba-hidraulica` |
 | Trabajo con llama abierta y soldadura | Qué hay alrededor cuando se suelda, y qué tiene que estar a mano |
 | Monóxido en pruebas de encendido | Sala cerrada, equipo funcionando |
 | Purga y vaciado en caliente | Quemaduras: cuándo esperar |
