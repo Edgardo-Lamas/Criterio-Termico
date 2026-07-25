@@ -13,7 +13,7 @@ export const errorEmpalmesPisoRadiante = {
 export function ErrorEmpalmesPisoRadianteDetalle() {
     return (
         <div className="prose">
-            <h2>El mito</h2>
+            <h2 id="el-mito">El mito</h2>
             <p>
                 Circula en obra, con un temor casi religioso, la idea de que
                 <strong> no se puede empalmar un tubo de piso radiante</strong> en el
@@ -26,7 +26,7 @@ export function ErrorEmpalmesPisoRadianteDetalle() {
                 <strong> mito técnico</strong>. Empalmar y empotrar no es sinónimo de fuga.
             </p>
 
-            <h2>La realidad: una unión bien hecha no pierde por estar enterrada</h2>
+            <h2 id="la-realidad-una-union-bien-hecha">La realidad: una unión bien hecha no pierde por estar enterrada</h2>
             <p>
                 La prueba más simple está a la vista de todos: las cañerías de la
                 <strong> red sanitaria</strong> —agua fría y caliente de consumo— van
@@ -41,7 +41,7 @@ export function ErrorEmpalmesPisoRadianteDetalle() {
                 los <strong>más confiables</strong> de toda la instalación.
             </p>
 
-            <h2>Por qué la norma prefiere evitar uniones enterradas</h2>
+            <h2 id="por-que-la-norma-prefiere-evitar">Por qué la norma prefiere evitar uniones enterradas</h2>
             <p>
                 Es cierto que por norma y buena práctica <strong>conviene no dejar uniones
                 enterradas</strong>. Pero el motivo no es que una buena unión pierda, sino la
@@ -53,7 +53,7 @@ export function ErrorEmpalmesPisoRadianteDetalle() {
                 empalme de reparación o de necesidad, bien hecho, es perfectamente legítimo.
             </p>
 
-            <h2>Los sistemas de unión que lo hacen confiable</h2>
+            <h2 id="los-sistemas-de-union">Los sistemas de unión que lo hacen confiable</h2>
             <ul>
                 <li>
                     <strong>Casquillo deslizante (expansión en frío):</strong> se expande la
@@ -87,7 +87,7 @@ export function ErrorEmpalmesPisoRadianteDetalle() {
                 </p>
             </div>
 
-            <h2>Cómo empalmar enterrado con tranquilidad</h2>
+            <h2 id="como-empalmar-enterrado-con-tranquilidad">Cómo empalmar enterrado con tranquilidad</h2>
             <ol>
                 <li>
                     <strong>Accesorio homologado</strong> del sistema del tubo, con la
@@ -115,7 +115,7 @@ export function ErrorEmpalmesPisoRadianteDetalle() {
                 </li>
             </ol>
 
-            <h2>Fuentes</h2>
+            <h2 id="fuentes">Fuentes</h2>
             <ul className="fuentes">
                 <li>
                     Radiant Floor Company — guía de adaptadores y acoples: la buena práctica es

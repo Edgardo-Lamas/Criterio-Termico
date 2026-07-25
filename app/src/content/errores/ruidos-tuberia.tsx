@@ -13,7 +13,7 @@ export const errorRuidosTuberia = {
 export function ErrorRuidosTuberiaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 El sistema de calefacción produce ruidos: silbidos continuos, golpes intermitentes,
                 chasquidos al encender o apagar, o un flujo turbulento audible en paredes y cielorrasos.
@@ -21,9 +21,9 @@ export function ErrorRuidosTuberiaDetalle() {
                 que afecta la eficiencia y puede acelerar el desgaste de componentes.
             </p>
 
-            <h2>Tipos de ruido y sus causas</h2>
+            <h2 id="tipos-de-ruido-y-sus-causas">Tipos de ruido y sus causas</h2>
 
-            <h3>Silbido continuo — Velocidad excesiva</h3>
+            <h3 id="silbido-continuo">Silbido continuo — Velocidad excesiva</h3>
             <p>
                 El ruido más común. Ocurre cuando el agua circula a una velocidad superior
                 a la recomendada para el diámetro de la tubería. El rango seguro para
@@ -39,7 +39,7 @@ export function ErrorRuidosTuberiaDetalle() {
                 <li>Válvulas termostáticas muy cerradas concentrando el caudal en pocos ramales</li>
             </ul>
 
-            <h3>Golpes de ariete — Cambios bruscos de caudal</h3>
+            <h3 id="golpes-de-ariete">Golpes de ariete — Cambios bruscos de caudal</h3>
             <p>
                 Golpe seco audible cuando una válvula termostática cierra bruscamente o la
                 bomba arranca/para. El cambio de caudal súbito genera una onda de presión
@@ -51,7 +51,7 @@ export function ErrorRuidosTuberiaDetalle() {
                 <li>Circuito sin vaso de expansión correctamente dimensionado</li>
             </ul>
 
-            <h3>Chasquidos al encender o apagar — Dilatación térmica</h3>
+            <h3 id="chasquidos-al-encender-o-apagar">Chasquidos al encender o apagar — Dilatación térmica</h3>
             <p>
                 Al calentarse, las tuberías se dilatan. Si están embutidas en pared o piso
                 sin manga de protección y sin puntos de deslizamiento libre, la dilatación
@@ -63,7 +63,7 @@ export function ErrorRuidosTuberiaDetalle() {
                 eso es 75 mm de dilatación libre — si está contenida, crea fuerza.
             </p>
 
-            <h3>Borboteo o flujo turbulento — Aire atrapado</h3>
+            <h3 id="borboteo-o-flujo-turbulento">Borboteo o flujo turbulento — Aire atrapado</h3>
             <p>
                 El aire que no fue purgado del sistema queda atrapado en los puntos altos
                 del circuito y en los radiadores. Cuando el agua lo arrastra, genera el
@@ -79,16 +79,16 @@ export function ErrorRuidosTuberiaDetalle() {
                 </p>
             </div>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
 
-            <h3>Para velocidad excesiva</h3>
+            <h3 id="para-velocidad-excesiva">Para velocidad excesiva</h3>
             <ol>
                 <li>Bajar la velocidad de la bomba de circulación (si tiene regulación de velocidades)</li>
                 <li>Verificar que los diámetros de tubería correspondan al caudal proyectado</li>
                 <li>Revisar que las válvulas termostáticas no estén todas cerradas al mismo tiempo</li>
             </ol>
 
-            <h3>Para aire atrapado</h3>
+            <h3 id="para-aire-atrapado">Para aire atrapado</h3>
             <ol>
                 <li>Purgar todos los radiadores manualmente desde el purgador manual</li>
                 <li>Instalar purgadores automáticos en los puntos más altos del circuito</li>
@@ -96,7 +96,7 @@ export function ErrorRuidosTuberiaDetalle() {
                 <li>Rellenar el circuito con agua hasta la presión correcta (generalmente 1–1.5 bar en frío)</li>
             </ol>
 
-            <h3>Para dilatación térmica</h3>
+            <h3 id="para-dilatacion-termica">Para dilatación térmica</h3>
             <ol>
                 <li>En nuevas instalaciones: instalar mangas deslizantes donde la tubería cruza muros</li>
                 <li>Dejar puntos de deslizamiento libre cada 1.5–2 m en tramos largos</li>

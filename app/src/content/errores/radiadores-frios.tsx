@@ -15,7 +15,7 @@ export const errorRadiadoresFrios = {
 export function ErrorRadiadoresFriosDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 En un sistema de calefacción por radiadores, algunos emisores —generalmente
                 los más alejados de la caldera o los del último ramal— no alcanzan temperatura
@@ -23,7 +23,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 La caldera enciende y el circuito circula, pero la distribución de calor es desigual.
             </p>
 
-            <h2>La causa raíz: desbalance hidráulico</h2>
+            <h2 id="la-causa-raiz-desbalance-hidraulico">La causa raíz: desbalance hidráulico</h2>
             <p>
                 El agua caliente, como todo fluido, toma el <strong>camino de menor resistencia</strong>.
                 En un circuito mal equilibrado, el agua circula preferentemente por los ramales más cortos
@@ -45,7 +45,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 </p>
             </div>
 
-            <h2>Causas secundarias frecuentes</h2>
+            <h2 id="causas-secundarias-frecuentes">Causas secundarias frecuentes</h2>
             <ul>
                 <li>
                     <strong>Diámetros de tuberías subdimensionados</strong> en ramales largos:
@@ -66,8 +66,8 @@ export function ErrorRadiadoresFriosDetalle() {
                 </li>
             </ul>
 
-            <h2>La solución</h2>
-            <h3>1. Poner la bomba en velocidad máxima (velocidad III)</h3>
+            <h2 id="la-solucion">La solución</h2>
+            <h3 id="poner-la-bomba-en-velocidad-maxima">1. Poner la bomba en velocidad máxima (velocidad III)</h3>
             <p>
                 Antes de tocar nada, el primer movimiento —y el más barato, de costo cero—
                 es revisar el selector de velocidad de la circuladora. Las bombas de las
@@ -89,7 +89,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 </p>
             </div>
 
-            <h3>2. Equilibrado hidráulico por detentes</h3>
+            <h3 id="equilibrado-hidraulico-por-detentes">2. Equilibrado hidráulico por detentes</h3>
             <p>
                 Los detentes (válvulas de retorno con regulación de caudal) en cada radiador
                 permiten restringir el caudal en los ramales más cercanos a la caldera,
@@ -105,7 +105,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 <li>Repetir el ciclo hasta que las temperaturas se equilibren</li>
             </ol>
 
-            <h3>3. Verificar la bomba de circulación</h3>
+            <h3 id="verificar-la-bomba-de-circulacion">3. Verificar la bomba de circulación</h3>
             <p>
                 Si con la velocidad III y el equilibrado manual el problema no se resuelve,
                 la bomba puede estar subdimensionada. Verificar que la curva de la bomba
@@ -113,7 +113,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 recurso, sumar una bomba dedicada a ese circuito (o un separador hidráulico).
             </p>
 
-            <h3>4. En circuito monotubo: instalar bypass en cada radiador</h3>
+            <h3 id="en-circuito-monotubo-instalar-bypass">4. En circuito monotubo: instalar bypass en cada radiador</h3>
             <p>
                 En sistemas monotubo, el bypass hidráulico en cada emisor garantiza que
                 el caudal del circuito principal no se vea afectado por el estado de apertura
@@ -130,7 +130,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 </p>
             </div>
 
-            <h2>Caso especial: el radiador que se purga, calienta y vuelve a estar frío</h2>
+            <h2 id="caso-especial-el-radiador">Caso especial: el radiador que se purga, calienta y vuelve a estar frío</h2>
             <p>
                 Existe un síntoma particular que no responde al equilibrado hidráulico ni a
                 ninguna de las causas anteriores: el radiador está frío, se purga el purgador
@@ -147,7 +147,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 se cierra el purgador la circulación se detiene.
             </p>
 
-            <h3>La causa: circuito cruzado en las conexiones del radiador</h3>
+            <h3 id="la-causa-circuito-cruzado">La causa: circuito cruzado en las conexiones del radiador</h3>
             <p>
                 La razón más frecuente del cortocircuito de agua es que las conexiones
                 del radiador están invertidas en la pared: la tubería que debería
@@ -164,7 +164,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 sin atravesar el cuerpo del radiador.
             </p>
 
-            <h3>Diagnóstico por tacto durante la purga</h3>
+            <h3 id="diagnostico-por-tacto-durante-la-purga">Diagnóstico por tacto durante la purga</h3>
             <p>
                 El procedimiento para confirmar el cortocircuito es simple y
                 no requiere herramientas especiales:
@@ -204,7 +204,7 @@ export function ErrorRadiadoresFriosDetalle() {
                 </p>
             </div>
 
-            <h3>Por qué la purga "engaña"</h3>
+            <h3 id="por-que-la-purga-engana">Por qué la purga "engaña"</h3>
             <p>
                 Cuando se abre el purgador se crea artificialmente una diferencia
                 de presión: el agua sale por el purgador, generando un flujo

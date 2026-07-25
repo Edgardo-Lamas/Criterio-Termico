@@ -198,6 +198,14 @@ textarea {
     font-size: var(--font-size-base);
 }
 
+/* Los títulos llevan `id` y son destino del índice temático: al saltar a un ancla,
+   `scroll-margin-top` los deja debajo del header (que es sticky en top: 0) en vez
+   de tapados por él. Sin esto el instalador cae en el párrafo y no ve el título. */
+.prose h2,
+.prose h3 {
+    scroll-margin-top: 5rem;
+}
+
 .prose h2 {
     font-size: var(--font-size-2xl);
     color: var(--color-text-primary);

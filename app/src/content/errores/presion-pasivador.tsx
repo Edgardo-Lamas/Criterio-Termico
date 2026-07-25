@@ -15,7 +15,7 @@ export const errorPresionPasivador = {
 export function ErrorPresionPasivadorDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 La presión del sistema comienza a subir sin causa aparente. La caldera
                 funciona correctamente, la temperatura es normal, no hay pérdidas visibles.
@@ -40,9 +40,9 @@ export function ErrorPresionPasivadorDetalle() {
                 </p>
             </div>
 
-            <h2>La causa: reacción química entre pasivador y aluminio</h2>
+            <h2 id="la-causa-reaccion-quimica-entre-pasivador">La causa: reacción química entre pasivador y aluminio</h2>
 
-            <h3>La pasivación como proceso normal</h3>
+            <h3 id="la-pasivacion-como-proceso-normal">La pasivación como proceso normal</h3>
             <p>
                 Los radiadores de aluminio se protegen naturalmente de la corrosión
                 a través de la pasivación: cuando el aluminio entra en contacto con
@@ -65,7 +65,7 @@ export function ErrorPresionPasivadorDetalle() {
                 anticongelante y pasivador. Ese es el producto correcto.
             </p>
 
-            <h3>El problema: aditivos incompatibles que alcalinizan el agua</h3>
+            <h3 id="el-problema-aditivos-incompatibles-que-alcalinizan">El problema: aditivos incompatibles que alcalinizan el agua</h3>
             <p>
                 La alcalinidad es uno de los grandes enemigos de los sistemas cerrados
                 de calefacción con aluminio. El problema surge cuando al circuito
@@ -113,7 +113,7 @@ export function ErrorPresionPasivadorDetalle() {
 
             <DiagramaPasivador />
 
-            <h2>Por qué la presión sube de forma continua y exponencial</h2>
+            <h2 id="por-que-la-presion-sube">Por qué la presión sube de forma continua y exponencial</h2>
             <p>
                 A diferencia de la expansión térmica normal —que sube cuando la
                 caldera calienta y baja cuando el agua se enfría—, la presión
@@ -149,7 +149,7 @@ export function ErrorPresionPasivadorDetalle() {
                 </li>
             </ol>
 
-            <h3>Por qué el vaso de expansión no puede compensarlo</h3>
+            <h3 id="por-que-el-vaso-de-expansion">Por qué el vaso de expansión no puede compensarlo</h3>
             <p>
                 El vaso de expansión de membrana cumple una función específica y limitada:
                 absorber el <strong>aumento de volumen del agua líquida</strong> cuando
@@ -192,7 +192,7 @@ export function ErrorPresionPasivadorDetalle() {
                 </p>
             </div>
 
-            <h2>El problema ocurre en cualquier sistema, nuevo o existente</h2>
+            <h2 id="el-problema-ocurre-en-cualquier-sistema">El problema ocurre en cualquier sistema, nuevo o existente</h2>
             <p>
                 Este fenómeno no es exclusivo de instalaciones nuevas. Puede ocurrir en
                 cualquier momento en que se agregue un pasivador incompatible al circuito:
@@ -210,7 +210,7 @@ export function ErrorPresionPasivadorDetalle() {
                 </li>
             </ul>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
             <p>
                 No existe corrección parcial. Una vez que el pasivador incompatible
                 está en el circuito, la única solución es la eliminación completa:
@@ -263,7 +263,7 @@ export function ErrorPresionPasivadorDetalle() {
                 </p>
             </div>
 
-            <h3>Daño colateral documentado: sellos y o&apos;rings destruidos</h3>
+            <h3 id="dano-colateral-documentado-sellos-y-orings">Daño colateral documentado: sellos y o&apos;rings destruidos</h3>
             <p>
                 En obra se documentaron casos donde, tras agregar un aditivo de
                 formulación dudosa (en uno de ellos, con alto contenido de fósforo),
@@ -278,7 +278,7 @@ export function ErrorPresionPasivadorDetalle() {
                 y corresponde vaciar y lavar el sistema igual que con el problema del H₂.
             </p>
 
-            <h2>Compatibilidad de metales: el caso del cobre con aluminio</h2>
+            <h2 id="compatibilidad-de-metales-el-caso">Compatibilidad de metales: el caso del cobre con aluminio</h2>
             <p>
                 Un aspecto adicional que agrava el problema: cuando el circuito
                 tiene tuberías de cobre (o accesorios de latón) y radiadores de

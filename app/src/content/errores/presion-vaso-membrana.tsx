@@ -13,7 +13,7 @@ export const errorPresionVasoMembrana = {
 export function ErrorPresionVasoMembranaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 La caldera pierde presión y hay que recargar el circuito cada pocos
                 días o semanas. Se revisan las uniones, los purgadores, las válvulas
@@ -30,7 +30,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 dentro del propio vaso.
             </p>
 
-            <h2>Cuánto pierde el sistema: la frecuencia de recarga como medida</h2>
+            <h2 id="cuanto-pierde-el-sistema-la-frecuencia">Cuánto pierde el sistema: la frecuencia de recarga como medida</h2>
             <p>
                 Antes de buscar dónde está la pérdida, conviene medir cuán grande es.
                 El dato ya lo tiene el usuario aunque no lo sepa: <strong>cada cuánto
@@ -61,7 +61,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 permite decidir si se busca una fuga franca o una filtración mínima.
             </p>
 
-            <h2>Cómo funciona el vaso de expansión</h2>
+            <h2 id="como-funciona-el-vaso-de-expansion">Cómo funciona el vaso de expansión</h2>
             <p>
                 El vaso de expansión es un recipiente metálico dividido en dos
                 compartimientos por una <strong>membrana elástica</strong> (de goma
@@ -90,7 +90,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 la presión estable entre frío y caliente.
             </p>
 
-            <h2>La falla: membrana pinchada, la pérdida invisible</h2>
+            <h2 id="la-falla-membrana-pinchada-la-perdida">La falla: membrana pinchada, la pérdida invisible</h2>
             <p>
                 La membrana es una pieza de goma que trabaja flexionándose miles de
                 veces por año, en contacto con agua caliente. Con el uso y el tiempo
@@ -121,7 +121,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 del agua cuando calienta.
             </p>
 
-            <h2>La señal que delata la falla: la presión sube rápido al calentar</h2>
+            <h2 id="la-senal-que-delata-la-falla">La señal que delata la falla: la presión sube rápido al calentar</h2>
             <p>
                 Con el vaso inundado ya no hay gas que haga de resorte. El agua que
                 se dilata al calentar no tiene dónde ir, y como el agua no se comprime,
@@ -160,7 +160,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 </p>
             </div>
 
-            <h2>El diagnóstico en campo: la prueba de la válvula Schrader</h2>
+            <h2 id="el-diagnostico-en-campo-la-prueba">El diagnóstico en campo: la prueba de la válvula Schrader</h2>
             <p>
                 La confirmación es simple y no requiere desarmar nada. Con la caldera
                 fría y el circuito despresurizado (o el vaso aislado del circuito,
@@ -205,7 +205,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 </p>
             </div>
 
-            <h2>Membrana pinchada vs. vaso descargado: no es la misma falla</h2>
+            <h2 id="membrana-pinchada-vs-vaso-descargado">Membrana pinchada vs. vaso descargado: no es la misma falla</h2>
             <p>
                 Los dos problemas producen síntomas parecidos (presión inestable,
                 válvula de seguridad que descarga), pero la solución es distinta:
@@ -226,7 +226,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 </li>
             </ul>
 
-            <h2>La otra pérdida invisible: la cañería empotrada</h2>
+            <h2 id="la-otra-perdida-invisible-la-caneria">La otra pérdida invisible: la cañería empotrada</h2>
             <p>
                 Si el vaso pasa la prueba de la Schrader y la válvula de seguridad
                 está seca, queda un sospechoso más que tampoco deja charcos a la
@@ -271,7 +271,7 @@ export function ErrorPresionVasoMembranaDetalle() {
                 </li>
             </ol>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
             <ol>
                 <li>
                     <strong>Reemplazar el vaso.</strong> La membrana no se repara.

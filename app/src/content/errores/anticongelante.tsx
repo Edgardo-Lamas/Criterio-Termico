@@ -15,7 +15,7 @@ export const errorAnticongelante = {
 export function ErrorAnticongelanteDetalle() {
     return (
         <div className="prose">
-            <h2>El riesgo: qué pasa cuando un sistema se congela</h2>
+            <h2 id="el-riesgo-que-pasa-cuando">El riesgo: qué pasa cuando un sistema se congela</h2>
             <p>
                 El agua al congelarse aumenta su volumen aproximadamente un 9%.
                 En un circuito cerrado y rígido —tuberías, radiadores, válvulas—
@@ -43,7 +43,7 @@ export function ErrorAnticongelanteDetalle() {
                 </p>
             </div>
 
-            <h2>La protección anticongelante de la caldera</h2>
+            <h2 id="la-proteccion-anticongelante-de-la-caldera">La protección anticongelante de la caldera</h2>
             <p>
                 La mayoría de las calderas modernas incluye una función anticongelante
                 programada en su controlador electrónico. Opera en dos etapas:
@@ -81,7 +81,7 @@ export function ErrorAnticongelanteDetalle() {
 
             <DiagramaAnticongelante />
 
-            <h2>La solución real: anticongelante a base de glicol</h2>
+            <h2 id="la-solucion-real-anticongelante-a-base">La solución real: anticongelante a base de glicol</h2>
             <p>
                 El anticongelante de glicol en el agua del circuito es la protección
                 independiente del suministro energético. El glicol (del griego
@@ -90,7 +90,7 @@ export function ErrorAnticongelanteDetalle() {
                 a la concentración.
             </p>
 
-            <h3>Tipos de glicol disponibles</h3>
+            <h3 id="tipos-de-glicol-disponibles">Tipos de glicol disponibles</h3>
             <p>
                 Existen dos tipos principales, ambos aptos para sistemas de calefacción:
             </p>
@@ -128,7 +128,7 @@ export function ErrorAnticongelanteDetalle() {
                 </p>
             </div>
 
-            <h3>Concentraciones según zona climática</h3>
+            <h3 id="concentraciones-segun-zona-climatica">Concentraciones según zona climática</h3>
             <p>
                 La concentración de glicol determina hasta qué temperatura protege
                 la mezcla. La regla práctica es dimensionar para la temperatura
@@ -176,7 +176,7 @@ export function ErrorAnticongelanteDetalle() {
                 </p>
             </div>
 
-            <h2>Cómo agregar anticongelante a un sistema existente</h2>
+            <h2 id="como-agregar-anticongelante-a-un-sistema">Cómo agregar anticongelante a un sistema existente</h2>
             <ol>
                 <li>
                     <strong>Calcular el volumen del sistema:</strong> aproximadamente
@@ -211,8 +211,8 @@ export function ErrorAnticongelanteDetalle() {
                 </li>
             </ol>
 
-            <h2>Consideraciones adicionales</h2>
-            <h3>El glicol y la calidad del agua</h3>
+            <h2 id="consideraciones-adicionales">Consideraciones adicionales</h2>
+            <h3 id="el-glicol-y-la-calidad">El glicol y la calidad del agua</h3>
             <p>
                 El anticongelante automotor ya viene con inhibidores de corrosión
                 incluidos en su formulación. Si se usa glicol puro sin inhibidores,
@@ -220,7 +220,7 @@ export function ErrorAnticongelanteDetalle() {
                 el glicol puede volverse ácido con el tiempo y atacar los metales
                 del circuito.
             </p>
-            <h3>Renovación periódica</h3>
+            <h3 id="renovacion-periodica">Renovación periódica</h3>
             <p>
                 Los inhibidores del anticongelante se degradan con el tiempo y la
                 temperatura. En sistemas de calefacción, el intervalo de renovación
@@ -229,7 +229,7 @@ export function ErrorAnticongelanteDetalle() {
                 con tiras reactivas (debe estar entre 7 y 8.5): valores ácidos
                 indican que los inhibidores están agotados.
             </p>
-            <h3>Sistemas en casas de uso no permanente</h3>
+            <h3 id="sistemas-en-casas-de-uso">Sistemas en casas de uso no permanente</h3>
             <p>
                 Las viviendas de fin de semana o uso estacional en zonas frías
                 son las más expuestas: la caldera pasa semanas apagada sin nadie

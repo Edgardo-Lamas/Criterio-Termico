@@ -13,7 +13,7 @@ export const errorPexMemoriaTermica = {
 export function ErrorPexMemoriaTermicaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 Pasa seguido en obra: un tramo de tubería PEX queda <strong>estrangulado</strong>
                 —pisado, doblado en una curva demasiado cerrada o acodado— y el paso del agua
@@ -26,7 +26,7 @@ export function ErrorPexMemoriaTermicaDetalle() {
                 <strong> recuperar con calor</strong> y seguir usándolo intacto.
             </p>
 
-            <h2>Qué es la "memoria" del PEX</h2>
+            <h2 id="que-es-la-memoria-del-pex">Qué es la "memoria" del PEX</h2>
             <p>
                 PEX significa <strong>polietileno reticulado</strong> (cross-linked): durante
                 la fabricación, las cadenas del polímero se "entrelazan" formando una red
@@ -41,7 +41,7 @@ export function ErrorPexMemoriaTermicaDetalle() {
                 usan las uniones de casquillo deslizante (expansión en frío).
             </p>
 
-            <h2>Cómo recuperarlo — paso a paso</h2>
+            <h2 id="como-recuperarlo">Cómo recuperarlo — paso a paso</h2>
             <ol>
                 <li>
                     Usar una <strong>pistola de calor</strong> (aire caliente). Nunca soplete
@@ -75,7 +75,7 @@ export function ErrorPexMemoriaTermicaDetalle() {
                 </p>
             </div>
 
-            <h2>Ojo: el multicapa (con aluminio) NO tiene memoria</h2>
+            <h2 id="ojo-el-multicapa-con-aluminio">Ojo: el multicapa (con aluminio) NO tiene memoria</h2>
             <p>
                 Esto es clave y es donde muchos se equivocan. El truco del calor funciona en
                 <strong> PEX y PE-RT</strong>. El <strong>tubo multicapa (PEX-AL-PEX)</strong>,
@@ -96,7 +96,7 @@ export function ErrorPexMemoriaTermicaDetalle() {
                 </p>
             </div>
 
-            <h2>La barrera antioxígeno y por qué exige más cuidado con el calor</h2>
+            <h2 id="la-barrera-antioxigeno">La barrera antioxígeno y por qué exige más cuidado con el calor</h2>
             <p>
                 En calefacción el agua circula siempre por el mismo circuito cerrado, en
                 contacto con piezas de hierro y acero: el cuerpo de la caldera, el cuerpo de la
@@ -159,7 +159,7 @@ export function ErrorPexMemoriaTermicaDetalle() {
                 </p>
             </div>
 
-            <h2>Fuentes</h2>
+            <h2 id="fuentes">Fuentes</h2>
             <ul className="fuentes">
                 <li>
                     Norma DIN 4726 — límite de permeabilidad al oxígeno en tuberías plásticas de

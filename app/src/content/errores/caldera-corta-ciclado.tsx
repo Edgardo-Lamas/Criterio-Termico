@@ -13,7 +13,7 @@ export const errorCalderaCortaCiclado = {
 export function ErrorCalderaCortaCicladoDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 La caldera enciende, trabaja 3–5 minutos, alcanza la temperatura objetivo y corta.
                 A los 5–10 minutos, la temperatura baja ligeramente y vuelve a encender.
@@ -22,7 +22,7 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 extremadamente desfavorables.
             </p>
 
-            <h2>Por qué es un problema grave</h2>
+            <h2 id="por-que-es-un-problema-grave">Por qué es un problema grave</h2>
             <ul>
                 <li>
                     <strong>Desgaste acelerado:</strong> cada arranque somete al quemador,
@@ -51,9 +51,9 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 </p>
             </div>
 
-            <h2>Las causas</h2>
+            <h2 id="las-causas">Las causas</h2>
 
-            <h3>1. Caldera sobredimensionada (causa principal)</h3>
+            <h3 id="caldera-sobredimensionada-causa-principal">1. Caldera sobredimensionada (causa principal)</h3>
             <p>
                 La causa más frecuente. Al calcular la potencia de la caldera, se aplican
                 coeficientes de seguridad sucesivos: por pérdidas, por arranque en frío,
@@ -67,14 +67,14 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 día cicla, está sobredimensionada.
             </p>
 
-            <h3>2. Termostato de ambiente mal ubicado</h3>
+            <h3 id="termostato-de-ambiente-mal-ubicado">2. Termostato de ambiente mal ubicado</h3>
             <p>
                 Un termostato expuesto a la radiación solar directa, cercano a una fuente
                 de calor o en un corredor que se calienta rápido, corta la demanda antes
                 de que el resto de la vivienda haya alcanzado la temperatura objetivo.
             </p>
 
-            <h3>3. Temperatura máxima de la caldera demasiado baja</h3>
+            <h3 id="temperatura-maxima-de-la-caldera-demasiado">3. Temperatura máxima de la caldera demasiado baja</h3>
             <p>
                 Si la temperatura límite de la caldera está configurada muy cerca de la
                 temperatura de operación, la caldera alcanza el límite rápidamente y corta.
@@ -82,7 +82,7 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 o curva de calefacción.
             </p>
 
-            <h3>4. Radiadores con válvulas termostáticas que cierran simultáneamente</h3>
+            <h3 id="radiadores-con-valvulas-termostaticas-que-cierran">4. Radiadores con válvulas termostáticas que cierran simultáneamente</h3>
             <p>
                 En el horario de máxima temperatura (mediodía con sol), muchas válvulas
                 termostáticas cierran al mismo tiempo. La resistencia del circuito aumenta,
@@ -90,9 +90,9 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 de temperatura, aunque la demanda de la vivienda no sea cero.
             </p>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
 
-            <h3>Para caldera sobredimensionada existente</h3>
+            <h3 id="para-caldera-sobredimensionada-existente">Para caldera sobredimensionada existente</h3>
             <ol>
                 <li>
                     <strong>Ajustar el diferencial de histéresis</strong> en la caldera:
@@ -112,7 +112,7 @@ export function ErrorCalderaCortaCicladoDetalle() {
                 </li>
             </ol>
 
-            <h3>Para nuevas instalaciones: dimensionar correctamente</h3>
+            <h3 id="para-nuevas-instalaciones-dimensionar-correctamente">Para nuevas instalaciones: dimensionar correctamente</h3>
             <p>
                 La caldera se dimensiona para la <strong>carga de diseño real</strong>,
                 no con coeficientes de seguridad acumulados. El agua caliente sanitaria

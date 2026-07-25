@@ -13,7 +13,7 @@ export const errorRadiadorFrioAbajo = {
 export function ErrorRadiadorFrioAbajoDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 Al tocar el radiador en funcionamiento, la zona superior está caliente
                 pero la zona inferior permanece fría o tibia. El radiador no está
@@ -21,7 +21,7 @@ export function ErrorRadiadorFrioAbajoDetalle() {
                 La diferencia de temperatura entre parte alta y parte baja puede ser de 15–30°C.
             </p>
 
-            <h2>El diagnóstico: no es aire</h2>
+            <h2 id="el-diagnostico-no-es-aire">El diagnóstico: no es aire</h2>
             <p>
                 El primer instinto es purgar el radiador, pensando que hay aire atrapado.
                 Pero si al abrir el purgador sale agua inmediatamente (sin aire), y el
@@ -37,7 +37,7 @@ export function ErrorRadiadorFrioAbajoDetalle() {
                 </p>
             </div>
 
-            <h2>La causa: corrosión interna y lodos de magnetita</h2>
+            <h2 id="la-causa-corrosion-interna-y-lodos">La causa: corrosión interna y lodos de magnetita</h2>
             <p>
                 El agua de un circuito de calefacción, en contacto con el hierro de los
                 radiadores y la acería de la caldera, produce óxido de hierro (magnetita, Fe₃O₄).
@@ -49,7 +49,7 @@ export function ErrorRadiadorFrioAbajoDetalle() {
                 máxima deposición.
             </p>
 
-            <h3>Factores que aceleran la formación de lodos</h3>
+            <h3 id="factores-que-aceleran-la-formacion">Factores que aceleran la formación de lodos</h3>
             <ul>
                 <li>
                     <strong>Presencia de oxígeno en el circuito:</strong> el principal factor.
@@ -80,16 +80,16 @@ export function ErrorRadiadorFrioAbajoDetalle() {
                 </p>
             </div>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
 
-            <h3>Paso 1: Limpieza del radiador afectado</h3>
+            <h3 id="paso-1-limpieza-del-radiador-afectado">Paso 1: Limpieza del radiador afectado</h3>
             <p>
                 Aislar el radiador (cerrar válvula y detente), desconectarlo y realizar una
                 limpieza por inversión de flujo con agua a presión. En casos severos, puede
                 ser necesario reemplazar el radiador si la acumulación es muy compacta.
             </p>
 
-            <h3>Paso 2: Limpieza del circuito completo (flush)</h3>
+            <h3 id="paso-2-limpieza-del-circuito-completo">Paso 2: Limpieza del circuito completo (flush)</h3>
             <p>
                 Vaciar el sistema, rellenar con agua limpia y vaciar nuevamente para arrastrar
                 los lodos del circuito general. En instalaciones con contaminación severa,
@@ -97,21 +97,21 @@ export function ErrorRadiadorFrioAbajoDetalle() {
                 con agente químico dispersante.
             </p>
 
-            <h3>Paso 3: Instalar filtro de magnetita</h3>
+            <h3 id="paso-3-instalar-filtro-de-magnetita">Paso 3: Instalar filtro de magnetita</h3>
             <p>
                 Un filtro magnético en el retorno de la caldera captura las partículas de
                 magnetita antes de que lleguen al intercambiador. Es el componente más
                 efectivo para extender la vida útil de un sistema existente con problemas.
             </p>
 
-            <h3>Paso 4: Inhibidor de corrosión</h3>
+            <h3 id="paso-4-inhibidor-de-corrosion">Paso 4: Inhibidor de corrosión</h3>
             <p>
                 Tras la limpieza, añadir al circuito un inhibidor de corrosión homologado
                 (ej: Sentinel X100 o equivalente). El inhibidor forma una película protectora
                 sobre las superficies metálicas y reduce drásticamente la corrosión futura.
             </p>
 
-            <h3>Paso 5 (largo plazo): Resolver la entrada de oxígeno</h3>
+            <h3 id="paso-5-largo-plazo-resolver">Paso 5 (largo plazo): Resolver la entrada de oxígeno</h3>
             <p>
                 Si las tuberías son de PP sin barrera antioxígeno, el problema volverá.
                 Las soluciones a largo plazo incluyen:

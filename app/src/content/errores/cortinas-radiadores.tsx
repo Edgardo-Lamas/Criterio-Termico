@@ -13,7 +13,7 @@ export const errorCortinasRadiadores = {
 export function ErrorCortinasRadiadoresDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 El cálculo dio bien, el radiador tiene los elementos que corresponden y está
                 puesto en el mejor lugar —bajo la ventana— y aun así la pieza no termina de
@@ -23,7 +23,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 entregando.
             </p>
 
-            <h2>Cómo calienta de verdad un radiador: la convección</h2>
+            <h2 id="como-calienta-de-verdad-un-radiador">Cómo calienta de verdad un radiador: la convección</h2>
             <p>
                 Un radiador no calienta "irradiando" como una estufa a la que le ponés la mano
                 enfrente. Calienta sobre todo por <strong>convección</strong>: mueve el aire de
@@ -49,7 +49,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 </p>
             </div>
 
-            <h2>Por qué el mejor lugar es bajo la ventana</h2>
+            <h2 id="por-que-el-mejor-lugar">Por qué el mejor lugar es bajo la ventana</h2>
             <p>
                 La ventana es el punto más frío del ambiente: el vidrio pierde calor y el aire
                 que lo toca se enfría y cae al piso formando una "cascada" de aire frío. Poner el
@@ -60,7 +60,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 ventana.
             </p>
 
-            <h2>Por qué la cortina larga lo arruina</h2>
+            <h2 id="por-que-la-cortina-larga">Por qué la cortina larga lo arruina</h2>
             <p>
                 Cuando la cortina baja hasta el piso y cuelga por delante del radiador, el
                 radiador queda encerrado en un pasillo angosto entre la tela y el vidrio frío. El
@@ -80,9 +80,9 @@ export function ErrorCortinasRadiadoresDetalle() {
                 </p>
             </div>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
 
-            <h3>1. Cortinas que no tapen el radiador (la primera opción)</h3>
+            <h3 id="cortinas-que-no-tapen-el-radiador">1. Cortinas que no tapen el radiador (la primera opción)</h3>
             <p>
                 Lo ideal es que la cortina no cuelgue por delante del radiador. Dos caminos que
                 funcionan:
@@ -100,7 +100,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 </li>
             </ul>
 
-            <h3>2. Si la cortina larga es innegociable: repisa o deflector</h3>
+            <h3 id="si-la-cortina-larga-es-innegociable">2. Si la cortina larga es innegociable: repisa o deflector</h3>
             <p>
                 Cuando el cliente quiere sí o sí la cortina hasta el piso, una repisa o un
                 deflector sobre el radiador ayuda a desviar el aire caliente hacia adentro de la
@@ -108,7 +108,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 radiador, pero recupera parte de lo que se perdería.
             </p>
 
-            <h3>3. Reubicar a la otra pared fría</h3>
+            <h3 id="reubicar-a-la-otra-pared-fria">3. Reubicar a la otra pared fría</h3>
             <p>
                 Si nada de lo anterior es posible, conviene mover el radiador a la otra ubicación
                 más fría del ambiente (otra pared exterior, otro paño). Se resigna el efecto de
@@ -116,7 +116,7 @@ export function ErrorCortinasRadiadoresDetalle() {
                 trabajando contra una cortina que le come el rendimiento.
             </p>
 
-            <h3>4. Convección forzada con un cooler (recurso para casos extremos)</h3>
+            <h3 id="conveccion-forzada-con-un-cooler-recurso">4. Convección forzada con un cooler (recurso para casos extremos)</h3>
             <p>
                 Antes de llegar al ventilador hay que agotar lo que da más potencia de verdad. Si
                 el radiador quedó justo, el orden es: primero <strong>sumar elementos</strong>

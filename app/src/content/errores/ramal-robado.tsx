@@ -13,7 +13,7 @@ export const errorRamalRobado = {
 export function ErrorRamalRobadoDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 Un radiador —o todo un ramal— recibe poco caudal y no alcanza temperatura,
                 aunque en el proyecto los diámetros parecen correctos: la troncal arranca
@@ -23,7 +23,7 @@ export function ErrorRamalRobadoDetalle() {
                 reducción respecto de la tee de derivación.
             </p>
 
-            <h2>La física: continuidad y efecto Venturi</h2>
+            <h2 id="la-fisica-continuidad-y-efecto-venturi">La física: continuidad y efecto Venturi</h2>
             <p>
                 El agua es incompresible: el caudal que entra a un tramo tiene que salir.
                 Si el <strong>mismo caudal</strong> pasa a una sección menor, la velocidad
@@ -41,7 +41,7 @@ export function ErrorRamalRobadoDetalle() {
                 en el caño.
             </p>
 
-            <h2>El error: reducir antes de la tee</h2>
+            <h2 id="el-error-reducir-antes">El error: reducir antes de la tee</h2>
             <p>
                 Cuando la reducción queda <strong>antes</strong> de la derivación,
                 todo el caudal pasa por la garganta angosta y llega a la tee acelerado
@@ -61,7 +61,7 @@ export function ErrorRamalRobadoDetalle() {
                 </p>
             </div>
 
-            <h2>Por qué la reducción progresiva bien hecha NO acelera el agua</h2>
+            <h2 id="por-que-la-reduccion-progresiva-bien">Por qué la reducción progresiva bien hecha NO acelera el agua</h2>
             <p>
                 Puede sonar contradictorio: ¿reducir el diámetro no acelera siempre el agua?
                 No — porque en una troncal bien dimensionada cada reducción va después de
@@ -80,7 +80,7 @@ export function ErrorRamalRobadoDetalle() {
                 que el cliente pagó de más.
             </p>
 
-            <h2>Diagnóstico</h2>
+            <h2 id="diagnostico">Diagnóstico</h2>
             <ol>
                 <li>
                     Identificar el radiador robado: caño de ida tibio y caudal pobre,
@@ -97,7 +97,7 @@ export function ErrorRamalRobadoDetalle() {
                 </li>
             </ol>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
             <p>
                 Reubicar la reducción: la tee del ramal robado debe quedar sobre el
                 diámetro grande, y la cupla de reducción inmediatamente

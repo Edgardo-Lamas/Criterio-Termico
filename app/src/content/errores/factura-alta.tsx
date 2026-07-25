@@ -13,7 +13,7 @@ export const errorFacturaAlta = {
 export function ErrorFacturaAltaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 La factura de gas aumenta significativamente con la llegada del invierno,
                 pero el confort interior no mejora en proporción. El sistema funciona —
@@ -25,9 +25,9 @@ export function ErrorFacturaAltaDetalle() {
                 de varios factores que se potencian entre sí.
             </p>
 
-            <h2>Las causas más frecuentes</h2>
+            <h2 id="las-causas-mas-frecuentes">Las causas más frecuentes</h2>
 
-            <h3>1. Caldera sobredimensionada con corto-ciclado</h3>
+            <h3 id="caldera-sobredimensionada-con-corto-ciclado">1. Caldera sobredimensionada con corto-ciclado</h3>
             <p>
                 Una caldera que enciende, alcanza rápidamente la temperatura objetivo y corta,
                 para volver a encender 5–10 minutos después, está en corto-ciclado. Cada arranque
@@ -39,7 +39,7 @@ export function ErrorFacturaAltaDetalle() {
                 moderado, está sobredimensionada para la carga real del sistema.
             </p>
 
-            <h3>2. Curva de calefacción (heating curve) mal ajustada</h3>
+            <h3 id="curva-de-calefaccion-heating-curve-mal">2. Curva de calefacción (heating curve) mal ajustada</h3>
             <p>
                 Las calderas modulantes modernas ajustan la temperatura de impulsión según la
                 temperatura exterior. Si la curva está mal configurada, la caldera puede estar
@@ -61,7 +61,7 @@ export function ErrorFacturaAltaDetalle() {
                 </p>
             </div>
 
-            <h3>3. Pérdidas térmicas del edificio no resueltas</h3>
+            <h3 id="perdidas-termicas-del-edificio-no-resueltas">3. Pérdidas térmicas del edificio no resueltas</h3>
             <p>
                 Ventanas con vidrio simple, muros sin aislación, puertas con infiltraciones:
                 el sistema de calefacción compensa las pérdidas del edificio. Cuanto mayor
@@ -73,21 +73,21 @@ export function ErrorFacturaAltaDetalle() {
                 en la instalación.
             </p>
 
-            <h3>4. Sistema desbalanceado con sobrecalentamiento de algunos ambientes</h3>
+            <h3 id="sistema-desbalanceado-con-sobrecalentamiento-de-algunos">4. Sistema desbalanceado con sobrecalentamiento de algunos ambientes</h3>
             <p>
                 En un sistema desbalanceado, algunos ambientes se sobrecalientan y los ocupantes
                 abren ventanas para regularlos. Toda la energía perdida por ventanas abiertas
                 es energía que la caldera tiene que reponer.
             </p>
 
-            <h3>5. Temperatura de set-point demasiado alta</h3>
+            <h3 id="temperatura-de-set-point-demasiado-alta">5. Temperatura de set-point demasiado alta</h3>
             <p>
                 Cada grado de temperatura interior por encima del necesario aumenta el consumo
                 un 6–8%. Un set-point de 23°C en lugar de 20°C puede significar 18–24% más
                 de consumo sin ganancia real de confort.
             </p>
 
-            <h2>Diagnóstico paso a paso</h2>
+            <h2 id="diagnostico-paso-a-paso">Diagnóstico paso a paso</h2>
             <ol>
                 <li>
                     <strong>Registrar la frecuencia de ciclado de la caldera</strong> en un día de frío moderado.
@@ -107,22 +107,22 @@ export function ErrorFacturaAltaDetalle() {
                 </li>
             </ol>
 
-            <h2>Las soluciones</h2>
+            <h2 id="las-soluciones">Las soluciones</h2>
 
-            <h3>Ajuste de curva de calefacción</h3>
+            <h3 id="ajuste-de-curva-de-calefaccion">Ajuste de curva de calefacción</h3>
             <p>
                 En calderas modulantes con compensación climática, ajustar la curva para
                 que la temperatura de impulsión sea la mínima necesaria para cada temperatura
                 exterior es la intervención más efectiva sin costo de materiales.
             </p>
 
-            <h3>Reducción del set-point</h3>
+            <h3 id="reduccion-del-set-point">Reducción del set-point</h3>
             <p>
                 Reducir la temperatura interior de 22°C a 20°C con ropa adecuada
                 ahorra 12–16% del consumo anual. En ocupación nocturna: setback a 17–18°C.
             </p>
 
-            <h3>Mejora del equilibrado hidráulico</h3>
+            <h3 id="mejora-del-equilibrado-hidraulico">Mejora del equilibrado hidráulico</h3>
             <p>
                 Un sistema equilibrado permite mantener la temperatura objetivo con menor
                 temperatura de impulsión, lo que directamente mejora el rendimiento de

@@ -13,7 +13,7 @@ export const errorEmisorMalElegido = {
 export function ErrorEmisorMalElegidoDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 El cálculo de potencia dio bien. Los radiadores cubren las kcal/h del ambiente.
                 La caldera está bien dimensionada. Y el cliente igual llama en julio diciendo
@@ -26,7 +26,7 @@ export function ErrorEmisorMalElegidoDetalle() {
                 ambientes funciona cada uno. Es una decisión que ninguna planilla toma por vos.
             </p>
 
-            <h2>Cómo entrega el calor cada uno</h2>
+            <h2 id="como-entrega-el-calor-cada-uno">Cómo entrega el calor cada uno</h2>
             <p>
                 El <strong>radiador</strong> trabaja principalmente por <strong>convección</strong>:
                 calienta el aire que lo toca, ese aire se vuelve más liviano y sube. El aire frío
@@ -41,7 +41,7 @@ export function ErrorEmisorMalElegidoDetalle() {
                 aunque el aire esté fresco.
             </p>
 
-            <h2>Techo alto: el radiador manda el calor arriba</h2>
+            <h2 id="techo-alto-el-radiador-manda">Techo alto: el radiador manda el calor arriba</h2>
             <p>
                 Como el radiador calienta moviendo aire, y el aire caliente sube, en un ambiente
                 alto se forma un <strong>colchón de aire caliente contra el techo</strong>. Eso
@@ -70,7 +70,7 @@ export function ErrorEmisorMalElegidoDetalle() {
                 afecta.
             </p>
 
-            <h2>Uso intermitente: el piso tiene inercia</h2>
+            <h2 id="uso-intermitente-el-piso-tiene-inercia">Uso intermitente: el piso tiene inercia</h2>
             <p>
                 El piso radiante calienta una masa: la carpeta, el contrapiso, el solado. Esa
                 masa tarda <strong>horas</strong> en llegar a régimen, y otras tantas en
@@ -89,7 +89,7 @@ export function ErrorEmisorMalElegidoDetalle() {
                 corta rápido. Es exactamente lo que necesita un uso discontinuo.
             </p>
 
-            <h2>Otros criterios que decide el instalador</h2>
+            <h2 id="otros-criterios-que-decide-el-instalador">Otros criterios que decide el instalador</h2>
             <p>
                 No todo lo que define el emisor está en el plano. Lo que hay que preguntar
                 en el relevamiento:
@@ -127,7 +127,7 @@ export function ErrorEmisorMalElegidoDetalle() {
                 </p>
             </div>
 
-            <h2>Cómo se resuelve</h2>
+            <h2 id="como-se-resuelve">Cómo se resuelve</h2>
             <ol>
                 <li>
                     <strong>Antes de calcular, definí el emisor por ambiente.</strong> No al

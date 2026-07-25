@@ -16,7 +16,7 @@ export const errorPruebaHidraulica = {
 export function ErrorPruebaHidraulicaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 Un radiador permanece completamente frío mientras el resto de la instalación
                 funciona con normalidad. El diagnóstico descarta desbalance hidráulico
@@ -30,7 +30,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 produciendo un <strong>circuito cruzado</strong>.
             </p>
 
-            <h2>Por qué ocurre y cómo se detecta tarde</h2>
+            <h2 id="por-que-ocurre-y-como">Por qué ocurre y cómo se detecta tarde</h2>
             <p>
                 Durante el tendido de tuberías en obra, especialmente cuando los circuitos
                 discurren por zonas de difícil acceso, entre paredes, bajo losas o en
@@ -60,7 +60,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 </p>
             </div>
 
-            <h2>La solución: prueba hidráulica en dos etapas</h2>
+            <h2 id="la-solucion-prueba-hidraulica-en-dos">La solución: prueba hidráulica en dos etapas</h2>
             <p>
                 La forma de detectar y corregir un circuito cruzado <strong>antes de
                 instalar los artefactos</strong> — cuando el acceso a las tuberías
@@ -70,7 +70,7 @@ export function ErrorPruebaHidraulicaDetalle() {
 
             <DiagramaPruebaHidraulica />
 
-            <h3>Etapa 1 — Verificación de circuitos (un solo colector)</h3>
+            <h3 id="etapa-1">Etapa 1 — Verificación de circuitos (un solo colector)</h3>
             <p>
                 Una vez terminado el tendido de tuberías y antes de conectar el bypass
                 que une los dos colectores, se conecta la presión <strong>solamente
@@ -97,7 +97,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 </p>
             </div>
 
-            <h3>Etapa 2 — Prueba de hermeticidad a 6 bar (24 horas)</h3>
+            <h3 id="etapa-2">Etapa 2 — Prueba de hermeticidad a 6 bar (24 horas)</h3>
             <p>
                 Verificados los circuitos, se conecta el bypass que une impulsión
                 y retorno. Antes de pressurizar, es imprescindible
@@ -125,7 +125,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 </p>
             </div>
 
-            <h3>Etapa 3 — Mantenimiento a 3 bar hasta fin de obra</h3>
+            <h3 id="etapa-3">Etapa 3 — Mantenimiento a 3 bar hasta fin de obra</h3>
             <p>
                 Confirmada la estanqueidad a 6 bar, se reduce la presión a
                 <strong> 3 bar</strong> y se deja el sistema presurizado con
@@ -165,7 +165,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 </p>
             </div>
 
-            <h2>Equipo necesario para la prueba</h2>
+            <h2 id="equipo-necesario-para-la-prueba">Equipo necesario para la prueba</h2>
             <ul>
                 <li>
                     <strong>Bomba de prueba hidrostática manual:</strong> bomba de palanca
@@ -188,7 +188,7 @@ export function ErrorPruebaHidraulicaDetalle() {
                 </li>
             </ul>
 
-            <h2>Verificación final a temperatura de trabajo</h2>
+            <h2 id="verificacion-final-a-temperatura-de-trabajo">Verificación final a temperatura de trabajo</h2>
             <p>
                 La prueba hidráulica en frío verifica estanqueidad mecánica, pero
                 no simula las condiciones reales de operación. Una vez colocados

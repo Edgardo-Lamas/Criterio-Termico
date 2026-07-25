@@ -21,7 +21,7 @@ export function ErrorCalidadAguaDetalle() {
     return (
         <div className="prose">
 
-            <h2>La promesa de bajo mantenimiento</h2>
+            <h2 id="la-promesa-de-bajo-mantenimiento">La promesa de bajo mantenimiento</h2>
             <p>
                 Una de las grandes ventajas de la calefacción por radiadores es su bajo mantenimiento.
                 A diferencia del piso radiante o de los splits, un circuito de agua caliente bien
@@ -35,7 +35,7 @@ export function ErrorCalidadAguaDetalle() {
                 nueva, no sale agua vieja.
             </p>
 
-            <h2>Qué hay disuelto en el agua de red</h2>
+            <h2 id="que-hay-disuelto-en-el-agua">Qué hay disuelto en el agua de red</h2>
             <p>
                 El agua de red contiene sales minerales en solución. La composición varía según la
                 zona, pero las más relevantes para la calefacción son:
@@ -63,7 +63,7 @@ export function ErrorCalidadAguaDetalle() {
                 </li>
             </ul>
 
-            <h2>Lo que pasa en la primera temporada: el ciclo de precipitación</h2>
+            <h2 id="lo-que-pasa-en-la-primera">Lo que pasa en la primera temporada: el ciclo de precipitación</h2>
             <p>
                 Cuando se carga el sistema por primera vez, entra toda esa agua con sus sales.
                 En la primera temporada de funcionamiento, el calor desencadena la reacción:
@@ -93,7 +93,7 @@ export function ErrorCalidadAguaDetalle() {
                 oxígeno en el circuito.
             </p>
 
-            <h2>El estado estable: pH 7, agua neutra</h2>
+            <h2 id="el-estado-estable-ph-7-agua">El estado estable: pH 7, agua neutra</h2>
             <p>
                 Al final de la primera temporada, en un circuito bien cerrado, el agua alcanza
                 un estado de equilibrio:
@@ -122,7 +122,7 @@ export function ErrorCalidadAguaDetalle() {
 
             <DiagramaCalidadAgua />
 
-            <h2>El problema: las recargas de agua nueva</h2>
+            <h2 id="el-problema-las-recargas-de-agua">El problema: las recargas de agua nueva</h2>
             <p>
                 La presión de trabajo del circuito es entre 1 y 1,5 bar en frío. Si baja de 0,8 bar,
                 la caldera puede entrar en falla. Cuando esto sucede, la reacción habitual del
@@ -138,7 +138,7 @@ export function ErrorCalidadAguaDetalle() {
                 y agrava el daño interno.
             </p>
 
-            <h3>Lo que entra con cada recarga</h3>
+            <h3 id="lo-que-entra-con-cada-recarga">Lo que entra con cada recarga</h3>
             <p>
                 Cada litro de agua de red que entra al circuito trae consigo:
             </p>
@@ -176,7 +176,7 @@ export function ErrorCalidadAguaDetalle() {
                 </p>
             </div>
 
-            <h2>Cómo reconocer un sistema con recargas frecuentes</h2>
+            <h2 id="como-reconocer-un-sistema-con-recargas">Cómo reconocer un sistema con recargas frecuentes</h2>
             <p>
                 Estos son los indicadores que deben encender una alarma:
             </p>
@@ -211,7 +211,7 @@ export function ErrorCalidadAguaDetalle() {
                 </li>
             </ul>
 
-            <h2>La regla de oro</h2>
+            <h2 id="la-regla-de-oro">La regla de oro</h2>
             <div className="callout callout-error">
                 <div className="callout-label">Nunca recargar sin causa</div>
                 <p>
@@ -221,7 +221,7 @@ export function ErrorCalidadAguaDetalle() {
                 </p>
             </div>
 
-            <h2>Cuando no hay otra opción: agua tratada</h2>
+            <h2 id="cuando-no-hay-otra-opcion-agua">Cuando no hay otra opción: agua tratada</h2>
             <p>
                 Si por alguna razón es necesario recargar el sistema (obra nueva, reparación
                 importante, purga programada), lo correcto es usar agua de menor agresividad:
@@ -254,7 +254,7 @@ export function ErrorCalidadAguaDetalle() {
                 </p>
             </div>
 
-            <h2>Criterio profesional</h2>
+            <h2 id="criterio-profesional">Criterio profesional</h2>
             <div className="callout callout-tip">
                 <div className="callout-label">Puntos clave para el instalador</div>
                 <ul>

@@ -13,7 +13,7 @@ export const errorPresionSubeAguaRed = {
 export function ErrorPresionSubeAguaRedDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 La presión del sistema sube sola hasta acercarse a los 3 bar, la
                 válvula de seguridad descarga, y al rato la presión vuelve a subir.
@@ -29,7 +29,7 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 que llega a 3 o 4 bar contra el 1 a 1.5 bar del circuito de calefacción.
             </p>
 
-            <h2>Primera distinción: ¿sube solo en caliente o también en frío?</h2>
+            <h2 id="primera-distincion-sube-solo-en-caliente">Primera distinción: ¿sube solo en caliente o también en frío?</h2>
             <ul>
                 <li>
                     <strong>Sube solo en caliente</strong> y baja al enfriarse:
@@ -47,7 +47,7 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 </li>
             </ul>
 
-            <h2>Las dos puertas de entrada del agua de red</h2>
+            <h2 id="las-dos-puertas-de-entrada">Las dos puertas de entrada del agua de red</h2>
             <p>
                 En una caldera mural, el agua de red solo puede meterse al circuito
                 de calefacción por dos caminos:
@@ -69,7 +69,7 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 </li>
             </ol>
 
-            <h2>El intercambiador bitérmico: la fuga que no se ve</h2>
+            <h2 id="el-intercambiador-bitermico-la-fuga">El intercambiador bitérmico: la fuga que no se ve</h2>
             <p>
                 Muchas calderas murales compactas usan un <strong>intercambiador
                 bitérmico</strong>: un solo intercambiador que resuelve calefacción
@@ -117,7 +117,7 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 </p>
             </div>
 
-            <h2>El grupo hidráulico: juntas y o&apos;rings internos</h2>
+            <h2 id="el-grupo-hidraulico-juntas-y-orings">El grupo hidráulico: juntas y o&apos;rings internos</h2>
             <p>
                 El otro punto donde el lado sanitario y el de calefacción conviven
                 a milímetros es el <strong>grupo hidráulico</strong> de la caldera:
@@ -143,7 +143,7 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 </li>
             </ul>
 
-            <h2>La solución</h2>
+            <h2 id="la-solucion">La solución</h2>
             <ol>
                 <li>
                     <strong>Válvula de llenado defectuosa:</strong> reemplazo de la

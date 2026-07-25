@@ -15,7 +15,7 @@ export const errorSelladoresRosca = {
 export function ErrorSelladoresRoscaDetalle() {
     return (
         <div className="prose">
-            <h2>El problema</h2>
+            <h2 id="el-problema">El problema</h2>
             <p>
                 Las uniones roscadas de radiadores, colectores, válvulas o accesorios
                 que no presentaban pérdidas durante el llenado en frío comienzan a gotear
@@ -29,7 +29,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 las condiciones reales de un circuito de calefacción.
             </p>
 
-            <h2>Por qué las uniones de calefacción son exigentes</h2>
+            <h2 id="por-que-las-uniones-de-calefaccion">Por qué las uniones de calefacción son exigentes</h2>
             <p>
                 Un circuito de calefacción somete a las uniones roscadas a tres tensiones
                 simultáneas que no existen en instalaciones de agua fría:
@@ -63,11 +63,11 @@ export function ErrorSelladoresRoscaDetalle() {
                 </p>
             </div>
 
-            <h2>Los cuatro tipos de selladores y cuándo usar cada uno</h2>
+            <h2 id="los-cuatro-tipos-de-selladores">Los cuatro tipos de selladores y cuándo usar cada uno</h2>
 
             <DiagramaSelladores />
 
-            <h3>Teflón (cinta PTFE)</h3>
+            <h3 id="teflon-cinta-ptfe">Teflón (cinta PTFE)</h3>
             <p>
                 El más difundido y el más mal usado. La cinta de PTFE (politetrafluoroetileno)
                 ofrece una resistencia química excelente y es perfectamente apta para
@@ -94,7 +94,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 </p>
             </div>
 
-            <h3>Cáñamo (estopa)</h3>
+            <h3 id="canamo-estopa">Cáñamo (estopa)</h3>
             <p>
                 El cáñamo es una fibra vegetal natural obtenida de la planta de cannabis
                 (<em>Cannabis sativa</em>). Tiene una larga historia en plomería por su
@@ -110,7 +110,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 tiene una temperatura de servicio de hasta 130°C.
             </p>
 
-            <h3>Pastas sellantes de junta (sellantes de rosca)</h3>
+            <h3 id="pastas-sellantes-de-junta-sellantes">Pastas sellantes de junta (sellantes de rosca)</h3>
             <p>
                 Productos como Unipak, Tangit, Fermit, Loctite 55 o similares
                 sellan el espacio entre filetes formando una <strong>junta flexible</strong>
@@ -126,7 +126,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 sea compatible con la temperatura de trabajo del sistema.
             </p>
 
-            <h3>Selladores anaeróbicos</h3>
+            <h3 id="selladores-anaerobicos">Selladores anaeróbicos</h3>
             <p>
                 Los selladores anaeróbicos (Loctite 542, 543, 567, Delo-ML, Precote y otros)
                 polimerizan en ausencia de oxígeno: el curado se activa precisamente cuando
@@ -156,7 +156,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 </p>
             </div>
 
-            <h2>Diagnóstico en instalaciones existentes</h2>
+            <h2 id="diagnostico-en-instalaciones-existentes">Diagnóstico en instalaciones existentes</h2>
             <p>
                 Si se detectan goteos en uniones roscadas de una instalación en funcionamiento:
             </p>
@@ -192,7 +192,7 @@ export function ErrorSelladoresRoscaDetalle() {
                 </p>
             </div>
 
-            <h2>Prevención en instalaciones nuevas</h2>
+            <h2 id="prevencion-en-instalaciones-nuevas">Prevención en instalaciones nuevas</h2>
             <p>
                 La selección del sellador correcto desde el inicio es la única
                 forma de evitar este problema completamente:
