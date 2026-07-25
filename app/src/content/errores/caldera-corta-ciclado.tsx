@@ -1,13 +1,23 @@
+import type { ErrorMeta } from './index'
 // Error: La caldera arranca y para constantemente — Corto-ciclado
 // Tier: pro
 
-export const errorCalderaCortaCiclado = {
+export const errorCalderaCortaCiclado: ErrorMeta = {
     id: 'caldera-corta-ciclado',
     titulo: 'La caldera arranca y para constantemente',
     categoria: 'Dimensionamiento',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'Ciclos cortos que reducen la vida útil del equipo.',
     resumen: 'El corto-ciclado (short cycling) ocurre cuando la potencia instalada supera ampliamente la carga real del sistema. La caldera alcanza rápidamente su límite de temperatura y corta, para encender nuevamente minutos después.',
+    cubre: [
+        { termino: 'La caldera arranca y para todo el tiempo', ancla: 'por-que-es-un-problema-grave', familia: 'no-calienta' },
+        { termino: 'Caldera sobredimensionada', ancla: 'caldera-sobredimensionada-causa-principal', familia: 'no-calienta' },
+        { termino: 'Termostato de ambiente mal ubicado', ancla: 'termostato-de-ambiente-mal-ubicado', familia: 'frontera' },
+        { termino: 'Dónde va el termostato de ambiente', ancla: 'termostato-de-ambiente-mal-ubicado', familia: 'frontera' },
+        { termino: 'Válvulas termostáticas que cierran todas juntas', ancla: 'radiadores-con-valvulas-termostaticas-que-cierran', familia: 'no-calienta' },
+        { termino: 'Temperatura de caldera demasiado baja', ancla: 'temperatura-maxima-de-la-caldera-demasiado', familia: 'consumo' },
+        { termino: 'Qué hacer con una caldera ya sobredimensionada', ancla: 'para-caldera-sobredimensionada-existente', familia: 'no-calienta' },
+    ],
 }
 
 export function ErrorCalderaCortaCicladoDetalle() {

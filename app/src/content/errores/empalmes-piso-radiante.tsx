@@ -1,13 +1,20 @@
+import type { ErrorMeta } from './index'
 // Error/Mito: "No se pueden empalmar los tubos de piso radiante empotrados"
 // Tier: pro
 
-export const errorEmpalmesPisoRadiante = {
+export const errorEmpalmesPisoRadiante: ErrorMeta = {
     id: 'empalmes-piso-radiante',
     titulo: '¿Se pueden empalmar los tubos de piso radiante empotrados?',
     categoria: 'Diseño de tuberías',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'El miedo a empalmar un circuito de piso radiante bajo la carpeta es más mito que realidad técnica.',
     resumen: 'Una unión bien hecha no pierde por estar empotrada: la sanitaria va enterrada y no pierde. La norma prefiere evitar uniones enterradas por accesibilidad, no porque fallen. Los sistemas de vinculación (compresión radial, casquillo deslizante) son muy confiables si la ejecución es correcta.',
+    cubre: [
+        { termino: '¿Se puede empalmar bajo la carpeta?', ancla: 'la-realidad-una-union-bien-hecha', familia: 'uniones' },
+        { termino: 'Uniones enterradas: qué dice la norma', ancla: 'por-que-la-norma-prefiere-evitar', familia: 'uniones' },
+        { termino: 'Sistemas de unión confiables para enterrar', ancla: 'los-sistemas-de-union', familia: 'uniones' },
+        { termino: 'Cómo empalmar un tubo enterrado', ancla: 'como-empalmar-enterrado-con-tranquilidad', familia: 'uniones' },
+    ],
 }
 
 export function ErrorEmpalmesPisoRadianteDetalle() {

@@ -1,15 +1,26 @@
+import type { ErrorMeta } from './index'
 // Caso: Congelamiento del sistema — anticongelante en zonas frías
 // Tier: free
 
 import { DiagramaAnticongelante } from '../manual/diagrams/DiagramaAnticongelante'
 
-export const errorAnticongelante = {
+export const errorAnticongelante: ErrorMeta = {
     id: 'anticongelante',
     titulo: 'Congelamiento del sistema en zonas frías',
     categoria: 'Protección y mantenimiento',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'La protección anticongelante de la caldera no es suficiente si se corta la luz o el gas. Un sistema congelado puede destruir radiadores, tuberías y válvulas en minutos.',
     resumen: 'Las calderas modernas tienen protección anticongelante incorporada, pero solo funciona si hay electricidad y gas. En zonas frías, la única protección real e independiente del suministro energético es el anticongelante a base de glicol en el agua del circuito.',
+    cubre: [
+        { termino: 'Riesgo de congelamiento del sistema', ancla: 'el-riesgo-que-pasa-cuando', familia: 'agua' },
+        { termino: 'Antihielo de la caldera: hasta dónde protege', ancla: 'la-proteccion-anticongelante-de-la-caldera', familia: 'agua' },
+        { termino: 'Anticongelante a base de glicol', ancla: 'la-solucion-real-anticongelante-a-base', familia: 'agua' },
+        { termino: 'Qué glicol usar', ancla: 'tipos-de-glicol-disponibles', familia: 'agua' },
+        { termino: 'Cuánto glicol según la zona', ancla: 'concentraciones-segun-zona-climatica', familia: 'agua' },
+        { termino: 'Cómo cargar el anticongelante', ancla: 'como-agregar-anticongelante-a-un-sistema', familia: 'agua' },
+        { termino: 'Casa de fin de semana o sin uso permanente', ancla: 'sistemas-en-casas-de-uso', familia: 'agua' },
+        { termino: 'Cada cuánto se renueva el glicol', ancla: 'renovacion-periodica', familia: 'agua' },
+    ],
 }
 
 export function ErrorAnticongelanteDetalle() {

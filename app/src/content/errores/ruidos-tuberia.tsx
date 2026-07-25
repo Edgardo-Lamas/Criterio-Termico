@@ -1,13 +1,22 @@
+import type { ErrorMeta } from './index'
 // Error: Ruidos en las tuberías — Velocidad excesiva
 // Tier: free
 
-export const errorRuidosTuberia = {
+export const errorRuidosTuberia: ErrorMeta = {
     id: 'ruidos-tuberia',
     titulo: 'Ruidos en las tuberías',
     categoria: 'Velocidad excesiva',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Silbidos o golpes de ariete en el sistema.',
     resumen: 'Los ruidos en tuberías de calefacción tienen causas específicas: velocidad excesiva del agua, aire atrapado o dilatación térmica mal resuelta.',
+    cubre: [
+        { termino: 'Silbido continuo en la cañería', ancla: 'silbido-continuo', familia: 'ruidos' },
+        { termino: 'Golpe de ariete', ancla: 'golpes-de-ariete', familia: 'ruidos' },
+        { termino: 'Chasquidos al encender o apagar', ancla: 'chasquidos-al-encender-o-apagar', familia: 'ruidos' },
+        { termino: 'Borboteo: aire en el circuito', ancla: 'borboteo-o-flujo-turbulento', familia: 'ruidos' },
+        { termino: 'El agua circula demasiado rápido', ancla: 'para-velocidad-excesiva', familia: 'ruidos' },
+        { termino: 'Dilatación: cómo resolverla', ancla: 'para-dilatacion-termica', familia: 'uniones' },
+    ],
 }
 
 export function ErrorRuidosTuberiaDetalle() {

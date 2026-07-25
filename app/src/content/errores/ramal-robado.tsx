@@ -1,13 +1,21 @@
+import type { ErrorMeta } from './index'
 // Error: Ramal robado — reducción de diámetro antes de la derivación (efecto Venturi)
 // Tier: pro
 
-export const errorRamalRobado = {
+export const errorRamalRobado: ErrorMeta = {
     id: 'ramal-robado',
     titulo: 'Ramal robado: la reducción antes de la derivación',
     categoria: 'Diseño de tuberías',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'Un radiador queda sin caudal aunque los diámetros parecen correctos: la reducción está antes de la tee.',
     resumen: 'Reducir el diámetro de la troncal antes de la derivación acelera el agua (continuidad/Venturi) y baja la presión justo donde el ramal necesita tomar su caudal. La regla: reducir siempre después de la tee, nunca antes.',
+    cubre: [
+        { termino: 'Ramal robado', ancla: 'el-error-reducir-antes', familia: 'uniones' },
+        { termino: 'Reducir el diámetro antes de la derivación', ancla: 'el-error-reducir-antes', familia: 'uniones' },
+        { termino: 'Efecto Venturi en la derivación', ancla: 'la-fisica-continuidad-y-efecto-venturi', familia: 'uniones' },
+        { termino: 'Reducción progresiva: cuándo sí se puede', ancla: 'por-que-la-reduccion-progresiva-bien', familia: 'uniones' },
+        { termino: 'Cómo detectar un ramal robado', ancla: 'diagnostico', familia: 'no-calienta' },
+    ],
 }
 
 export function ErrorRamalRobadoDetalle() {

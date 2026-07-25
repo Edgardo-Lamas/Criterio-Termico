@@ -1,13 +1,24 @@
+import type { ErrorMeta } from './index'
 // Error: Radiador frío en la parte inferior — Acumulación de lodos
 // Tier: premium
 
-export const errorRadiadorFrioAbajo = {
+export const errorRadiadorFrioAbajo: ErrorMeta = {
     id: 'radiador-frio-abajo',
     titulo: 'Radiador frío en la parte inferior',
     categoria: 'Acumulación de lodos',
-    tier: 'premium' as const,
+    tier: 'premium',
     preview: 'La mitad inferior del radiador no calienta.',
     resumen: 'Cuando la parte inferior de un radiador no calienta y la superior sí, hay lodos o sedimentos depositados que bloquean la circulación interna. Es señal de corrosión activa en el sistema.',
+    cubre: [
+        { termino: 'Radiador frío en la parte de abajo', ancla: 'el-diagnostico-no-es-aire', familia: 'no-calienta' },
+        { termino: 'No es aire: cómo distinguirlo', ancla: 'el-diagnostico-no-es-aire', familia: 'no-calienta' },
+        { termino: 'Lodos y magnetita', ancla: 'la-causa-corrosion-interna-y-lodos', familia: 'agua' },
+        { termino: 'Limpiar un radiador tapado', ancla: 'paso-1-limpieza-del-radiador-afectado', familia: 'agua' },
+        { termino: 'Lavado del circuito completo (flush)', ancla: 'paso-2-limpieza-del-circuito-completo', familia: 'agua' },
+        { termino: 'Filtro de magnetita', ancla: 'paso-3-instalar-filtro-de-magnetita', familia: 'agua' },
+        { termino: 'Inhibidor de corrosión', ancla: 'paso-4-inhibidor-de-corrosion', familia: 'agua' },
+        { termino: 'Por dónde entra el oxígeno al circuito', ancla: 'paso-5-largo-plazo-resolver', familia: 'agua' },
+    ],
 }
 
 export function ErrorRadiadorFrioAbajoDetalle() {

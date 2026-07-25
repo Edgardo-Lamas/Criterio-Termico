@@ -1,13 +1,23 @@
+import type { ErrorMeta } from './index'
 // Error: Factura de gas muy alta — Eficiencia
 // Tier: pro
 
-export const errorFacturaAlta = {
+export const errorFacturaAlta: ErrorMeta = {
     id: 'factura-alta',
     titulo: 'Factura de gas muy alta',
     categoria: 'Eficiencia',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'Consumo excesivo sin mejora de confort.',
     resumen: 'Un consumo de gas desproporcionado en calefacción es siempre síntoma de uno o varios problemas técnicos: caldera sobredimensionada, curva de calefacción mal ajustada, pérdidas no resueltas o sistema desbalanceado.',
+    cubre: [
+        { termino: 'Factura de gas muy alta', ancla: 'las-causas-mas-frecuentes', familia: 'consumo' },
+        { termino: 'Curva de calefacción mal ajustada', ancla: 'curva-de-calefaccion-heating-curve-mal', familia: 'consumo' },
+        { termino: 'Cómo ajustar la curva de calefacción', ancla: 'ajuste-de-curva-de-calefaccion', familia: 'consumo' },
+        { termino: 'Temperatura de consigna demasiado alta', ancla: 'temperatura-de-set-point-demasiado-alta', familia: 'consumo' },
+        { termino: 'Caldera sobredimensionada', ancla: 'caldera-sobredimensionada-con-corto-ciclado', familia: 'consumo' },
+        { termino: 'La casa pierde calor por la envolvente', ancla: 'perdidas-termicas-del-edificio-no-resueltas', familia: 'consumo' },
+        { termino: 'Diagnóstico de consumo alto, paso a paso', ancla: 'diagnostico-paso-a-paso', familia: 'consumo' },
+    ],
 }
 
 export function ErrorFacturaAltaDetalle() {

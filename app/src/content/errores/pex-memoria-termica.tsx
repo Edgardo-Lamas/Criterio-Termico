@@ -1,13 +1,20 @@
+import type { ErrorMeta } from './index'
 // Error: El tubo PEX se estranguló/acodó en obra — Memoria térmica y barrera antioxígeno
 // Tier: free
 
-export const errorPexMemoriaTermica = {
+export const errorPexMemoriaTermica: ErrorMeta = {
     id: 'pex-memoria-termica',
     titulo: 'El tubo PEX se estranguló en obra',
     categoria: 'Tuberías y materiales',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Un tubo PEX aplastado o acodado que cerró el paso no se tira: se recupera con calor.',
     resumen: 'El PEX (polietileno reticulado) tiene "memoria": si se estrangula, aplastando o acodando el paso, se le devuelve la forma calentándolo con pistola de calor. El multicapa con aluminio, en cambio, no tiene memoria y hay que cortarlo.',
+    cubre: [
+        { termino: 'PEX estrangulado o acodado', ancla: 'que-es-la-memoria-del-pex', familia: 'uniones' },
+        { termino: 'Recuperar un PEX doblado', ancla: 'como-recuperarlo', familia: 'uniones' },
+        { termino: 'El multicapa no tiene memoria', ancla: 'ojo-el-multicapa-con-aluminio', familia: 'uniones' },
+        { termino: 'Barrera antioxígeno', ancla: 'la-barrera-antioxigeno', familia: 'agua' },
+    ],
 }
 
 export function ErrorPexMemoriaTermicaDetalle() {

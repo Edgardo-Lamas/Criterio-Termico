@@ -1,13 +1,20 @@
+import type { ErrorMeta } from './index'
 // Error: Se eligió el emisor equivocado para el ambiente (radiador vs piso radiante)
 // Tier: free
 
-export const errorEmisorMalElegido = {
+export const errorEmisorMalElegido: ErrorMeta = {
     id: 'emisor-mal-elegido',
     titulo: 'La casa no calienta y el cálculo estaba bien',
     categoria: 'Dimensionamiento',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Cuando el cálculo da bien pero el ambiente no conforta, el problema no es la potencia: es el emisor.',
     resumen: 'Radiador y piso radiante no son intercambiables. El radiador calienta por convección y el aire caliente sube: en techos altos calefacciona el volumen que queda arriba de la gente. El piso calienta por radiación pero tiene inercia de horas: en una casa de fin de semana llegás el sábado y rinde el domingo. La potencia puede estar perfecta y el ambiente igual no confortar.',
+    cubre: [
+        { termino: 'Calculé bien y la casa no calienta', ancla: 'como-entrega-el-calor-cada-uno', familia: 'no-calienta' },
+        { termino: 'Techo alto: radiador o piso radiante', ancla: 'techo-alto-el-radiador-manda', familia: 'no-calienta' },
+        { termino: 'Uso intermitente: la inercia del piso', ancla: 'uso-intermitente-el-piso-tiene-inercia', familia: 'no-calienta' },
+        { termino: 'Radiadores o piso radiante: cómo elegir', ancla: 'otros-criterios-que-decide-el-instalador', familia: 'no-calienta' },
+    ],
 }
 
 export function ErrorEmisorMalElegidoDetalle() {

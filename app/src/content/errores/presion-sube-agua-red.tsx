@@ -1,13 +1,21 @@
+import type { ErrorMeta } from './index'
 // Caso: Presión que sube sola por entrada de agua de red al circuito
 // Tier: pro
 
-export const errorPresionSubeAguaRed = {
+export const errorPresionSubeAguaRed: ErrorMeta = {
     id: 'presion-sube-agua-red',
     titulo: 'La presión sube sola hasta la válvula de seguridad: agua de red que entra al circuito',
     categoria: 'Componentes hidráulicos',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'La presión del circuito sube sola —incluso con la caldera fría o apagada— hasta que acciona la válvula de sobrepresión. El vaso de expansión está bien y no hay reacción química: el agua está entrando desde la red.',
     resumen: 'Cuando la presión sube también en frío, el circuito está recibiendo agua de la red (3-4 bar) por alguna de sus dos puertas de entrada: la válvula de llenado que no cierra bien, o una comunicación interna entre el lado sanitario y el de calefacción. En calderas con intercambiador bitérmico —diseño encamisado, con el tubo del agua sanitaria dentro del tubo de calefacción— una pinchadura interna comunica los dos circuitos sin ninguna pérdida visible. Lo mismo puede ocurrir por juntas u o\'rings vencidos dentro del grupo hidráulico. Prueba de campo: cerrar la llave de paso de agua de red a la caldera; si la presión deja de subir, la entrada está confirmada.',
+    cubre: [
+        { termino: 'La presión sube sola', ancla: 'primera-distincion-sube-solo-en-caliente', familia: 'presion' },
+        { termino: '¿Sube en frío o solo en caliente?', ancla: 'primera-distincion-sube-solo-en-caliente', familia: 'presion' },
+        { termino: 'Agua de red entrando al circuito', ancla: 'las-dos-puertas-de-entrada', familia: 'presion' },
+        { termino: 'Intercambiador bitérmico pinchado', ancla: 'el-intercambiador-bitermico-la-fuga', familia: 'presion' },
+        { termino: 'Grupo hidráulico: juntas y o-rings', ancla: 'el-grupo-hidraulico-juntas-y-orings', familia: 'presion' },
+    ],
 }
 
 export function ErrorPresionSubeAguaRedDetalle() {

@@ -1,15 +1,27 @@
+import type { ErrorMeta } from './index'
 // Error: Algunos radiadores no calientan — Desbalance hidráulico + Cortocircuito de agua
 // Tier: free
 
 import { DiagramaCortocircuito } from '../manual/diagrams/DiagramaCortocircuito'
 
-export const errorRadiadoresFrios = {
+export const errorRadiadoresFrios: ErrorMeta = {
     id: 'radiadores-frios',
     titulo: 'Algunos radiadores no calientan',
     categoria: 'Desbalance hidráulico',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Los radiadores más alejados de la caldera no alcanzan temperatura.',
     resumen: 'El agua caliente toma el camino de menor resistencia y no llega en caudal suficiente a los radiadores más lejanos o al final del ramal.',
+    cubre: [
+        { termino: 'Algunos radiadores no calientan', ancla: 'la-causa-raiz-desbalance-hidraulico', familia: 'no-calienta' },
+        { termino: 'Los radiadores más lejanos quedan fríos', ancla: 'la-causa-raiz-desbalance-hidraulico', familia: 'no-calienta' },
+        { termino: 'Equilibrar con detentores', ancla: 'equilibrado-hidraulico-por-detentes', familia: 'no-calienta' },
+        { termino: 'Poner la bomba en velocidad III', ancla: 'poner-la-bomba-en-velocidad-maxima', familia: 'no-calienta' },
+        { termino: 'Verificar la bomba de circulación', ancla: 'verificar-la-bomba-de-circulacion', familia: 'no-calienta' },
+        { termino: 'Bypass en cada radiador (monotubo)', ancla: 'en-circuito-monotubo-instalar-bypass', familia: 'no-calienta' },
+        { termino: 'Se purga, calienta y vuelve a enfriarse', ancla: 'caso-especial-el-radiador', familia: 'no-calienta' },
+        { termino: 'Radiador conectado al revés', ancla: 'la-causa-circuito-cruzado', familia: 'no-calienta' },
+        { termino: 'Por qué la purga engaña', ancla: 'por-que-la-purga-engana', familia: 'no-calienta' },
+    ],
 }
 
 export function ErrorRadiadoresFriosDetalle() {

@@ -196,7 +196,7 @@ node scripts/extraer-casos.mjs app/src/content/errores /tmp/casos.json
 ```
 
 Herramientas disponibles en el MCP:
-- `buscar_caso_error` — busca en los 200+ casos documentados
+- `buscar_caso_error` — busca en los casos documentados
 - `calcular_potencia_ambiente` — cálculo de potencia térmica
 - `consultar_manual` — acceso al contenido del manual
 - `verificar_usuario` — perfil y tier del usuario
@@ -259,7 +259,11 @@ chore:    tareas de mantenimiento (deps, config)
   son activo propio del proyecto. Siempre aplicar 15% de margen de seguridad.
 
 - **Contenido como código**: El manual (14 capítulos) y los casos de errores
-  (+200) están implementados como componentes TSX nativos, sin CMS externo.
+  (17 al 2026-07-24, con 149 subtemas anclados) están implementados como
+  componentes TSX nativos, sin CMS externo. **No usar cifras redondeadas hacia
+  arriba acá ni en el sitio**: el "+200 errores" que se publicó durante meses
+  no existía, y un instalador que se suscribe esperando eso concluye que se le
+  vendió humo. Contar antes de afirmar.
 
 - **Mercado principal**: Argentina. MercadoPago como pasarela. Expansión
   planificada a España y Alemania.

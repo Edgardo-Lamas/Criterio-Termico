@@ -1,15 +1,25 @@
+import type { ErrorMeta } from './index'
 // Error: Sellador de rosca incorrecto — pérdidas en uniones de calefacción
 // Tier: free
 
 import { DiagramaSelladores } from '../manual/diagrams/DiagramaSelladores'
 
-export const errorSelladoresRosca = {
+export const errorSelladoresRosca: ErrorMeta = {
     id: 'selladores-rosca',
     titulo: 'Goteos en uniones después de la puesta en marcha',
     categoria: 'Materiales y sellado',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Las uniones que no perdían en frío empiezan a gotear cuando el sistema llega a temperatura.',
     resumen: 'El sellador de rosca incorrecto no tolera los ciclos de dilatación y contracción del sistema. El teflón standard es el caso más frecuente: funciona bien en frío pero falla cuando la instalación trabaja a 70–90°C.',
+    cubre: [
+        { termino: 'Goteo en una unión roscada', ancla: 'diagnostico-en-instalaciones-existentes', familia: 'uniones' },
+        { termino: 'Qué sellador va en cada unión', ancla: 'los-cuatro-tipos-de-selladores', familia: 'uniones' },
+        { termino: 'Teflón: cuándo usarlo', ancla: 'teflon-cinta-ptfe', familia: 'uniones' },
+        { termino: 'Cáñamo o estopa', ancla: 'canamo-estopa', familia: 'uniones' },
+        { termino: 'Pasta selladora de rosca', ancla: 'pastas-sellantes-de-junta-sellantes', familia: 'uniones' },
+        { termino: 'Sellador anaeróbico', ancla: 'selladores-anaerobicos', familia: 'uniones' },
+        { termino: 'Por qué la calefacción exige más que la sanitaria', ancla: 'por-que-las-uniones-de-calefaccion', familia: 'uniones' },
+    ],
 }
 
 export function ErrorSelladoresRoscaDetalle() {

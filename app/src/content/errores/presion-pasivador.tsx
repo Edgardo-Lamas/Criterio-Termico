@@ -1,15 +1,24 @@
+import type { ErrorMeta } from './index'
 // Caso: Aumento de presión por pasivador incompatible con aluminio
 // Tier: pro
 
 import { DiagramaPasivador } from '../manual/diagrams/DiagramaPasivador'
 
-export const errorPresionPasivador = {
+export const errorPresionPasivador: ErrorMeta = {
     id: 'presion-pasivador',
     titulo: 'Presión que sube sola: pasivador incompatible con aluminio',
     categoria: 'Química del agua / Corrosión',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'La presión del sistema sube progresivamente, acciona la válvula de seguridad y vuelve a subir. La caldera, el vaso de expansión y las purgas no explican el origen.',
     resumen: 'El pasivador correcto para radiadores de aluminio es un aditivo anticorrosivo de pH neutro —muchas formulaciones son a base de glicol y cumplen doble función anticongelante— que refuerza la capa protectora de óxido de aluminio. El problema aparece cuando al circuito entra un producto incompatible: inhibidores alcalinos pensados para sistemas de hierro, o aditivos genéricos sin certificar, que reaccionan con el aluminio produciendo gas hidrógeno (H₂). El H₂ es un gas no condensable que se acumula en el sistema elevando la presión de forma continua hasta superar los límites de seguridad.',
+    cubre: [
+        { termino: 'La presión sube sola y no para', ancla: 'por-que-la-presion-sube', familia: 'presion' },
+        { termino: 'Pasivador incompatible con aluminio', ancla: 'la-causa-reaccion-quimica-entre-pasivador', familia: 'agua' },
+        { termino: 'Aditivos que alcalinizan el agua', ancla: 'el-problema-aditivos-incompatibles-que-alcalinizan', familia: 'agua' },
+        { termino: 'El vaso de expansión no alcanza a compensar', ancla: 'por-que-el-vaso-de-expansion', familia: 'presion' },
+        { termino: 'O-rings y sellos destruidos por el aditivo', ancla: 'dano-colateral-documentado-sellos-y-orings', familia: 'agua' },
+        { termino: 'Cobre y aluminio en el mismo circuito', ancla: 'compatibilidad-de-metales-el-caso', familia: 'agua' },
+    ],
 }
 
 export function ErrorPresionPasivadorDetalle() {

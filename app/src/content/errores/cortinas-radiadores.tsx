@@ -1,13 +1,21 @@
+import type { ErrorMeta } from './index'
 // Error: Cortinas largas que anulan el radiador — Convección bloqueada
 // Tier: free
 
-export const errorCortinasRadiadores = {
+export const errorCortinasRadiadores: ErrorMeta = {
     id: 'cortinas-radiadores',
     titulo: '¿Por qué las cortinas largas son enemigas de los radiadores?',
     categoria: 'Ubicación y convección',
-    tier: 'free' as const,
+    tier: 'free',
     preview: 'Una cortina hasta el piso puede tirar afuera casi todo el calor del radiador.',
     resumen: 'El radiador va bajo la ventana porque es el punto más frío del ambiente, pero una cortina larga que lo tapa encierra el aire caliente contra el vidrio y lo manda afuera. Antes de fijar la ubicación hay que resolver qué cortinas van.',
+    cubre: [
+        { termino: 'Radiador tapado por la cortina', ancla: 'por-que-la-cortina-larga', familia: 'no-calienta' },
+        { termino: 'Por qué el radiador va bajo la ventana', ancla: 'por-que-el-mejor-lugar', familia: 'no-calienta' },
+        { termino: 'Cómo calienta un radiador (convección)', ancla: 'como-calienta-de-verdad-un-radiador', familia: 'no-calienta' },
+        { termino: 'Repisa o deflector sobre el radiador', ancla: 'si-la-cortina-larga-es-innegociable', familia: 'no-calienta' },
+        { termino: 'Reubicar el radiador a otra pared', ancla: 'reubicar-a-la-otra-pared-fria', familia: 'no-calienta' },
+    ],
 }
 
 export function ErrorCortinasRadiadoresDetalle() {

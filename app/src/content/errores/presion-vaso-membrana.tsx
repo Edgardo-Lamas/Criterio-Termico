@@ -1,13 +1,24 @@
+import type { ErrorMeta } from './index'
 // Caso: Caída de presión por membrana del vaso de expansión pinchada
 // Tier: pro
 
-export const errorPresionVasoMembrana = {
+export const errorPresionVasoMembrana: ErrorMeta = {
     id: 'presion-vaso-membrana',
     titulo: 'La presión cae y no aparece la pérdida: membrana del vaso de expansión pinchada',
     categoria: 'Componentes hidráulicos',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'La caldera pierde presión cada pocos días y hay que recargar seguido, pero no hay charcos, goteras ni manchas de humedad en ninguna parte. Se revisó todo el circuito y la pérdida no aparece.',
     resumen: 'Con el uso y el tiempo, la membrana que separa el agua del nitrógeno dentro del vaso de expansión se deteriora y se pincha. El agua del circuito pasa al compartimiento del gas y el vaso se inunda: esa agua que migró es una pérdida invisible que el manómetro registra pero que no moja nada. La señal que delata la falla es doble: la presión cae en frío sin fuga visible, y sube muy rápido apenas la caldera enciende y calienta, porque ya no hay colchón de gas que absorba la dilatación.',
+    cubre: [
+        { termino: 'La presión cae y no encuentro la pérdida', ancla: 'la-falla-membrana-pinchada-la-perdida', familia: 'presion' },
+        { termino: 'Membrana del vaso pinchada', ancla: 'la-falla-membrana-pinchada-la-perdida', familia: 'presion' },
+        { termino: 'Cuántas recargas son normales', ancla: 'cuanto-pierde-el-sistema-la-frecuencia', familia: 'presion' },
+        { termino: 'Cómo funciona el vaso de expansión', ancla: 'como-funciona-el-vaso-de-expansion', familia: 'presion' },
+        { termino: 'Prueba de la válvula Schrader', ancla: 'el-diagnostico-en-campo-la-prueba', familia: 'presion' },
+        { termino: 'Membrana pinchada o vaso descargado', ancla: 'membrana-pinchada-vs-vaso-descargado', familia: 'presion' },
+        { termino: 'Pérdida en cañería empotrada', ancla: 'la-otra-perdida-invisible-la-caneria', familia: 'presion' },
+        { termino: 'La presión sube rápido al calentar', ancla: 'la-senal-que-delata-la-falla', familia: 'presion' },
+    ],
 }
 
 export function ErrorPresionVasoMembranaDetalle() {

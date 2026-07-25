@@ -1,16 +1,26 @@
+import type { ErrorMeta } from './index'
 // Caso: Prueba hidráulica en dos etapas — verificación y protección del instalador
 // Tier: pro
 
 import { DiagramaCircuitoCruzado } from '../manual/diagrams/DiagramaCircuitoCruzado'
 import { DiagramaPruebaHidraulica } from '../manual/diagrams/DiagramaPruebaHidraulica'
 
-export const errorPruebaHidraulica = {
+export const errorPruebaHidraulica: ErrorMeta = {
     id: 'prueba-hidraulica',
     titulo: 'Circuito cruzado y prueba hidráulica mal ejecutada',
     categoria: 'Verificación y puesta en marcha',
-    tier: 'pro' as const,
+    tier: 'pro',
     preview: 'Un radiador queda permanentemente frío aunque el sistema funcione. La causa: ida y retorno invertidos en ese ramal durante el tendido de tuberías.',
     resumen: 'El circuito cruzado es uno de los errores más difíciles de detectar a posteriori. La prueba hidráulica en dos etapas — primero un solo circuito, luego ambos a presión — permite detectarlo antes de instalar los artefactos y protege legalmente al instalador ante daños producidos por otros oficios durante la obra.',
+    cubre: [
+        { termino: 'Cómo se hace la prueba hidráulica', ancla: 'la-solucion-prueba-hidraulica-en-dos', familia: 'puesta-en-marcha' },
+        { termino: 'Verificar circuitos en el colector', ancla: 'etapa-1', familia: 'puesta-en-marcha' },
+        { termino: 'Prueba a 6 bar durante 24 horas', ancla: 'etapa-2', familia: 'puesta-en-marcha' },
+        { termino: 'Dejar 3 bar hasta fin de obra', ancla: 'etapa-3', familia: 'puesta-en-marcha' },
+        { termino: 'Qué equipo hace falta para probar', ancla: 'equipo-necesario-para-la-prueba', familia: 'puesta-en-marcha' },
+        { termino: 'Circuito cruzado en el colector', ancla: 'por-que-ocurre-y-como', familia: 'puesta-en-marcha' },
+        { termino: 'Verificación a temperatura de trabajo', ancla: 'verificacion-final-a-temperatura-de-trabajo', familia: 'puesta-en-marcha' },
+    ],
 }
 
 export function ErrorPruebaHidraulicaDetalle() {

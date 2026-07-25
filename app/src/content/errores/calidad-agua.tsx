@@ -15,6 +15,15 @@ export const errorCalidadAgua: ErrorMeta = {
         'neutra (pH 7) y estable — sin nuevas reacciones. El problema empieza cuando se recarga agua ' +
         'de red sin reparar la pérdida: el sarro crece en el intercambiador, los lodos de magnetita ' +
         'se acumulan en los radiadores y la vida útil de la caldera se acorta drásticamente.',
+    cubre: [
+        { termino: 'Agua dura: qué trae el agua de red', ancla: 'que-hay-disuelto-en-el-agua', familia: 'agua' },
+        { termino: 'El sarro que arruina el intercambiador', ancla: 'lo-que-pasa-en-la-primera', familia: 'agua' },
+        { termino: 'Por qué no hay que recargar seguido', ancla: 'el-problema-las-recargas-de-agua', familia: 'agua' },
+        { termino: 'Qué entra con cada recarga', ancla: 'lo-que-entra-con-cada-recarga', familia: 'agua' },
+        { termino: 'Cuántas recargas delatan un problema', ancla: 'como-reconocer-un-sistema-con-recargas', familia: 'agua' },
+        { termino: 'Cuándo hace falta tratar el agua', ancla: 'cuando-no-hay-otra-opcion-agua', familia: 'agua' },
+        { termino: 'Por qué el agua del circuito se estabiliza sola', ancla: 'el-estado-estable-ph-7-agua', familia: 'agua' },
+    ],
 }
 
 export function ErrorCalidadAguaDetalle() {
