@@ -123,6 +123,29 @@ Termostato mal ubicado (sobre fuente de calor, en pared fría, en un ambiente qu
 representa la casa), bomba o válvula sin ciclo correcto, puesta a tierra. El H1 del
 sitio promete cuatro oficios y la electricidad no aparece en ningún caso.
 
+### S · Seguridad e higiene en la obra — cero casos hoy
+*Planteado por Edgardo.*
+
+No se habló del tema en ningún caso, y es el único bloque donde el error no arruina
+una instalación sino que lastima a alguien. Temas candidatos, para que Edgardo marque
+cuáles vio pasar de verdad:
+
+| Tema | Por qué |
+|---|---|
+| **Probar con aire comprimido en vez de agua** | El agua casi no se comprime; el aire acumula energía y una falla deja de ser un chorro para ser una proyección. Se conecta directo con `prueba-hidraulica` |
+| Trabajo con llama abierta y soldadura | Qué hay alrededor cuando se suelda, y qué tiene que estar a mano |
+| Monóxido en pruebas de encendido | Sala cerrada, equipo funcionando |
+| Purga y vaciado en caliente | Quemaduras: cuándo esperar |
+| Manipulación de químicos | Pasivadores, inhibidores, glicol: protección y qué hacer ante contacto |
+| Intervenir con tensión presente | Antes de tocar bomba, válvulas o termostato |
+| Peso y postura | Radiadores de fundición, calderas, colectores |
+| Trabajo en altura | Colectores altos, radiadores en planta alta |
+| Orden y limpieza | La parte de "higiene": tubos y recortes en el piso de una obra en marcha |
+
+Mismo cuidado que el bloque de gas: acá lo que se publica puede terminar en una
+decisión de alguien que está solo en una obra. Conviene redactarlo con Edgardo
+dictando y sin inventar ni un dato.
+
 ### D · Puesta en marcha
 
 Orden de llenado y purgado, presión en frío contra presión en caliente, barrido del

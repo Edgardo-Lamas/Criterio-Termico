@@ -13,6 +13,7 @@ export type FamiliaIndice =
     | 'puesta-en-marcha'
     | 'consumo'
     | 'frontera'
+    | 'seguridad'
 
 export const FAMILIAS: { id: FamiliaIndice; nombre: string; descripcion: string }[] = [
     { id: 'no-calienta', nombre: 'No calienta o calienta mal', descripcion: 'Radiadores fríos, desparejos o ambientes que no llegan a temperatura.' },
@@ -23,6 +24,7 @@ export const FAMILIAS: { id: FamiliaIndice; nombre: string; descripcion: string 
     { id: 'puesta-en-marcha', nombre: 'Puesta en marcha y verificación', descripcion: 'Probar la instalación antes de entregarla.' },
     { id: 'consumo', nombre: 'Consumo y regulación', descripcion: 'Factura alta, curva de calefacción y temperaturas de trabajo.' },
     { id: 'frontera', nombre: 'Frontera con otros oficios', descripcion: 'Donde el trabajo del electricista o del gasista se conecta con la calefacción.' },
+    { id: 'seguridad', nombre: 'Seguridad e higiene en la obra', descripcion: 'Cómo no lastimarse ni lastimar a nadie haciendo el trabajo.' },
 ]
 
 /**
