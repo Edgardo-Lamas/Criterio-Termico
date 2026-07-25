@@ -184,26 +184,31 @@ export function ErrorPruebaHidraulicaDetalle() {
 
             <h3 id="la-presion-baja-y-no-hay-perdida">La presión baja y no aparece ninguna pérdida</h3>
             <p>
-                Con el sistema presurizado esperando el fin de obra, es habitual
-                mirar el manómetro y encontrarlo por debajo del valor que se dejó,
-                sin una sola gota a la vista. Antes de salir a buscar una fuga
-                conviene mirar el termómetro: <strong>en días de mucho calor la
-                cañería se dilata</strong>.
+                Con la cañería tendida y el circuito presurizado esperando el fin de
+                obra, es habitual mirar el manómetro y encontrarlo por debajo del
+                valor que se dejó, sin una sola gota a la vista. Toda esta etapa
+                existe justamente para eso: mientras la construcción sigue en marcha,
+                una pérdida detectada a tiempo se corrige <strong>sin un costo alto
+                para el propietario</strong>. Después, con revestimientos puestos, el
+                mismo arreglo es otra obra.
             </p>
             <p>
-                Al dilatarse, la cañería se estira y aumenta su capacidad de
-                retención de fluido. El mismo volumen de agua pasa a ocupar un
-                continente más grande, y eso se lee como una caída de presión en el
-                manómetro. Cuando afloja el calor, la cañería se contrae y la
-                presión vuelve sola a los valores anteriores.
+                Ahora, si la inspección visual no muestra ningún rastro de pérdida y
+                está haciendo mucho calor, <strong>es casi seguro que es dilatación de
+                la cañería</strong>. Al dilatarse, la cañería se estira y aumenta su
+                capacidad de retención de fluido: el mismo volumen de agua pasa a
+                ocupar un continente más grande, y el manómetro lo lee como una caída
+                de presión. Cuando afloja el calor, la cañería se contrae y la presión
+                vuelve sola a los valores anteriores.
             </p>
             <div className="callout callout-info">
-                <div className="callout-label">Cómo distinguirlo de una pérdida real</div>
+                <div className="callout-label">Cómo confirmarlo</div>
                 <p>
-                    La caída por dilatación <strong>se revierte</strong>: baja con el
-                    calor del día y vuelve a subir cuando refresca. Una pérdida real
-                    no vuelve nunca sola. Antes de romper nada, conviene registrar la
-                    lectura a la misma hora durante un par de días.
+                    La caída por dilatación <strong>se revierte</strong>; una pérdida
+                    real no vuelve nunca sola. Pero la verificación hay que hacerla
+                    <strong> con un clima distinto</strong>, no al día siguiente a la
+                    misma hora: si vuelve a hacer el mismo calor, el manómetro va a
+                    marcar lo mismo y no confirma nada. Se espera a que refresque.
                 </p>
             </div>
 
