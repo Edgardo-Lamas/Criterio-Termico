@@ -20,6 +20,9 @@ export const errorPruebaHidraulica: ErrorMeta = {
         { termino: 'Qué equipo hace falta para probar', ancla: 'equipo-necesario-para-la-prueba', familia: 'puesta-en-marcha' },
         { termino: 'Circuito cruzado en el colector', ancla: 'por-que-ocurre-y-como', familia: 'puesta-en-marcha' },
         { termino: 'Verificación a temperatura de trabajo', ancla: 'verificacion-final-a-temperatura-de-trabajo', familia: 'puesta-en-marcha' },
+        { termino: 'La presión baja y no aparece la pérdida', ancla: 'la-presion-baja-y-no-hay-perdida', familia: 'presion' },
+        { termino: 'Baja la presión los días de mucho calor', ancla: 'la-presion-baja-y-no-hay-perdida', familia: 'presion' },
+        { termino: 'Dilatación de la cañería y el manómetro', ancla: 'la-presion-baja-y-no-hay-perdida', familia: 'puesta-en-marcha' },
     ],
 }
 
@@ -110,10 +113,14 @@ export function ErrorPruebaHidraulicaDetalle() {
             <h3 id="etapa-2">Etapa 2 — Prueba de hermeticidad a 6 bar (24 horas)</h3>
             <p>
                 Verificados los circuitos, se conecta el bypass que une impulsión
-                y retorno. Antes de pressurizar, es imprescindible
-                <strong> purgar completamente el aire</strong> del sistema: el aire
-                comprimido es peligroso y además genera lecturas de presión falsas.
-                Se purga por los purgadores de cada ramal hasta que solo salga agua.
+                y retorno. Antes de presurizar, es imprescindible
+                <strong> purgar completamente el aire</strong> del sistema. No se
+                trata de aire inyectado con ninguna herramienta: es el aire que ya
+                estaba dentro de los radiadores y las tuberías y quedó encerrado al
+                llenar los circuitos con agua. Se acumula en las partes altas del
+                sistema, y por eso los radiadores y los ramales llevan purgadores
+                manuales o automáticos. Se purga por los purgadores de cada ramal
+                hasta que solo salga agua.
             </p>
             <p>
                 Con el sistema purgado, se lleva la presión a <strong>6 bar</strong>
@@ -172,6 +179,31 @@ export function ErrorPruebaHidraulicaDetalle() {
                     En obras con dirección técnica o inspección, presentar el acta junto
                     con una foto del manómetro en la lectura de prueba. Esta documentación
                     puede ser determinante en caso de reclamos posteriores.
+                </p>
+            </div>
+
+            <h3 id="la-presion-baja-y-no-hay-perdida">La presión baja y no aparece ninguna pérdida</h3>
+            <p>
+                Con el sistema presurizado esperando el fin de obra, es habitual
+                mirar el manómetro y encontrarlo por debajo del valor que se dejó,
+                sin una sola gota a la vista. Antes de salir a buscar una fuga
+                conviene mirar el termómetro: <strong>en días de mucho calor la
+                cañería se dilata</strong>.
+            </p>
+            <p>
+                Al dilatarse, la cañería se estira y aumenta su capacidad de
+                retención de fluido. El mismo volumen de agua pasa a ocupar un
+                continente más grande, y eso se lee como una caída de presión en el
+                manómetro. Cuando afloja el calor, la cañería se contrae y la
+                presión vuelve sola a los valores anteriores.
+            </p>
+            <div className="callout callout-info">
+                <div className="callout-label">Cómo distinguirlo de una pérdida real</div>
+                <p>
+                    La caída por dilatación <strong>se revierte</strong>: baja con el
+                    calor del día y vuelve a subir cuando refresca. Una pérdida real
+                    no vuelve nunca sola. Antes de romper nada, conviene registrar la
+                    lectura a la misma hora durante un par de días.
                 </p>
             </div>
 
