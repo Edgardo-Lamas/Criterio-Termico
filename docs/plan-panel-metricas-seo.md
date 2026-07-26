@@ -127,7 +127,37 @@ hace que las métricas realmente mejoren:
 
 **2026-07-21 (1)** — Plan definido.
 **2026-07-21 (2)** — Recharts confirmado. **Etapa 1 implementada y buildeando en verde.**
-Archivos: `app/api/search-console.ts`, `app/src/app/routes/Panel.tsx` + `.module.css`,
-ruta en `App.tsx`, fix en `app/vercel.json`, `VITE_ADMIN_EMAIL` en `.env.example`.
-Falta (humano): conectar Google Search Console para ver datos reales. Sin commitear aún.
-Próximo: Etapa 2 (GA4) cuando se decida.
+**2026-07-21 (3)** — Commit `b25ee8c` pusheado a `main`. **Deploy en producción `● Ready`**
+(verificado por `vercel ls`). Panel vivo en `criterio-termico.vercel.app/panel` (gateado).
+
+### Decisiones cerradas hoy
+- **Credenciales Google:** se reutilizan las de Sabiduría (mismo Client ID/Secret + Refresh
+  Token de la cuenta Google de Edgardo; el scope `webmasters.readonly` cubre todas sus
+  propiedades). Solo cambia `GSC_SITE`. Claude tiene acceso al Vercel de CT (CLI, autenticado
+  edgardo-lamas) → carga las env vars él cuando esté el dominio.
+- **Se espera al dominio propio** (Edgardo lo compra ~2-3 días desde 21/07) antes de conectar
+  Google. Configurar sobre vercel.app sería tirable.
+- **GA4 no está instalado** en la app (index.html sin gtag). Etapa 2 requiere instalarlo primero.
+- **Sesión pausada** — se retoma mañana.
+
+---
+
+## ► PRÓXIMA SESIÓN — arrancar por acá
+
+Según lo que Edgardo tenga mañana:
+
+**Si YA compró el dominio propio:**
+1. Edgardo verifica el dominio como propiedad en Google Search Console (paso interactivo, cuenta Google suya).
+2. Claude carga por CLI en el Vercel de CT: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`,
+   `GOOGLE_REFRESH_TOKEN` (reusados de Sabiduría) + `GSC_SITE` = el dominio nuevo. Redeploy.
+3. Verificar que `/panel` muestra datos reales de Search Console.
+4. Actualizar `ALLOWED_ORIGIN` / dominio en el resto de la config si aplica (ver CLAUDE.md).
+
+**Para la Etapa 2 (GA4) — se puede empezar sin dominio:**
+1. Edgardo crea una propiedad en analytics.google.com y pasa el **Measurement ID** (`G-XXXX`).
+   (La propiedad se lleva tal cual al dominio nuevo; GA4 solo mide hacia adelante → cuanto antes, más historia.)
+2. Claude instala el tag GA4 en la app + construye `app/api/analytics.ts` + tab "Audiencia"
+   en el panel (mismo patrón que Etapa 1). Incluye conversión orgánica → registro → pago (cruzar con `profiles`).
+
+**Datos útiles ya guardados:** credenciales reutilizables de Sabiduría (en su Vercel), acceso
+CLI a CT confirmado (proyecto `prj_VFvFS1yW3Xl05ozAJbSRymZrNAtm`, org edgardo-s-projects).
