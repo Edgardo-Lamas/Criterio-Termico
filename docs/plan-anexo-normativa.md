@@ -239,6 +239,40 @@ tiene que ser parte del flujo de actualización, no un paso que uno recuerda hac
 
 ---
 
+## ► PRÓXIMA SESIÓN — arrancar por acá
+
+La investigación está cerrada. **No hay que volver a buscar normativa**: lo verificado
+está en la sección 3 y lo descartado en la sección 7.
+
+**Camino A — escribir ya, con lo verificado.** No depende de conseguir ninguna norma:
+
+1. Andamiaje, que no necesita contenido: `normativa.ts` con la interfaz `Norma`
+   (sección 5), componente `CitaNorma`, `numero: number | string` en
+   `ManualTecnico.tsx:12`, Parte VI con los dos anexos.
+2. **Anexo A** con las seis zonas de la IRAM 11603:2012, el criterio de borde y la
+   advertencia sobre no usar los valores de TEC para dimensionar. Sin la tabla de
+   departamentos, que se suma cuando esté la norma.
+3. **Anexo B** con el umbral de 50.000 kcal/h y los límites de responsabilidad del
+   instalador. **Requiere input de Edgardo**: de los 12 puntos del check list de la
+   Res. 412/AGC/19, cuáles corresponden al técnico y dónde exactamente termina el
+   trabajo del instalador.
+4. Enlazar desde el cap. 3 y el cap. 12, y actualizar el contador de
+   `ManualTecnico.tsx:263` **contando**.
+5. Reindexar el RAG.
+
+**Camino B — desbloquear lo que falta.** Comprar la IRAM 11603:2012 (tabla de
+departamentos por provincia) y consultar a la AGC por el borde de la cascada
+(sección 6).
+
+**Herramienta:** el cuaderno de NotebookLM "Normativas de Calefacción" es
+`notebooklm.google.com/notebook/e5723b94-1b9e-4260-93b1-30f6a1f758d2`. La sesión
+automatizada **quedó sin autenticar** — hay que rehacer el login con
+`python3 scripts/run.py auth_manager.py reauth` desde
+`~/.claude/skills/notebooklm`, con la cuenta de Google que tiene ese cuaderno.
+Mientras tanto funciona igual pegando las respuestas a mano.
+
+---
+
 ## Fuentes consultadas
 
 - [Catálogo Biblioteca CPAU — IRAM 11603](https://cpau.opac.com.ar/pergamo/documento.php?ui=1&recno=41881&id=CPAU.1.41881)
