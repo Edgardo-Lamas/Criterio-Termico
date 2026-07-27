@@ -1,0 +1,68 @@
+/* Botón flotante del Simulador — geometría única para toda la columna
+   superior derecha. Los botones se apilan por `slot` (0 arriba) y comparten
+   alto, borde derecho y separación, así no se desalinean entre sí. */
+
+.fab {
+    position: fixed;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 22px;
+    color: white;
+    font-size: 0.813rem;
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* Por debajo de los paneles abiertos (100-110): si un panel se despliega
+       encima, el botón queda tapado en vez de flotar sobre el contenido. */
+    z-index: 90;
+    transition: right 0.3s ease, opacity 0.2s;
+}
+
+.fab:hover {
+    opacity: 0.9;
+}
+
+.icon {
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+/* Posición en la columna: 44px de alto + 12px de separación */
+.slot0 {
+    top: 100px;
+}
+
+.slot1 {
+    top: 156px;
+}
+
+/* Corrimientos para no quedar tapado por lo que haya abierto: el presupuesto
+   ocupa 450px sobre el borde derecho y el panel lateral 350px. Si están los
+   dos, se suman. */
+.shiftedBudget {
+    right: 490px;
+}
+
+.shiftedPanel {
+    right: 390px;
+}
+
+.shiftedBoth {
+    right: 860px;
+}
+
+/* Variantes de color — las mismas que ya identificaban a cada panel */
+.config {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.power {
+    background: #2196f3;
+}

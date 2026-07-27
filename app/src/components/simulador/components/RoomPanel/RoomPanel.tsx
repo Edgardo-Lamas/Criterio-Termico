@@ -15,15 +15,19 @@ import { autoColocarRadiadores, ELEMENTOS_KCALH_POR_ALTURA, ALTURA_MAX_RADIADORE
 import type { AlturaElementoMm } from '../../utils/autoLayout';
 import type { Radiator } from '../../models/Radiator';
 import { analizarPlano } from '../../services/analizarPlano';
+import { SimFab } from '../SimFab/SimFab';
 
 export const RoomPanel: React.FC = () => {
   const {
     rooms, radiators, floorHeatingZones, floorHeatingTempC, manifolds,
     currentFloor, floorPlans, addRoom, updateRoom, removeRoom, addRadiator, updateElement
   } = useElementsStore();
-  const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId } = useToolsStore();
+  const { isBudgetPanelOpen, setRoomBoundsTarget, roomBoundsTargetId,
+    openSidePanel, setOpenSidePanel } = useToolsStore();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Abierto/plegado vive en el store: abrir este cierra el de configuración,
+  // que ocupa el mismo lugar sobre el canvas.
+  const isCollapsed = openSidePanel !== 'power';
   // Altura de elemento para la auto-colocación (500 estándar, 600/700 también)
   const [elementoMm, setElementoMm] = useState<AlturaElementoMm>(500);
   // Análisis de plano con IA (Etapa 3): estado del pedido y resultado
@@ -207,34 +211,19 @@ export const RoomPanel: React.FC = () => {
   const totalCargaTermica = boilerCalc.totalCargaTermica;
   const recommendedBoilerPower = boilerCalc.recommendedBoilerPower;
 
-  // Si está colapsado, solo mostrar botón flotante
+  // Si está colapsado, solo mostrar botón flotante. Va en la columna superior
+  // derecha, debajo del de Configuración: la esquina inferior derecha la ocupa
+  // el FAB del asistente Criterio (píldora ancha, z-modal).
   if (isCollapsed) {
     return (
-      <button
-        onClick={() => setIsCollapsed(false)}
-        style={{
-          position: 'fixed',
-          // Columna superior derecha, debajo del engranaje de ConfigPanel
-          // (top 100 + 50 de alto): la esquina inferior derecha la ocupa el
-          // FAB del asistente Criterio (píldora ancha, z-modal)
-          top: '162px',
-          right: rightOffset,
-          width: '60px',
-          height: '60px',
-          borderRadius: '50%',
-          backgroundColor: '#2196F3',
-          color: 'white',
-          border: 'none',
-          fontSize: '24px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          zIndex: 110,
-          transition: 'right 0.3s ease'
-        }}
-        title="Abrir cálculo de potencia"
-      >
-        📊
-      </button>
+      <SimFab
+        slot={1}
+        icon="📊"
+        label="Cálculo de potencia"
+        title="Ambientes, potencia por ambiente y caldera recomendada"
+        variant="power"
+        onClick={() => setOpenSidePanel('power')}
+      />
     );
   }
 
@@ -267,7 +256,7 @@ export const RoomPanel: React.FC = () => {
           Cálculo de Potencia
         </h3>
         <button
-          onClick={() => setIsCollapsed(true)}
+          onClick={() => setOpenSidePanel(null)}
           style={{
             background: 'none',
             border: 'none',

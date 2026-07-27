@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useCompanyStore } from '../../store/companyStore';
+import { useToolsStore } from '../../store/useToolsStore';
+import { SimFab } from '../SimFab/SimFab';
 import './ConfigPanel.css';
 
 export const ConfigPanel: React.FC = () => {
@@ -12,7 +14,14 @@ export const ConfigPanel: React.FC = () => {
     resetClientInfo
   } = useCompanyStore();
 
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  // Cuando el presupuesto está abierto, este panel se corre a la izquierda
+  // para no montarse encima (el presupuesto ocupa el borde derecho).
+  const isBudgetPanelOpen = useToolsStore(state => state.isBudgetPanelOpen);
+  // Abierto/plegado vive en el store: abrir este cierra el de potencia,
+  // que ocupa el mismo lugar sobre el canvas.
+  const openSidePanel = useToolsStore(state => state.openSidePanel);
+  const setOpenSidePanel = useToolsStore(state => state.setOpenSidePanel);
+  const isCollapsed = openSidePanel !== 'config';
   const [activeTab, setActiveTab] = useState<'empresa' | 'cliente'>('empresa');
   const [saved, setSaved] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -58,21 +67,22 @@ export const ConfigPanel: React.FC = () => {
 
   if (isCollapsed) {
     return (
-      <button
-        className="config-toggle-button"
-        onClick={() => setIsCollapsed(false)}
-        title="Configuración de Empresa y Cliente"
-      >
-        ⚙️
-      </button>
+      <SimFab
+        slot={0}
+        icon="⚙️"
+        label="Configuración"
+        title="Datos de tu empresa y del cliente para el presupuesto"
+        variant="config"
+        onClick={() => setOpenSidePanel('config')}
+      />
     );
   }
 
   return (
-    <div className="config-panel">
+    <div className={`config-panel${isBudgetPanelOpen ? ' config-panel-shifted' : ''}`}>
       <div className="config-header">
         <h3>⚙️ Configuración</h3>
-        <button className="config-close-btn" onClick={() => setIsCollapsed(true)}>✕</button>
+        <button className="config-close-btn" onClick={() => setOpenSidePanel(null)}>✕</button>
       </div>
 
       {/* Tabs */}
