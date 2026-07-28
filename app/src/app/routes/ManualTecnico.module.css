@@ -19,10 +19,50 @@
     flex-shrink: 0;
 }
 
-.description {
+/* Prólogo del índice */
+.prologo {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    max-width: 68ch;
+    margin-bottom: var(--spacing-lg);
+}
+
+.prologo p {
     color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    line-height: 1.7;
+}
+
+.prologo em {
+    color: var(--color-text-muted);
+    font-style: normal;
+    white-space: nowrap;
+}
+
+.prologo .lead {
     font-size: var(--font-size-lg);
-    line-height: 1.6;
+    color: var(--color-text-primary);
+}
+
+.arranque {
+    padding: var(--spacing-md);
+    background: var(--color-bg-card);
+    border-left: 3px solid var(--color-primary);
+    border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0;
+}
+
+.arranque strong {
+    color: var(--color-text-primary);
+}
+
+.arranque a {
+    color: var(--color-primary-light);
+    font-weight: 600;
+}
+
+.arranque a:hover {
+    text-decoration: underline;
 }
 
 /* Leyenda de acceso */

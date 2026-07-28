@@ -254,10 +254,40 @@ export function ManualTecnico() {
         <div className={styles.page}>
             <div className={styles.header}>
                 <h1><Icon name="book" size={28} className={styles.titleIcon} /> Manual Técnico</h1>
-                <p className={styles.description}>
-                    <strong>Base técnica viva</strong> para diseñar, calcular e instalar sistemas de calefacción por radiadores.
-                    No es un curso cerrado — es criterio profesional que crece con experiencia real de obra.
-                </p>
+                <div className={styles.prologo}>
+                    <p className={styles.lead}>
+                        Acá está reunido el criterio con el que se diseña, se calcula y se instala
+                        una calefacción por radiadores que después funciona. No es teoría de folleto:
+                        es lo que se decide en la obra, con las razones detrás de cada decisión.
+                    </p>
+                    <p>
+                        El manual está ordenado como se ordena un trabajo, de punta a punta. Primero
+                        se releva la vivienda y se define la estrategia de confort <em>(Parte I)</em>.
+                        Después se calcula la potencia y se dimensionan los emisores <em>(Parte II)</em>.
+                        Sigue la elección del sistema de tuberías y los materiales <em>(Parte III)</em>,
+                        el montaje, la regulación y la puesta en marcha <em>(Parte IV)</em>, y al final
+                        el diagnóstico de lo que no anda y cómo corregirlo <em>(Parte V)</em>. Leídos
+                        en orden, los 14 capítulos son un proyecto completo.
+                    </p>
+                    <p>
+                        Tampoco hace falta leerlo de corrido. Cada capítulo se sostiene solo, así que
+                        podés entrar directo por el tema que tenés arriba de la mesa —el radiador que
+                        no calienta, el diámetro que no cierra, la presión que se va— y volver después
+                        por el resto.
+                    </p>
+                    <p>
+                        Y no es un curso cerrado. El contenido se corrige y se amplía con lo que
+                        aparece en instalaciones concretas: cada caso de obra que deja una enseñanza
+                        entra documentado con el problema, la causa y la solución. Donde algo es
+                        criterio discutible, va dicho como criterio y no como verdad revelada.
+                    </p>
+                    <p className={styles.arranque}>
+                        Algunos capítulos todavía están en desarrollo y aparecen marcados como
+                        <strong> Próximamente</strong>. El resto ya se puede leer, y un buen punto
+                        de partida es el <Link to="/manual/relevamiento">Capítulo 1 — El
+                        relevamiento técnico de la vivienda</Link>.
+                    </p>
+                </div>
                 <div className={styles.versionBadge}>
                     <span>Índice v1.0</span>
                     <span className={styles.versionNote}>14 capítulos · 5 partes</span>
