@@ -6,13 +6,35 @@ export function Cap1Relevamiento() {
     return (
         <div className="prose">
             <p>
-                El relevamiento es el acto técnico más subestimado en la instalación de calefacción.
-                Un presupuesto mal calculado —o peor, calculado sin ver la vivienda— lleva a
-                sistemas subdimensionados, sobredimensionados o directamente mal diseñados.
-                Esta guía establece el <strong>criterio mínimo</strong> para hacer un relevamiento profesional.
+                Para calcular una instalación se trabaja sobre el plano: con un plano 2D claro hay
+                información suficiente para dimensionar y presupuestar. El relevamiento no es un
+                paso previo obligatorio del cálculo.
+            </p>
+            <p>
+                Donde sí se justifica es en estas situaciones:
+            </p>
+            <ul>
+                <li><strong>No hay plano.</strong> Sin plano no hay de dónde sacar las medidas.</li>
+                <li>
+                    <strong>Vivienda antigua.</strong> Hay que ver por dónde se puede hacer el tendido
+                    de la tubería, dónde se ubica la caldera y qué tipo de instalación entra.
+                </li>
+                <li>
+                    <strong>Obra compleja, con muchos rubros.</strong> El recorrido de la tubería se
+                    define en el lugar, con el arquitecto o con quien dirija la obra, junto a los
+                    demás rubros.
+                </li>
+                <li>
+                    <strong>Confirmar que las medidas del plano sean las declaradas.</strong> Eso va
+                    después, con la obra ya vendida, calculada y presupuestada.
+                </li>
+            </ul>
+            <p>
+                Fuera de esos casos, el relevamiento no le aporta nada al cálculo. Este capítulo es
+                para cuando sí corresponde hacerlo.
             </p>
 
-            <h2>Por qué el relevamiento define el proyecto</h2>
+            <h2>Qué define el proyecto</h2>
             <p>
                 Antes de calcular una sola kcal/h, necesitás saber con qué estás trabajando.
                 Una vivienda antigua de ladrillo macizo en una planta baja con patio interno
@@ -20,24 +42,11 @@ export function Cap1Relevamiento() {
                 metraje en un octavo piso con cerramiento de DVH.
             </p>
             <p>
-                El relevamiento correcto te permite:
+                Y la construcción es apenas uno de los factores a ponderar. También pesan el uso
+                que se le va a dar a la vivienda, quiénes la van a habitar y qué hay adentro.
+                Cada uno puede cambiar el cálculo y, además, el sistema que corresponde proponer.
+                El porqué de cada uno se desarrolla en los capítulos que siguen.
             </p>
-            <ul>
-                <li>Calcular pérdidas térmicas reales (no estimadas por superficie)</li>
-                <li>Dimensionar la caldera con criterio, no con margen exagerado</li>
-                <li>Proponer radiadores en la ubicación correcta</li>
-                <li>Detectar patologías existentes antes de presupuestar</li>
-                <li>Evitar imprevistos costosos en la etapa de obra</li>
-            </ul>
-
-            <div className="callout callout-warning">
-                <div className="callout-label">Atención</div>
-                <p>
-                    Un relevamiento por fotos o planos sin visita presencial no es un relevamiento:
-                    es una estimación. Para instalaciones nuevas o reconversiones, la visita es
-                    no negociable.
-                </p>
-            </div>
 
             <h2>Qué medir: las dimensiones que importan</h2>
             <p>
