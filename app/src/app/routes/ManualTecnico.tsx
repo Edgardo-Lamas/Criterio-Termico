@@ -14,6 +14,9 @@ interface Capitulo {
     descripcion: string
     acceso: AccesoTipo
     disponible: boolean
+    // Capítulos cuyo contenido vive en una página propia fuera del manual
+    // (ej: los casos de errores, que tienen su propia vista con índice temático).
+    ruta?: string
 }
 
 interface Parte {
@@ -148,7 +151,8 @@ const partes: Parte[] = [
                 titulo: 'Errores frecuentes en instalaciones reales',
                 descripcion: 'Problema → causa → solución. Casos típicos de obra y cómo corregirlos.',
                 acceso: 'pro',
-                disponible: true
+                disponible: true,
+                ruta: '/errores'
             },
             {
                 id: 'comunidad',
@@ -156,7 +160,7 @@ const partes: Parte[] = [
                 titulo: 'Experiencias reales y aportes de la comunidad',
                 descripcion: 'Casos reales de usuarios, soluciones prácticas y aprendizajes de obra.',
                 acceso: 'free',
-                disponible: true
+                disponible: false
             }
         ]
     }
@@ -164,6 +168,11 @@ const partes: Parte[] = [
 
 // Helper para obtener todos los capítulos planos
 const todosLosCapitulos = partes.flatMap(p => p.capitulos)
+
+// A dónde lleva un capítulo: su página propia si la tiene, o la vista del manual.
+function hrefCapitulo(cap: Capitulo): string {
+    return cap.ruta ?? `/manual/${cap.id}`
+}
 
 // Componente de badge de acceso
 function AccesoBadge({ acceso }: { acceso: AccesoTipo }) {
@@ -230,7 +239,7 @@ export function ManualTecnico() {
                 <nav className={styles.chapterNav}>
                     {cap.numero > 1 && (
                         <Link
-                            to={`/manual/${todosLosCapitulos[cap.numero - 2].id}`}
+                            to={hrefCapitulo(todosLosCapitulos[cap.numero - 2])}
                             className={styles.navPrev}
                         >
                             ← Capítulo {cap.numero - 1}
@@ -238,7 +247,7 @@ export function ManualTecnico() {
                     )}
                     {cap.numero < todosLosCapitulos.length && (
                         <Link
-                            to={`/manual/${todosLosCapitulos[cap.numero].id}`}
+                            to={hrefCapitulo(todosLosCapitulos[cap.numero])}
                             className={styles.navNext}
                         >
                             Capítulo {cap.numero + 1} →
@@ -276,10 +285,11 @@ export function ManualTecnico() {
                         por el resto.
                     </p>
                     <p>
-                        Y no es un curso cerrado. El contenido se corrige y se amplía con lo que
-                        aparece en instalaciones concretas: cada caso de obra que deja una enseñanza
-                        entra documentado con el problema, la causa y la solución. Donde algo es
-                        criterio discutible, va dicho como criterio y no como verdad revelada.
+                        Este no es un curso cerrado. El manual crece con lo que aparece en obra: la
+                        experiencia que un instalador documenta se estudia y, cuando suma, entra con
+                        el reconocimiento de quien la trajo. El objetivo de fondo es ese: que el
+                        oficio se ayude, y que lo que a uno le costó resolver no haya que volver a
+                        pagarlo cada vez.
                     </p>
                     <p className={styles.arranque}>
                         Algunos capítulos todavía están en desarrollo y aparecen marcados como
@@ -315,7 +325,7 @@ export function ManualTecnico() {
                         {parte.capitulos.map(cap => (
                             <Link
                                 key={cap.id}
-                                to={cap.disponible ? `/manual/${cap.id}` : '#'}
+                                to={cap.disponible ? hrefCapitulo(cap) : '#'}
                                 className={`${styles.chapterCard} ${!cap.disponible ? styles.chapterLocked : ''}`}
                                 onClick={e => !cap.disponible && e.preventDefault()}
                             >

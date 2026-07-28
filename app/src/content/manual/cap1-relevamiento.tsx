@@ -6,12 +6,12 @@ export function Cap1Relevamiento() {
     return (
         <div className="prose">
             <p>
-                Para calcular una instalación se trabaja sobre el plano: con un plano 2D claro hay
-                información suficiente para dimensionar y presupuestar. El relevamiento no es un
-                paso previo obligatorio del cálculo.
+                El relevamiento técnico de la vivienda se hace normalmente sobre el plano: con un
+                plano 2D claro hay información suficiente para dimensionar y presupuestar. Ir hasta
+                la obra no es la regla, es la excepción.
             </p>
             <p>
-                Donde sí se justifica es en estas situaciones:
+                La visita se justifica en estas situaciones:
             </p>
             <ul>
                 <li><strong>No hay plano.</strong> Sin plano no hay de dónde sacar las medidas.</li>
@@ -30,8 +30,7 @@ export function Cap1Relevamiento() {
                 </li>
             </ul>
             <p>
-                Fuera de esos casos, el relevamiento no le aporta nada al cálculo. Este capítulo es
-                para cuando sí corresponde hacerlo.
+                Fuera de esos casos, el plano alcanza.
             </p>
 
             <h2>Qué define el proyecto</h2>
