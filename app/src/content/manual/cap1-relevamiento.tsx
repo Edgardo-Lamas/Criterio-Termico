@@ -123,7 +123,6 @@ export function Cap1Relevamiento() {
             </table>
 
             <FotoManual
-                src="/Criterio-Termico/images/manual/cap1/tipo-de-muro.jpg"
                 alt="Tipos de muros exteriores: ladrillo hueco, macizo y con aislación"
                 caption="Identificar el tipo de muro es fundamental para el cálculo. De izquierda a derecha: ladrillo hueco revocado (U≈1.2), ladrillo macizo (U≈1.8) y muro con aislación exterior (U<0.6)."
             />
@@ -149,7 +148,6 @@ export function Cap1Relevamiento() {
             </ul>
 
             <FotoManual
-                src="/Criterio-Termico/images/manual/cap1/comparacion-vidrios.jpg"
                 alt="Comparación entre vidrio simple y doble vidriado hermético (DVH)"
                 caption="Vidrio simple (izquierda) vs DVH (derecha). La diferencia de transmitancia es de casi el doble: el vidrio simple pierde aproximadamente 5.7 W/m²·K contra 2.8–3.2 W/m²·K del DVH estándar."
             />

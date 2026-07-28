@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
                             >
                                 Recargar página
                             </button>
-                            <a className={styles.btnSecondary} href="/Criterio-Termico/">
+                            <a className={styles.btnSecondary} href="/">
                                 Ir al inicio
                             </a>
                         </div>

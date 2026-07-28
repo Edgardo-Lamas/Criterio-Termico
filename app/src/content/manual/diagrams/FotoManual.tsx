@@ -7,9 +7,13 @@ interface FotoManualProps {
 }
 
 /**
- * Muestra una foto si está disponible, o un placeholder si no.
- * Para agregar una foto: copiar el archivo a app/public/images/manual/cap1/
+ * Muestra una foto si está disponible.
+ * Para agregar una foto: copiar el archivo a app/public/images/manual/<capítulo>/
  * y pasar la ruta en la prop `src`.
+ *
+ * Sin `src` el bloque queda como marcador de la foto pendiente: el `alt` y el
+ * `caption` documentan qué va ahí. El recordatorio se ve solo en desarrollo —
+ * al lector no le puede llegar un hueco con instrucciones internas.
  */
 export function FotoManual({ src, alt, caption }: FotoManualProps) {
     if (src) {
@@ -21,11 +25,13 @@ export function FotoManual({ src, alt, caption }: FotoManualProps) {
         )
     }
 
+    if (!import.meta.env.DEV) return null
+
     return (
         <div className={styles.photoPlaceholder}>
             <span>📷</span>
             <strong>{caption}</strong>
-            <span>Agregar foto: <code>app/public/images/manual/cap1/</code></span>
+            <span>Agregar foto: <code>app/public/images/manual/</code></span>
         </div>
     )
 }
