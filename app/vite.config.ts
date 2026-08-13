@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Criterio Térmico',
         short_name: 'Criterio',
         description: 'Plataforma técnica para instaladores de calefacción por radiadores',
-        theme_color: '#e94560',
-        background_color: '#0f0f23',
+        theme_color: '#f59e0b',
+        background_color: '#14161a',
         display: 'standalone',
         start_url: '/',
         icons: [

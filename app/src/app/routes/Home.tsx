@@ -91,7 +91,7 @@ export function Home() {
                         <div className={styles.featureIcon}><Icon name="alert" size={36} /></div>
                         <h3 className={styles.featureTitle}>Errores Frecuentes</h3>
                         <p className={styles.featureDescription}>
-                            Casos reales documentados: problema, causa y solución. Experiencia de +200 obras.
+                            Casos reales de obra documentados: problema, causa y solución.
                         </p>
                         <span className={styles.featureLink}>Explorar →</span>
                     </Link>

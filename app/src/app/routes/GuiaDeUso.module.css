@@ -67,7 +67,7 @@
     align-items: center;
     justify-content: center;
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary);
     font-weight: 700;
     border-radius: var(--border-radius-full);
     font-size: var(--font-size-base);

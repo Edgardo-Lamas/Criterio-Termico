@@ -60,7 +60,7 @@
 .btn {
     padding: 0.65rem 1.25rem;
     background: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary);
     border: none;
     border-radius: 6px;
     font-size: 0.95rem;

@@ -135,7 +135,7 @@
     flex: 1;
     padding: var(--spacing-md) var(--spacing-xl);
     background: var(--color-primary);
-    color: white;
+    color: var(--color-on-primary);
     border: none;
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-base);

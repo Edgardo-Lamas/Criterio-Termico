@@ -1,4 +1,5 @@
-import { useParams, Link } from 'react-router-dom'
+import { useEffect } from 'react'
+import { useParams, useLocation, Link } from 'react-router-dom'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
@@ -7,6 +8,7 @@ import styles from './ErrorDetalle.module.css'
 
 export function ErrorDetalle() {
     const { errorId } = useParams()
+    const { hash } = useLocation()
     const { canAccess } = useAuthStore()
 
     const meta = errorId ? getErrorMeta(errorId) : null
@@ -16,6 +18,30 @@ export function ErrorDetalle() {
         title: meta ? `${meta.titulo} — Errores Frecuentes` : 'Error no encontrado',
         description: meta?.resumen ?? ''
     })
+
+    /**
+     * Salto al párrafo exacto cuando se llega desde el índice temático.
+     * El navegador no lo hace solo: la ruta es lazy y el contenido todavía no
+     * está en el DOM cuando se procesa el `#ancla` de la URL. Sin esto, las 110
+     * entradas del índice dejan al instalador al principio de la página.
+     */
+    useEffect(() => {
+        if (!hash) return
+
+        // Dos frames: el primero monta el contenido, el segundo ya tiene layout.
+        let interno = 0
+        const externo = requestAnimationFrame(() => {
+            interno = requestAnimationFrame(() => {
+                const destino = document.getElementById(decodeURIComponent(hash.slice(1)))
+                destino?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            })
+        })
+
+        return () => {
+            cancelAnimationFrame(externo)
+            cancelAnimationFrame(interno)
+        }
+    }, [hash, errorId])
 
     if (!meta) {
         return (
@@ -63,7 +89,7 @@ export function ErrorDetalle() {
                 <div className={styles.paywallSection}>
                     <SubscriptionBanner
                         requiredTier={meta.tier}
-                        feature={`el caso completo: "${meta.titulo}"`}
+                        feature={`este caso completo: "${meta.titulo}"`}
                     />
                 </div>
             )}

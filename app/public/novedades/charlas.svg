@@ -1,20 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Charla técnica: pantalla frente a un auditorio de instaladores">
   <defs>
     <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#151b38"/>
-      <stop offset="1" stop-color="#1d2547"/>
+      <stop offset="0" stop-color="#14161a"/>
+      <stop offset="1" stop-color="#262a31"/>
     </linearGradient>
   </defs>
   <rect width="640" height="360" fill="url(#bg3)"/>
   <!-- pantalla -->
   <g>
-    <rect x="200" y="52" width="240" height="140" rx="10" fill="#1a2144" stroke="#ffffff" stroke-opacity="0.7" stroke-width="3"/>
-    <path d="M310 152c-9-5-13-14-10-23 2-6 6-9 9-15 2 6 6 9 9 14 5 8 3 18-8 24z" fill="#e94560"/>
+    <rect x="200" y="52" width="240" height="140" rx="10" fill="#1e2126" stroke="#ffffff" stroke-opacity="0.7" stroke-width="3"/>
+    <path d="M310 152c-9-5-13-14-10-23 2-6 6-9 9-15 2 6 6 9 9 14 5 8 3 18-8 24z" fill="#f59e0b"/>
     <path d="M224 80h70M224 96h96" stroke="#ffffff" stroke-opacity="0.35" stroke-width="4" stroke-linecap="round"/>
     <path d="M320 206v-14" stroke="#ffffff" stroke-opacity="0.5" stroke-width="3"/>
   </g>
   <!-- orador -->
-  <g stroke="#e94560" stroke-width="3" fill="none">
+  <g stroke="#f59e0b" stroke-width="3" fill="none">
     <circle cx="488" cy="150" r="14"/>
     <path d="M488 164v34m0-26 18 10m-18-8-14 12" stroke-linecap="round"/>
   </g>

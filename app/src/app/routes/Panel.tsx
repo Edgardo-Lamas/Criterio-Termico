@@ -11,8 +11,8 @@ import styles from './Panel.module.css'
 const ADMIN_EMAIL = (import.meta.env.VITE_ADMIN_EMAIL ?? 'edgardolamas2000@gmail.com').toLowerCase()
 
 // Colores de marca para los gráficos (equivalen a los tokens del design system).
-const C_CLICKS = '#e94560'      // --color-primary
-const C_IMPR = '#4488ff'        // --color-cold
+const C_CLICKS = '#f59e0b'      // --color-primary
+const C_IMPR = '#3b82f6'        // --color-cold
 
 // ── Tipos del payload de /api/search-console ─────────────────────────────────
 interface SeoData {
@@ -55,7 +55,7 @@ function ChartTip({ active, payload, label }: TipProps) {
     if (!active || !payload?.length) return null
     return (
         <div style={{
-            background: '#16213e', border: '1px solid rgba(255,255,255,0.1)',
+            background: '#262a31', border: '1px solid rgba(255,255,255,0.1)',
             borderRadius: 8, padding: '8px 12px', fontSize: 13,
         }}>
             {label != null && <p style={{ margin: 0, color: '#fff', fontWeight: 600 }}>{String(label).slice(5)}</p>}

@@ -22,7 +22,7 @@ function FlameMark({ size = 28 }: { size?: number }) {
                 <linearGradient id={outerId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#ffb15c" />
                     <stop offset="0.55" stopColor="#ff7a3d" />
-                    <stop offset="1" stopColor="#e94560" />
+                    <stop offset="1" stopColor="#ea580c" />
                 </linearGradient>
                 <linearGradient id={coreId} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0" stopColor="#fff3c4" />

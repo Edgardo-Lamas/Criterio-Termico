@@ -59,7 +59,7 @@
     height: 20px;
     border-radius: var(--border-radius-full);
     background: var(--color-primary);
-    color: var(--color-text-primary);
+    color: var(--color-on-primary);
     font-size: var(--font-size-xs);
     font-weight: 700;
 }
@@ -149,7 +149,7 @@
 }
 
 .badgePro {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: var(--color-pro-bg);
     color: #000;
 }
 

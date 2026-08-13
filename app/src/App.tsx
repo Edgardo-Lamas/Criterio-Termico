@@ -10,6 +10,7 @@ const Home             = lazy(() => import('./app/routes/Home').then(m => ({ def
 const Herramientas     = lazy(() => import('./app/routes/Herramientas').then(m => ({ default: m.Herramientas })))
 const ManualTecnico    = lazy(() => import('./app/routes/ManualTecnico').then(m => ({ default: m.ManualTecnico })))
 const ErroresFrecuentes = lazy(() => import('./app/routes/ErroresFrecuentes').then(m => ({ default: m.ErroresFrecuentes })))
+const IndiceTematico   = lazy(() => import('./app/routes/IndiceTematico').then(m => ({ default: m.IndiceTematico })))
 const ErrorDetalle     = lazy(() => import('./app/routes/ErrorDetalle').then(m => ({ default: m.ErrorDetalle })))
 const GuiaDeUso        = lazy(() => import('./app/routes/GuiaDeUso').then(m => ({ default: m.GuiaDeUso })))
 const Cuenta           = lazy(() => import('./app/routes/Cuenta').then(m => ({ default: m.Cuenta })))
@@ -38,6 +39,8 @@ function App() {
               <Route path="manual" element={<ManualTecnico />} />
               <Route path="manual/:capitulo" element={<ManualTecnico />} />
               <Route path="errores" element={<ErroresFrecuentes />} />
+              {/* Va antes del :errorId — el tramo fijo tiene que ganarle al dinámico */}
+              <Route path="errores/indice" element={<IndiceTematico />} />
               <Route path="errores/:errorId" element={<ErrorDetalle />} />
               <Route path="guia" element={<GuiaDeUso />} />
               <Route path="cuenta" element={<Cuenta />} />

@@ -115,7 +115,7 @@
 .btnPrimary {
     padding: var(--spacing-sm) var(--spacing-xl);
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary);
     border-radius: var(--border-radius-md);
     font-size: var(--font-size-base);
     font-weight: 600;

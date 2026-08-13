@@ -18,10 +18,10 @@ export function SubscriptionBanner({ requiredTier, feature }: SubscriptionBanner
                 <div className={styles.icon}><Icon name="gem" size={40} /></div>
                 <div className={styles.text}>
                     <h3 className={styles.title}>
-                        Accede a {feature}
+                        Accedé a {feature}
                     </h3>
                     <p className={styles.description}>
-                        Obtén la suscripción <strong>{tierName}</strong> para desbloquear esta
+                        Obtené la suscripción <strong>{tierName}</strong> para desbloquear esta
                         funcionalidad y muchas más herramientas profesionales.
                     </p>
                 </div>

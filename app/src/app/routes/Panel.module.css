@@ -45,7 +45,7 @@
 .tabActive {
     composes: tab;
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary);
 }
 
 .tabDisabled {
@@ -338,7 +338,7 @@
     flex-shrink: 0;
     border-radius: var(--border-radius-full);
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary);
     font-weight: 700;
     font-size: var(--font-size-sm);
     display: flex;

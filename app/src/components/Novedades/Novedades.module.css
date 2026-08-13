@@ -50,7 +50,7 @@ a.card:hover {
     top: var(--spacing-sm);
     left: var(--spacing-sm);
     background: var(--color-primary);
-    color: #fff;
+    color: var(--color-on-primary);
     font-size: var(--font-size-xs);
     font-weight: 600;
     padding: 3px 10px;

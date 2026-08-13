@@ -3,17 +3,20 @@ import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { Icon } from '../../components/ui/Icon/Icon'
 import { SubscriptionBanner } from '../../components/ui/SubscriptionBanner/SubscriptionBanner'
-import { erroresList } from '../../content/errores'
+import { erroresList, getIndiceTematico } from '../../content/errores'
 import styles from './ErroresFrecuentes.module.css'
 
 const errores = erroresList
+
+// Se cuenta, no se escribe a mano: el número se mueve con cada caso nuevo.
+const totalTemas = getIndiceTematico().reduce((suma, grupo) => suma + grupo.entradas.length, 0)
 
 export function ErroresFrecuentes() {
     const { canAccess } = useAuthStore()
 
     usePageMeta({
         title: 'Errores Frecuentes en Instalaciones',
-        description: 'Casos reales de problemas en instalaciones de calefacción por radiadores. Problema, causa y solución basados en experiencia de +200 obras.'
+        description: 'Casos reales de problemas en instalaciones de calefacción por radiadores. Problema, causa y solución documentados en obra.'
     })
 
     // Obtener stats
@@ -27,7 +30,7 @@ export function ErroresFrecuentes() {
                 <p className={styles.description}>
                     Casos reales documentados de problemas en instalaciones de calefacción.
                     Cada caso incluye <strong>problema</strong>, <strong>causa</strong> y <strong>solución</strong>,
-                    basados en experiencia de +200 obras.
+                    documentados en obra.
                 </p>
                 <div className={styles.stats}>
                     <span className={styles.statItem}>
@@ -35,6 +38,16 @@ export function ErroresFrecuentes() {
                     </span>
                 </div>
             </div>
+
+            {/* Entrada por síntoma: el que viene de otro oficio no sabe en qué caso
+                está lo que busca, pero reconoce el tema al verlo en una lista. */}
+            <Link to="/errores/indice" className={styles.indiceCta}>
+                <span className={styles.indiceCtaTexto}>
+                    <strong>¿No sabés en qué caso está lo que buscás?</strong>
+                    Entrá por el índice temático: {totalTemas} temas de obra ordenados por lo que ves.
+                </span>
+                <span className={styles.indiceCtaFlecha} aria-hidden="true">→</span>
+            </Link>
 
             <div className={styles.grid}>
                 {errores.map(error => {

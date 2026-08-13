@@ -206,6 +206,31 @@ textarea {
     scroll-margin-top: 5rem;
 }
 
+/* Al llegar desde el índice temático, el título de destino se marca un momento:
+   sin esto el instalador cae en mitad del caso sin saber por qué está ahí. */
+.prose h2:target,
+.prose h3:target {
+    animation: destacarAncla 2.4s ease-out;
+}
+
+@keyframes destacarAncla {
+    0%, 45% {
+        box-shadow: -12px 0 0 -8px var(--color-primary);
+    }
+
+    100% {
+        box-shadow: -12px 0 0 -8px transparent;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .prose h2:target,
+    .prose h3:target {
+        animation: none;
+        box-shadow: -12px 0 0 -8px var(--color-primary);
+    }
+}
+
 .prose h2 {
     font-size: var(--font-size-2xl);
     color: var(--color-text-primary);

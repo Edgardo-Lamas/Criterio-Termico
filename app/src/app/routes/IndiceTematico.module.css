@@ -1,0 +1,195 @@
+.page {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* Header */
+.header {
+    margin-bottom: var(--spacing-lg);
+}
+
+.backLink {
+    display: inline-block;
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+.backLink:hover {
+    color: var(--color-primary);
+}
+
+.description {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-lg);
+    line-height: 1.6;
+    max-width: 800px;
+    margin-top: var(--spacing-sm);
+}
+
+.statItem {
+    display: inline-block;
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+}
+
+/* Barra de salto entre grupos.
+   Queda pegada bajo el header (71px de alto) para que en el celular se pueda
+   cambiar de grupo sin volver arriba. */
+.jumpBar {
+    position: sticky;
+    top: 71px;
+    z-index: 10;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) 0;
+    margin-bottom: var(--spacing-xl);
+    background: var(--color-bg-primary);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.jumpChip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-full);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    white-space: nowrap;
+    transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.jumpChip:hover {
+    border-color: var(--color-primary);
+    color: var(--color-text-primary);
+}
+
+.jumpCount {
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+/* Grupos */
+.familia {
+    margin-bottom: var(--spacing-2xl);
+    /* Deja el título debajo del header + la barra de salto al saltar al ancla */
+    scroll-margin-top: 8.5rem;
+}
+
+.familiaNombre {
+    font-size: var(--font-size-2xl);
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.familiaDescripcion {
+    margin-top: var(--spacing-sm);
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+/* Lista en columnas: el índice se escanea de un vistazo, como el de un libro.
+   `break-inside: avoid` evita que un término quede partido entre dos columnas. */
+.lista {
+    list-style: none;
+    columns: 3;
+    column-gap: var(--spacing-2xl);
+}
+
+.item {
+    break-inside: avoid;
+    margin-bottom: var(--spacing-md);
+}
+
+/* `inline`, no `inline-flex`: con flex, un término de dos renglones manda el
+   candado al extremo derecho de la columna en vez de dejarlo pegado al texto. */
+.termino,
+.terminoLocked {
+    display: inline;
+    font-size: var(--font-size-base);
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* Los términos NO van en el color de acento: son 110 enlaces y la página
+   quedaría toda del mismo color. El acento aparece al pasar por encima. */
+.termino {
+    color: var(--color-text-primary);
+}
+
+.termino:hover {
+    color: var(--color-primary);
+}
+
+.terminoLocked {
+    color: var(--color-text-secondary);
+}
+
+.terminoLocked:hover {
+    color: var(--color-text-primary);
+}
+
+.lockIcon {
+    margin-left: 5px;
+    vertical-align: -1px;
+    color: var(--color-text-muted);
+}
+
+/* El caso al que pertenece el término: dice DÓNDE va a caer, pero no compite
+   con el término. Una sola línea — varios términos del mismo caso se repiten y
+   a dos líneas cada uno la lista se vuelve ilegible. */
+.caso {
+    display: block;
+    margin-top: 2px;
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    opacity: 0.75;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.footerNota {
+    margin-top: var(--spacing-2xl);
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+@media (max-width: 1024px) {
+    .lista {
+        columns: 2;
+        column-gap: var(--spacing-xl);
+    }
+}
+
+@media (max-width: 640px) {
+    /* En el celular la barra no puede ocupar cinco renglones: se desliza. */
+    .jumpBar {
+        top: 61px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .lista {
+        columns: 1;
+    }
+
+    .familia {
+        scroll-margin-top: 7.5rem;
+    }
+}

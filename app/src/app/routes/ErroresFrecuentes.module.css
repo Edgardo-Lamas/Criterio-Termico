@@ -43,6 +43,46 @@
     color: var(--color-text-muted);
 }
 
+/* Entrada al índice temático */
+.indiceCta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 4px solid var(--color-primary);
+    border-radius: var(--border-radius-md);
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.indiceCta:hover {
+    background: var(--color-bg-tertiary);
+    border-color: var(--color-primary);
+}
+
+.indiceCtaTexto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+.indiceCtaTexto strong {
+    font-size: var(--font-size-base);
+    color: var(--color-text-primary);
+}
+
+.indiceCtaFlecha {
+    flex-shrink: 0;
+    font-size: var(--font-size-xl);
+    color: var(--color-primary);
+}
+
 /* Grid */
 .grid {
     display: grid;
@@ -62,7 +102,7 @@
 }
 
 .card:not(.cardLocked):hover {
-    border-color: var(--color-warning);
+    border-color: var(--color-primary);
 }
 
 .cardLocked {
@@ -76,13 +116,16 @@
     margin-bottom: var(--spacing-md);
 }
 
+/* La categoría es un dato de contexto, no una alerta: iba en amarillo y era lo
+   más gritón de la página, por encima del título del caso. Va en neutro. */
 .categoria {
     padding: var(--spacing-xs) var(--spacing-sm);
-    background: rgba(255, 193, 7, 0.1);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: var(--border-radius-sm);
     font-size: var(--font-size-xs);
     font-weight: 600;
-    color: var(--color-warning);
+    color: var(--color-text-secondary);
+    letter-spacing: 0.04em;
     text-transform: uppercase;
 }
 
@@ -95,7 +138,7 @@
 }
 
 .badgePro {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    background: var(--color-pro-bg);
     color: #000;
 }
 
@@ -120,7 +163,7 @@
 .cardLink {
     display: inline-block;
     margin-top: var(--spacing-md);
-    color: var(--color-warning);
+    color: var(--color-primary);
     font-weight: 500;
     font-size: var(--font-size-sm);
     text-decoration: none;
