@@ -25,6 +25,7 @@ function getMeta(src, key) {
 }
 
 const chunks = []
+const sinSecciones = []
 for (const file of readdirSync(DIR)) {
     if (!file.endsWith('.tsx')) continue
     const src = readFileSync(join(DIR, file), 'utf8')
@@ -36,7 +37,12 @@ for (const file of readdirSync(DIR)) {
 
     const bodyStart = src.indexOf('export function')
     const body = bodyStart >= 0 ? src.slice(bodyStart) : ''
-    const parts = body.split(/<h2>([^<]*)<\/h2>/)
+    // `<h2[^>]*>` y no `<h2>`: desde que los títulos llevan `id` para el índice
+    // temático, la versión sin atributos no encontraba UNA sola sección. El
+    // extractor devolvía sólo el resumen, el reindexado hacía upsert y los
+    // fragmentos viejos quedaban en la base — así que no había error a la vista
+    // y el asistente contestó tres semanas con el cuerpo de los casos vencido.
+    const parts = body.split(/<h2[^>]*>([^<]*)<\/h2>/)
 
     // parts[0] = preámbulo, luego pares [tituloSeccion, contenido]
     const sections = []
@@ -67,7 +73,21 @@ for (const file of readdirSync(DIR)) {
         })
     })
     console.log(`${id}: ${sections.length + 1} fragmentos`)
+    if (sections.length === 0) sinSecciones.push(id)
 }
 
 writeFileSync(OUT, JSON.stringify({ documents: chunks }, null, 1))
 console.log(`\nTotal: ${chunks.length} fragmentos → ${OUT}`)
+
+// Guarda: un caso sin secciones significa que el parseo dejó de encontrarlas
+// (pasó de verdad al agregarle `id` a los <h2>). Sin esto el script termina
+// bien, el reindexado hace upsert de un solo fragmento por caso, los viejos
+// quedan intactos y el asistente sigue contestando con contenido vencido sin
+// que nada falle. Cortar acá es la única forma de enterarse.
+if (sinSecciones.length > 0) {
+    console.error(
+        `\nERROR: ${sinSecciones.length} caso(s) sin ninguna sección <h2>: ${sinSecciones.join(', ')}` +
+        `\nO el caso está vacío, o cambió el marcado y este extractor dejó de reconocerlo.`
+    )
+    process.exit(1)
+}
