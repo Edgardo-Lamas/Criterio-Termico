@@ -17,6 +17,8 @@ declare const Supabase: {
 interface Documento {
     source_id: string
     tipo: 'caso' | 'manual'
+    /** Tier del contenido de origen. Sin filtrar todavía; ver la migración. */
+    tier?: 'free' | 'pro' | 'premium'
     titulo: string
     seccion?: string
     categoria?: string
@@ -80,6 +82,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             const { error } = await supabase.from('conocimiento').upsert({
                 source_id: doc.source_id,
                 tipo: doc.tipo,
+                tier: doc.tier ?? 'free',
                 titulo: doc.titulo,
                 seccion: doc.seccion ?? null,
                 categoria: doc.categoria ?? null,

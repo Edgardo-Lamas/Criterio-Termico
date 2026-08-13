@@ -10,8 +10,12 @@ on:
     branches: ['main']
     paths:
       - 'app/src/content/errores/**'
+      - 'app/src/content/manual/**'
+      # El temario define el título y el tier de cada capítulo
+      - 'app/src/app/routes/ManualTecnico.tsx'
       - 'scripts/reindexar-rag.mjs'
       - 'scripts/extraer-casos.mjs'
+      - 'scripts/extraer-manual.mjs'
   workflow_dispatch: # permite dispararlo a mano desde la pestaña Actions
 
 permissions:

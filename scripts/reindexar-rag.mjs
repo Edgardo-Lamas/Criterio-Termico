@@ -26,6 +26,10 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = join(scriptDir, '..')
 const erroresDir = join(repoRoot, 'app', 'src', 'content', 'errores')
+const manualDir = join(repoRoot, 'app', 'src', 'content', 'manual')
+// El tier y el título de cada capítulo salen del temario, que es lo que ve el
+// usuario: si el asistente y la pantalla no leen el mismo listado, se separan.
+const temarioFile = join(repoRoot, 'app', 'src', 'app', 'routes', 'ManualTecnico.tsx')
 
 // 1) Obtener la service_role key.
 //    - En CI: llega por env (secret de GitHub SUPABASE_SERVICE_ROLE_KEY), donde
@@ -51,16 +55,31 @@ function getServiceKey() {
     return svc.api_key
 }
 
-// 2) Generar los fragmentos con el extractor existente (a un archivo temporal)
-function extraerCasos() {
+// 2) Generar los fragmentos (a archivos temporales)
+//
+// Son DOS fuentes: los casos de errores y los capítulos del manual. El manual
+// no se indexaba: el asistente respondía sin haber leído una sola línea de él,
+// mientras el prompt se lo anunciaba como material disponible.
+function extraerTodo() {
     const tmp = mkdtempSync(join(tmpdir(), 'ct-rag-'))
-    const outFile = join(tmp, 'casos.json')
+    const documents = []
+
+    const casosFile = join(tmp, 'casos.json')
     execFileSync(
         'node',
-        [join(scriptDir, 'extraer-casos.mjs'), erroresDir, outFile],
+        [join(scriptDir, 'extraer-casos.mjs'), erroresDir, casosFile],
         { encoding: 'utf8', stdio: 'inherit' },
     )
-    const { documents } = JSON.parse(readFileSync(outFile, 'utf8'))
+    documents.push(...JSON.parse(readFileSync(casosFile, 'utf8')).documents)
+
+    const manualFile = join(tmp, 'manual.json')
+    execFileSync(
+        'node',
+        [join(scriptDir, 'extraer-manual.mjs'), manualDir, temarioFile, manualFile],
+        { encoding: 'utf8', stdio: 'inherit' },
+    )
+    documents.push(...JSON.parse(readFileSync(manualFile, 'utf8')).documents)
+
     rmSync(tmp, { recursive: true, force: true })
     return documents
 }
@@ -104,7 +123,7 @@ async function indexar(documents, serviceKey) {
 }
 
 const serviceKey = getServiceKey()
-const documents = extraerCasos()
+const documents = extraerTodo()
 console.log(`\nPosteando ${documents.length} fragmentos en lotes de ${BATCH_SIZE}...\n`)
 const { indexadosTotal, erroresTotal } = await indexar(documents, serviceKey)
 console.log(`\n✅ Indexados: ${indexadosTotal}/${documents.length}`)

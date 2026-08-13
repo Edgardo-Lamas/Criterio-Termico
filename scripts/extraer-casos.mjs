@@ -33,6 +33,7 @@ for (const file of readdirSync(DIR)) {
     const titulo = getMeta(src, 'titulo')
     const categoria = getMeta(src, 'categoria')
     const resumen = getMeta(src, 'resumen')
+    const tier = getMeta(src, 'tier') ?? 'free'
     if (!id || !titulo) { console.error(`SKIP ${file}: sin metadata`); continue }
 
     const bodyStart = src.indexOf('export function')
@@ -56,6 +57,7 @@ for (const file of readdirSync(DIR)) {
     chunks.push({
         source_id: `caso:${id}#0`,
         tipo: 'caso',
+        tier,
         titulo,
         seccion: 'Resumen del caso',
         categoria,
@@ -66,6 +68,7 @@ for (const file of readdirSync(DIR)) {
         chunks.push({
             source_id: `caso:${id}#${i + 1}`,
             tipo: 'caso',
+            tier,
             titulo,
             seccion: s.seccion,
             categoria,
