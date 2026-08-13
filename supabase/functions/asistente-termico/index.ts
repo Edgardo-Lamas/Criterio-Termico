@@ -75,8 +75,18 @@ interface FragmentoConocimiento {
     similarity: number
 }
 
-/** Cuántos fragmentos se le piden a la búsqueda antes de recortar. */
-const CANDIDATOS = 16
+/**
+ * Cuántos fragmentos se le piden a la búsqueda antes de recortar.
+ *
+ * Tiene que ser MUY superior a lo que se usa, o el tope por caso no sirve de
+ * nada: si la ventana de candidatos es chica, los casos con más fragmentos la
+ * llenan solos y los demás no llegan ni a competir. Pasó con 16 — entre dos
+ * casos de presión suman 18 fragmentos y dejaban afuera al tercero, que era
+ * justamente la causa que faltaba en la respuesta.
+ *
+ * Traer 40 no engorda el prompt: al prompt entran FRAGMENTOS_AL_PROMPT.
+ */
+const CANDIDATOS = 40
 /** Cuántos entran finalmente al prompt. */
 const FRAGMENTOS_AL_PROMPT = 6
 /** Tope por caso, para que una consulta traiga varias causas y no una repetida. */
@@ -100,25 +110,39 @@ function fuenteDe(sourceId: string): string {
  * mejor un tercer fragmento de un caso muy pertinente que un hueco.
  */
 function diversificarPorFuente(fragmentos: FragmentoConocimiento[]): FragmentoConocimiento[] {
-    const porFuente = new Map<string, number>()
-    const elegidos: FragmentoConocimiento[] = []
-    const sobrantes: FragmentoConocimiento[] = []
-
+    // Agrupar por caso. El Map conserva el orden de inserción, así que los casos
+    // quedan ordenados por la similitud de su MEJOR fragmento.
+    const porCaso = new Map<string, FragmentoConocimiento[]>()
     for (const f of fragmentos) {
         const fuente = fuenteDe(f.source_id)
-        const usados = porFuente.get(fuente) ?? 0
+        const lista = porCaso.get(fuente)
+        if (lista) lista.push(f)
+        else porCaso.set(fuente, [f])
+    }
 
-        if (usados < MAX_POR_FUENTE && elegidos.length < FRAGMENTOS_AL_PROMPT) {
+    const elegidos: FragmentoConocimiento[] = []
+    const yaElegido = new Set<string>()
+
+    // Primero UNA vuelta por cada caso, después la segunda. El orden importa:
+    // así el contexto arranca cubriendo causas distintas y no profundizando
+    // sobre la misma. Un tope a secas no alcanzaba — al rellenar los lugares
+    // que sobraban se volvían a colar los fragmentos del caso dominante, que
+    // son los de mayor similitud, y el tope quedaba en la nada.
+    for (let vuelta = 0; vuelta < MAX_POR_FUENTE; vuelta++) {
+        for (const lista of porCaso.values()) {
+            if (elegidos.length >= FRAGMENTOS_AL_PROMPT) break
+            const f = lista[vuelta]
+            if (!f) continue
             elegidos.push(f)
-            porFuente.set(fuente, usados + 1)
-        } else {
-            sobrantes.push(f)
+            yaElegido.add(f.source_id)
         }
     }
 
-    for (const f of sobrantes) {
+    // Si quedaron lugares —consulta que toca un solo caso— se profundiza en él.
+    // Recién acá, cuando ya no hay más variedad que ofrecer.
+    for (const f of fragmentos) {
         if (elegidos.length >= FRAGMENTOS_AL_PROMPT) break
-        elegidos.push(f)
+        if (!yaElegido.has(f.source_id)) elegidos.push(f)
     }
 
     return elegidos
@@ -159,7 +183,20 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             criterio: 'Criterio de oficio documentado',
         }
 
-        const fragmentos = diversificarPorFuente(data as FragmentoConocimiento[])
+        const candidatos = data as FragmentoConocimiento[]
+        const elegidos = diversificarPorFuente(candidatos)
+
+        // Qué casos entraron al contexto y con qué similitud. Sin esto, cuando el
+        // asistente omite una causa documentada no hay forma de saber si el
+        // fragmento no se recuperó o si el modelo decidió no usarlo — y se
+        // termina ajustando a ciegas.
+        console.log(
+            `[RAG] candidatos=${candidatos.length} casos=${new Set(candidatos.map(c => fuenteDe(c.source_id))).size} ` +
+            `| top5: ${candidatos.slice(0, 5).map(c => `${c.source_id}(${c.similarity.toFixed(3)})`).join(' ')} ` +
+            `| al prompt: ${elegidos.map(c => c.source_id).join(' ')}`
+        )
+
+        const fragmentos = elegidos
             .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 
