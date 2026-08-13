@@ -75,6 +75,55 @@ interface FragmentoConocimiento {
     similarity: number
 }
 
+/** Cuántos fragmentos se le piden a la búsqueda antes de recortar. */
+const CANDIDATOS = 16
+/** Cuántos entran finalmente al prompt. */
+const FRAGMENTOS_AL_PROMPT = 6
+/** Tope por caso, para que una consulta traiga varias causas y no una repetida. */
+const MAX_POR_FUENTE = 2
+
+/** `caso:presion-pasivador#3` → `caso:presion-pasivador` */
+function fuenteDe(sourceId: string): string {
+    return sourceId.split('#')[0]
+}
+
+/**
+ * Recorta la lista dejando como mucho `MAX_POR_FUENTE` fragmentos de un mismo
+ * caso, respetando el orden de similitud.
+ *
+ * Un problema de obra suele tener varias causas y cada una vive en un caso
+ * distinto. Si el corte es por similitud pura, el caso cuyo título repite las
+ * palabras de la consulta copa el contexto y el instalador recibe una respuesta
+ * que suena completa pero le falta una causa entera.
+ *
+ * Si después del tope sobran lugares, se rellenan con los mejores que quedaron:
+ * mejor un tercer fragmento de un caso muy pertinente que un hueco.
+ */
+function diversificarPorFuente(fragmentos: FragmentoConocimiento[]): FragmentoConocimiento[] {
+    const porFuente = new Map<string, number>()
+    const elegidos: FragmentoConocimiento[] = []
+    const sobrantes: FragmentoConocimiento[] = []
+
+    for (const f of fragmentos) {
+        const fuente = fuenteDe(f.source_id)
+        const usados = porFuente.get(fuente) ?? 0
+
+        if (usados < MAX_POR_FUENTE && elegidos.length < FRAGMENTOS_AL_PROMPT) {
+            elegidos.push(f)
+            porFuente.set(fuente, usados + 1)
+        } else {
+            sobrantes.push(f)
+        }
+    }
+
+    for (const f of sobrantes) {
+        if (elegidos.length >= FRAGMENTOS_AL_PROMPT) break
+        elegidos.push(f)
+    }
+
+    return elegidos
+}
+
 async function buscarConocimiento(consulta: string): Promise<string> {
     try {
         const embedding = await embedder.run(consulta.slice(0, 1500), {
@@ -88,9 +137,16 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
         )
 
+        // Se piden MUCHOS candidatos y después se recorta con un tope por caso.
+        // Antes se pedían 4 y se usaban los 4: como un caso aporta hasta 10
+        // fragmentos, el más parecido a las palabras de la consulta se quedaba
+        // con todos los lugares. Síntoma real: ante "la presión sube sola" no
+        // aparecía la causa química (pasivador incompatible con aluminio), que
+        // ESTÁ documentada — los tres casos de presión suman 24 fragmentos
+        // compitiendo, y ganaban siempre los dos que repiten esas palabras.
         const { data, error } = await admin.rpc('match_conocimiento', {
             query_embedding: JSON.stringify(embedding),
-            match_count: 4,
+            match_count: CANDIDATOS,
             min_similarity: 0.35,
         })
 
@@ -103,7 +159,7 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             criterio: 'Criterio de oficio documentado',
         }
 
-        const fragmentos = (data as FragmentoConocimiento[])
+        const fragmentos = diversificarPorFuente(data as FragmentoConocimiento[])
             .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 

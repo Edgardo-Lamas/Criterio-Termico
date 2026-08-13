@@ -13,6 +13,10 @@ export const errorPresionSubeAguaRed: ErrorMeta = {
         { termino: 'La presión sube sola', ancla: 'primera-distincion-sube-solo-en-caliente', familia: 'presion' },
         { termino: '¿Sube en frío o solo en caliente?', ancla: 'primera-distincion-sube-solo-en-caliente', familia: 'presion' },
         { termino: 'Agua de red entrando al circuito', ancla: 'las-dos-puertas-de-entrada', familia: 'presion' },
+        { termino: 'El grifo de llenado va cerrado', ancla: 'el-grifo-de-llenado-va-cerrado', familia: 'presion' },
+        { termino: 'Dejé el grifo de llenado abierto', ancla: 'el-grifo-de-llenado-va-cerrado', familia: 'presion' },
+        { termino: 'La presurizadora mete presión al circuito', ancla: 'el-grifo-de-llenado-va-cerrado', familia: 'presion' },
+        { termino: 'La presión se va y no hay pérdida a la vista', ancla: 'el-grifo-de-llenado-va-cerrado', familia: 'presion' },
         { termino: 'Intercambiador bitérmico pinchado', ancla: 'el-intercambiador-bitermico-la-fuga', familia: 'presion' },
         { termino: 'Grupo hidráulico: juntas y o-rings', ancla: 'el-grupo-hidraulico-juntas-y-orings', familia: 'presion' },
     ],
@@ -55,6 +59,37 @@ export function ErrorPresionSubeAguaRedDetalle() {
                 </li>
             </ul>
 
+            <h2 id="el-grifo-de-llenado-va-cerrado">El grifo de llenado va cerrado</h2>
+            <p>
+                Antes de buscar la causa hay que fijar el punto de partida:{' '}
+                <strong>una caldera trabaja con el grifo de llenado cerrado</strong>.
+                No es una precaución de la puesta en marcha ni algo que se cierra
+                cuando la presión ya se movió. Se abre para recargar y se cierra.
+            </p>
+            <p>
+                Dejarlo abierto deja el circuito de calefacción colgado del agua
+                fría sanitaria, y desde ahí la presión deja de depender de la
+                calefacción. Puede irse para los dos lados:
+            </p>
+            <ul>
+                <li>
+                    <strong>La presión se va del sistema.</strong> Con una demanda
+                    abierta en otra parte del circuito de agua fría sanitaria, el
+                    agua del circuito de calefacción se escapa hacia ese lado.
+                </li>
+                <li>
+                    <strong>La presión sube.</strong> Al abrirse una demanda de
+                    agua fría sanitaria arranca la bomba presurizadora, que mete
+                    en el circuito más presión de la que necesita.
+                </li>
+            </ul>
+            <p>
+                Las dos se ven <strong>con la caldera funcionando o parada</strong>,
+                y ahí está lo que confunde: no siguen el ritmo del quemador, así
+                que no parecen tener que ver con la calefacción. Mientras el grifo
+                siga abierto no hay diagnóstico posible — lo primero es cerrarlo.
+            </p>
+
             <h2 id="las-dos-puertas-de-entrada">Las dos puertas de entrada del agua de red</h2>
             <p>
                 En una caldera mural, el agua de red solo puede meterse al circuito
@@ -67,7 +102,8 @@ export function ErrorPresionSubeAguaRedDetalle() {
                     o si su asiento tiene sarro o el o&apos;ring está vencido, deja
                     pasar agua de red en forma continua. Es la causa más simple y
                     la primera a revisar: cerrarla a fondo y observar si la presión
-                    se estabiliza.
+                    se estabiliza. Si se estabiliza, por ahí entraba el agua —
+                    y de ahí en más queda cerrada, que es como debe trabajar.
                 </li>
                 <li>
                     <strong>Una comunicación interna entre el lado sanitario y el
