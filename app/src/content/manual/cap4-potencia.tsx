@@ -140,9 +140,11 @@ export function Cap4Potencia() {
             <div className="callout callout-info">
                 <div className="callout-label">Regla de la caldera</div>
                 <p>
-                    <strong>Potencia de caldera = Potencia total radiadores ÷ 0.80</strong><br />
+                    <strong>Potencia de caldera = suma de las cargas térmicas ÷ 0.80</strong><br />
                     Siguiendo el ejemplo: si la suma de todos los ambientes da 18.000 Kcal/h,
                     la caldera recomendada es de 18.000 ÷ 0.80 = <strong>22.500 Kcal/h</strong>.
+                    Es la potencia <strong>demandada</strong> la que define la caldera, no la de
+                    los emisores que después se cuelgan para entregarla.
                 </p>
             </div>
 

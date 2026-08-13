@@ -7,6 +7,7 @@ import {
     kcalToKw,
     kwToKcal,
     CALDERA_MIN_KCALH,
+    ambientesCalefaccionados,
 } from './thermalCalculator'
 import type { Room } from '../models/Room'
 import type { Radiator } from '../models/Radiator'
@@ -245,5 +246,58 @@ describe('kcalToKw / kwToKcal', () => {
     it('maneja 0 sin errores', () => {
         expect(kcalToKw(0)).toBe(0)
         expect(kwToKcal(0)).toBe(0)
+    })
+})
+
+describe('ambientesCalefaccionados', () => {
+    it('toma el ambiente que tiene un radiador colgado', () => {
+        const conRadiador = makeRoom({ id: 'a', radiatorIds: ['rad-1'] })
+        const vacio = makeRoom({ id: 'b', radiatorIds: [] })
+
+        expect(ambientesCalefaccionados([conRadiador, vacio])).toEqual([conRadiador])
+    })
+
+    it('toma el ambiente que sólo tiene piso radiante', () => {
+        // Es el caso que rompía el criterio viejo: sin radiadores, dimensionar
+        // desde los emisores daba una caldera de cero.
+        const soloPiso = makeRoom({ id: 'a', radiatorIds: [] })
+
+        expect(ambientesCalefaccionados([soloPiso], [{ roomId: 'a' }])).toEqual([soloPiso])
+    })
+
+    it('deja afuera el ambiente sin nada: no le demanda potencia a la caldera', () => {
+        const vacio = makeRoom({ id: 'b', radiatorIds: [] })
+
+        expect(ambientesCalefaccionados([vacio], [{ roomId: 'otro' }])).toEqual([])
+    })
+
+    it('no duplica el ambiente que tiene radiador Y piso', () => {
+        const mixto = makeRoom({ id: 'a', radiatorIds: ['rad-1'] })
+
+        expect(ambientesCalefaccionados([mixto], [{ roomId: 'a' }])).toHaveLength(1)
+    })
+})
+
+describe('la caldera sale de la carga, no de los emisores', () => {
+    // Criterio de Edgardo (2026-08-13): "son las cargas térmicas de cada
+    // habitación las que determinan la potencia de la caldera; es la potencia
+    // demandada". Este test existe para que la regla vieja no vuelva por la
+    // ventana: hasta hoy el Toolbar del Simulador seguía haciendo Σ radiadores.
+    it('ignora la potencia instalada de los radiadores', () => {
+        const ambiente = makeRoom({ area: 40, height: 3, thermalFactor: 50, radiatorIds: ['rad-1'] })
+
+        const conRadiadorChico = calculateBoilerPower([ambiente], [makeRadiator({ power: 500 })])
+        const conRadiadorGrande = calculateBoilerPower([ambiente], [makeRadiator({ power: 50000 })])
+
+        expect(conRadiadorChico.recommendedBoilerPower).toBe(conRadiadorGrande.recommendedBoilerPower)
+    })
+
+    it('un ambiente sin emisores tampoco baja la caldera si está en la lista', () => {
+        const ambiente = makeRoom({ area: 40, height: 3, thermalFactor: 50 })
+
+        const sinRadiadores = calculateBoilerPower([ambiente], [])
+        expect(sinRadiadores.calculatedPower).toBe(
+            Math.round(calculateRoomPower(ambiente) / 0.80)
+        )
     })
 })

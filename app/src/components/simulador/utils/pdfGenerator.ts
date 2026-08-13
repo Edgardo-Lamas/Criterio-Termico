@@ -8,7 +8,7 @@ import type { Manifold } from '../models/Manifold';
 import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
-import { calculateBoilerPower, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
+import { calculateBoilerPower, ambientesCalefaccionados, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
 import { PASO_CM } from './floorHeating';
 import { planillaRadiadores } from './planilla';
 import { generarConsideraciones } from './consideraciones';
@@ -206,10 +206,7 @@ export const generateQuotePDF = (
   sectionTitle('EQUIPAMIENTO PRINCIPAL');
   // La caldera sale de la carga térmica de los ambientes calefaccionados, no
   // de los emisores (ver calculateBoilerPower).
-  const roomsCalefaccionados = rooms.filter(room =>
-    room.radiatorIds.length > 0 ||
-    (floorHeating?.zonas ?? []).some(z => z.roomId === room.id)
-  );
+  const roomsCalefaccionados = ambientesCalefaccionados(rooms, floorHeating?.zonas ?? []);
   const caldera = calculateBoilerPower(roomsCalefaccionados, radiators);
   doc.setFontSize(9.5);
   doc.setFont('helvetica', 'normal');

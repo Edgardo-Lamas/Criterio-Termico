@@ -5,6 +5,7 @@ import type { Room } from '../../models/Room';
 import {
   isPowerSufficient,
   calculateBoilerPower,
+  ambientesCalefaccionados,
   calculateRoomPower,
   kcalToKw,
   CALDERA_MIN_KW,
@@ -204,9 +205,7 @@ export const RoomPanel: React.FC = () => {
   // Caldera: la carga térmica de los ambientes calefaccionados al 80% de
   // capacidad, nunca abajo de 24 kW. Los emisores no la determinan — son el
   // medio, no la medida (ver calculateBoilerPower).
-  const roomsCalefaccionados = rooms.filter(room =>
-    room.radiatorIds.length > 0 || floorHeatingZones.some(z => z.roomId === room.id)
-  );
+  const roomsCalefaccionados = ambientesCalefaccionados(rooms, floorHeatingZones);
   const boilerCalc = calculateBoilerPower(roomsCalefaccionados, radiators);
   const totalCargaTermica = boilerCalc.totalCargaTermica;
   const recommendedBoilerPower = boilerCalc.recommendedBoilerPower;

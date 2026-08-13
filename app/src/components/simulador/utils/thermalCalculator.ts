@@ -135,6 +135,25 @@ export function calculateBoilerPower(
 }
 
 /**
+ * Los ambientes que la caldera tiene que cubrir: los que tienen algo colgado,
+ * sea un radiador o una zona de piso radiante. Una habitación sin nada no se
+ * calefacciona y no le demanda nada a la caldera.
+ *
+ * Vive acá y no en cada pantalla porque `calculateBoilerPower` espera recibir
+ * los ambientes YA filtrados: el filtro es parte del criterio, no de la vista.
+ * Estaba copiado en el presupuesto y en el panel del ambiente, y el Toolbar
+ * —que no lo tenía— dimensionaba la caldera desde otro lado.
+ */
+export function ambientesCalefaccionados<Z extends { roomId?: string | null }>(
+  rooms: Room[],
+  zonasDePiso: readonly Z[] = []
+): Room[] {
+  return rooms.filter(room =>
+    room.radiatorIds.length > 0 || zonasDePiso.some(z => z.roomId === room.id)
+  );
+}
+
+/**
  * Convierte Kcal/h a kW (para mostrar en ambas unidades)
  */
 export function kcalToKw(kcal: number): number {

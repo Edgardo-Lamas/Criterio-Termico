@@ -5,6 +5,7 @@ import { useElementsStore } from '../../store/useElementsStore';
 import { saveToLocalStorage } from '../../utils/projectStorage';
 import { generateAutoPipes, generateMultiFloorPipes } from '../../utils/pipeRouter';
 import { dimensionPipes } from '../../utils/pipeDimensioning';
+import { calculateBoilerPower, ambientesCalefaccionados } from '../../utils/thermalCalculator';
 import { downloadIFCFile } from '../../utils/ifcExporter';
 import { FloorSelector } from '../FloorSelector/FloorSelector';
 import { HelpModal } from '../HelpModal/HelpModal';
@@ -110,9 +111,14 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     // un solo radiador sin asignar dejaba todo sin dimensionar)
     const radiatorsWithPower = currentFloorRadiators.filter(r => r.power > 0);
     if (radiatorsWithPower.length > 0) {
-      // Actualizar potencia de la caldera
-      const totalRadiatorPower = radiators.reduce((sum, r) => sum + r.power, 0);
-      const recommendedBoilerPower = Math.round(totalRadiatorPower / 0.80);
+      // La caldera sale de la CARGA TÉRMICA de los ambientes calefaccionados —
+      // la potencia demandada—, no de la suma de los emisores instalados. Acá
+      // quedaba viva la regla vieja (Σ radiadores ÷ 0,80) y dimensionaba
+      // distinto del panel y del presupuesto, que ya usan calculateBoilerPower.
+      const { recommendedBoilerPower } = calculateBoilerPower(
+        ambientesCalefaccionados(rooms, floorHeatingZones),
+        radiators
+      );
       const mainBoiler = currentFloorBoilers[0];
       if (mainBoiler) {
         updateBoilerPower(mainBoiler.id, recommendedBoilerPower);
@@ -139,9 +145,12 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     // que la conexión de una sola planta)
     const allRadiatorsWithPower = radiators.filter(r => r.power > 0);
     if (allRadiatorsWithPower.length > 0) {
-      // Actualizar potencia de la caldera principal
-      const totalRadiatorPower = radiators.reduce((sum, r) => sum + r.power, 0);
-      const recommendedBoilerPower = Math.round(totalRadiatorPower / 0.80);
+      // Mismo criterio que arriba: la caldera cubre la carga térmica de los
+      // ambientes calefaccionados, no la suma de los emisores.
+      const { recommendedBoilerPower } = calculateBoilerPower(
+        ambientesCalefaccionados(rooms, floorHeatingZones),
+        radiators
+      );
       const mainBoiler = boilers.find(b => b.floor === 'ground') || boilers[0];
       if (mainBoiler) {
         updateBoilerPower(mainBoiler.id, recommendedBoilerPower);

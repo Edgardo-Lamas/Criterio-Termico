@@ -202,8 +202,15 @@ son los mismos que dan las calculadoras):
   60 kcal/h·m³ (poca aislación: construcción antigua)
 - Ajustes sobre la potencia base (se SUMAN entre sí, no se multiplican):
   pared exterior +15%; ventanas: pocas +5%, normales +10%, muchas +20%
-- Potencia de caldera: suma de radiadores ÷ 0.80 (la caldera debe trabajar al
-  80% de su capacidad máxima, nunca al límite)
+- Potencia de caldera: suma de las CARGAS TÉRMICAS de los ambientes
+  calefaccionados ÷ 0.80 (la caldera debe trabajar al 80% de su capacidad
+  máxima, nunca al límite). Es la potencia DEMANDADA la que determina la
+  caldera. NO se calcula desde los emisores instalados: el radiador es el medio
+  por el que el calor entra al ambiente, no la medida de cuánto calor hace
+  falta. Dimensionar desde el emisor propaga el error —si se pusieron
+  radiadores de menos, la caldera se achica sola— y con piso radiante es peor,
+  porque el piso topea en ~100 W/m² y la caldera quedaría dimensionada contra
+  ese tope físico y no contra lo que la casa pierde.
 - Caudal por radiador: potencia (kcal/h) ÷ ΔT (°C entre ida y retorno, típico 20°C) = litros/hora
 - Todo valor que des lleva margen de seguridad conservador (+10-15%)
 
