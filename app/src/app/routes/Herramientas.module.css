@@ -78,7 +78,7 @@
 
 .pasoChip {
     padding: 2px var(--spacing-sm);
-    background: rgba(233, 69, 96, 0.12);
+    background: rgba(245, 158, 11, 0.12);
     color: var(--color-primary);
     border-radius: var(--border-radius-full);
     font-size: var(--font-size-xs);

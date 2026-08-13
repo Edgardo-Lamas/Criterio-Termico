@@ -32,12 +32,12 @@
     height: 56px;
     padding: 0 20px 0 13px;
     border-radius: var(--border-radius-full);
-    background: linear-gradient(160deg, #f0566f, #cf2d49);
-    color: #fff;
+    background: linear-gradient(160deg, #fbbf24, #d97706);
+    color: var(--color-on-primary);
     border: none;
     cursor: pointer;
     transition: transform var(--transition-fast), filter var(--transition-fast);
-    box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
     animation: fabGlow 3.2s ease-in-out infinite;
     flex-shrink: 0;
 }
@@ -87,10 +87,10 @@
 
 @keyframes fabGlow {
     0%, 100% {
-        box-shadow: 0 4px 16px rgba(233, 69, 96, 0.45);
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
     }
     50% {
-        box-shadow: 0 4px 28px rgba(233, 69, 96, 0.75);
+        box-shadow: 0 4px 28px rgba(245, 158, 11, 0.6);
     }
 }
 
@@ -308,8 +308,8 @@
 }
 
 .suggestion:hover {
-    background: rgba(233, 69, 96, 0.1);
-    border-color: rgba(233, 69, 96, 0.3);
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.3);
     color: var(--color-text-primary);
 }
 
@@ -327,8 +327,8 @@
 
 .bubbleUser {
     align-self: flex-end;
-    background: rgba(233, 69, 96, 0.2);
-    border: 1px solid rgba(233, 69, 96, 0.3);
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.3);
     color: var(--color-text-primary);
     border-bottom-right-radius: 4px;
 }

@@ -40,6 +40,12 @@ const TIER_CONFIG: Record<Tier, TierConfig> = {
     premium: { maxRequestsPerDay: 200, maxTokens: 2048 },
 }
 
+// Visitante sin cuenta (sesión anónima de Supabase). Alcanza para que pruebe el
+// asistente con una duda real de obra, y es un tope bajo a propósito: son
+// consultas que se pagan a la API y cualquiera puede abrir una sesión anónima.
+// El alta anónima además tiene su propio límite en Supabase (30/hora por IP).
+const ANON_CONFIG: TierConfig = { maxRequestsPerDay: 3, maxTokens: 512 }
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
 // Centraliza el dominio permitido para no hardcodear el host del frontend
@@ -140,7 +146,7 @@ CÓMO USAR ESTE CONTEXTO:
 
 // ── System prompt de Criterio ─────────────────────────────────────────────────
 
-function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, contextoSimulador: string): string {
+function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, contextoSimulador: string, esAnonimo = false): string {
     const herramientasDisponibles = [
         '- Calculadora de Potencia (gratis): calcula la potencia térmica por ambiente',
         ...(tier !== 'free' ? [
@@ -153,12 +159,16 @@ function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, con
             '- Simulador 2D (Premium): diseño completo sobre plano con presupuesto y exportación BIM',
         ] : []),
         '- Manual Técnico: 14 capítulos sobre diseño, cálculo e instalación',
-        '- Errores Frecuentes: +200 casos documentados con problema, causa y solución',
+        // Sin número: los casos crecen y un número escrito acá envejece mal. El
+        // "+200" que decía antes era falso y el asistente se lo repetía al usuario.
+        '- Errores Frecuentes: casos de obra documentados con problema, causa y solución',
     ].join('\n')
 
     return `Sos Criterio, el asistente técnico de Criterio Térmico — una plataforma para instaladores profesionales de calefacción por radiadores en Argentina y Latinoamérica.
 
-Estás hablando con ${userName}, un instalador con tier ${tier}.
+${esAnonimo
+            ? `Estás hablando con alguien que entró al sitio y todavía no tiene cuenta. Respondé su consulta técnica completa, igual que a cualquiera: la primera impresión del oficio se gana contestando bien, no reservando la respuesta. No le pidas que se registre ni menciones planes — de eso se encarga la aplicación.`
+            : `Estás hablando con ${userName}, un instalador con tier ${tier}.`}
 
 TU ROL:
 Ayudar a instaladores a resolver dudas técnicas, interpretar resultados de calculadoras y diagnosticar problemas en instalaciones de calefacción hidrónica. Hablás como un colega experimentado con años en obra, no como un chatbot genérico ni como un académico.
@@ -266,9 +276,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
             .eq('id', user.id)
             .single()
 
+        // Visitante sin cuenta: la sesión anónima es una sesión real de Supabase,
+        // así que todo lo demás (rate limiting, RLS, streaming) funciona igual.
+        // Lo único que cambia es el cupo y que no hay nombre que usar.
+        const esAnonimo = user.is_anonymous === true
+
         const tier = (profile?.tier ?? 'free') as Tier
-        const userName = (profile?.email ?? user.email ?? 'instalador').split('@')[0]
-        const tierConfig = TIER_CONFIG[tier]
+        const userName = esAnonimo
+            ? 'instalador'
+            : (profile?.email ?? user.email ?? 'instalador').split('@')[0]
+        const tierConfig = esAnonimo ? ANON_CONFIG : TIER_CONFIG[tier]
 
         // ── 3. Rate limiting atómico ─────────────────────────────────────────
         // increment_ai_usage hace INSERT ... ON CONFLICT DO UPDATE en una sola
@@ -290,9 +307,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
                     error: 'Límite diario alcanzado',
                     limit: tierConfig.maxRequestsPerDay,
                     tier,
-                    message: tier === 'free'
-                        ? `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias del plan gratuito. Actualizá a Pro para tener ${TIER_CONFIG.pro.maxRequestsPerDay} consultas/día.`
-                        : `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias de tu plan ${tier}.`
+                    anonimo: esAnonimo,
+                    message: esAnonimo
+                        ? `Usaste las ${ANON_CONFIG.maxRequestsPerDay} consultas de prueba. Creá una cuenta gratis y tenés ${TIER_CONFIG.free.maxRequestsPerDay} por día.`
+                        : tier === 'free'
+                            ? `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias del plan gratuito. Actualizá a Pro para tener ${TIER_CONFIG.pro.maxRequestsPerDay} consultas/día.`
+                            : `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias de tu plan ${tier}.`
                 }),
                 { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
             )
@@ -356,7 +376,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const stream = await anthropic.messages.stream({
             model: 'claude-sonnet-4-6',
             max_tokens: tierConfig.maxTokens,
-            system: buildSystemPrompt(tier, userName, ragContext, contextoSimulador),
+            system: buildSystemPrompt(tier, userName, ragContext, contextoSimulador, esAnonimo),
             messages: sanitizedMessages,
         })
 

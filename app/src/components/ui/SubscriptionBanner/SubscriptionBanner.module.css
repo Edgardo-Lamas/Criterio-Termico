@@ -3,7 +3,7 @@
     flex-direction: column;
     gap: var(--spacing-lg);
     padding: var(--spacing-xl);
-    background: linear-gradient(135deg, rgba(233, 69, 96, 0.1) 0%, rgba(255, 215, 0, 0.1) 100%);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.10) 0%, rgba(56, 189, 248, 0.10) 100%);
     border: 2px solid var(--color-primary);
     border-radius: var(--border-radius-lg);
 }

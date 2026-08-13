@@ -16,11 +16,13 @@ import { validarCircuitosPiso } from './hydraulicValidation';
 import type { Consideracion } from './consideraciones';
 import type { SelectedBudget } from '../services/budgetService';
 
-// Paleta del presupuesto (impresión): encabezados en azul noche, acento de
+// Paleta del presupuesto (impresión): encabezados en gris grafito, acento de
 // marca Criterio Térmico, zebra sutil en tablas. Los símbolos se limitan a
 // Latin-1 (helvetica estándar de jsPDF no tiene ✓/⚠/emoji).
-const NAVY: [number, number, number] = [26, 32, 66];
-const ACCENT: [number, number, number] = [233, 69, 96];
+// ⚠ ACCENT sólo pinta barritas y líneas, NUNCA texto: el ámbar sobre papel
+// blanco da 2,3:1 y un texto en ese color no se lee impreso.
+const NAVY: [number, number, number] = [31, 36, 46];
+const ACCENT: [number, number, number] = [217, 119, 6];
 const ZEBRA: [number, number, number] = [245, 246, 248];
 const GRIS_TEXTO: [number, number, number] = [95, 99, 110];
 const OK_VERDE: [number, number, number] = [46, 125, 50];

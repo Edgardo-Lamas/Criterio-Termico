@@ -165,8 +165,8 @@
 /* ── Oportunidades (destacado) ──────────────────────────────────────────── */
 .oppCard {
     composes: card;
-    border-color: rgba(233, 69, 96, 0.3);
-    background: linear-gradient(180deg, rgba(233, 69, 96, 0.06), var(--color-bg-card) 60%);
+    border-color: rgba(245, 158, 11, 0.3);
+    background: linear-gradient(180deg, rgba(245, 158, 11, 0.06), var(--color-bg-card) 60%);
 }
 
 .oppItem {

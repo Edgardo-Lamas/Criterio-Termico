@@ -32,6 +32,52 @@ interface AuthState {
     canAccess: (requiredTier: SubscriptionTier) => boolean
 }
 
+/**
+ * Sesión anónima para el asistente.
+ *
+ * El visitante sin cuenta puede preguntarle al asistente, y para eso necesita
+ * una sesión de Supabase real (la Edge Function valida el JWT y cuenta el uso
+ * por usuario). `signInAnonymously` crea un usuario con `is_anonymous = true`.
+ *
+ * ⚠ A propósito NO toca el store: una sesión anónima no es "estar logueado".
+ * Si `isAuthenticated` se pusiera en true, el header escondería "Ingresar", el
+ * visitante quedaría con cara de usuario registrado y el Simulador le mostraría
+ * el candado de Premium como si tuviera cuenta. Lo único que hace es dejar un
+ * token válido para llamar al asistente.
+ */
+export async function ensureSesionParaAsistente(): Promise<boolean> {
+    if (!isSupabaseConfigured) return false
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.access_token) return true
+
+    const { error } = await supabase.auth.signInAnonymously()
+    if (error) {
+        Sentry.captureException(error, { tags: { context: 'signInAnonymously' } })
+        return false
+    }
+
+    return true
+}
+
+/**
+ * Cierra la sesión anónima antes de un login o un alta reales.
+ *
+ * Si el visitante probó el asistente y después se registra, arranca el alta con
+ * una sesión anónima viva. Supabase intenta CONVERTIR ese usuario anónimo en
+ * permanente en vez de crear uno nuevo, y el resultado depende de si el email ya
+ * existe: un camino distinto según lo que el visitante hizo antes en la página.
+ * Se cierra primero y el alta arranca siempre desde el mismo lugar.
+ */
+async function cerrarSesionAnonima(): Promise<void> {
+    if (!isSupabaseConfigured) return
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session?.user?.is_anonymous) {
+        await supabase.auth.signOut()
+    }
+}
+
 const tierHierarchy: Record<SubscriptionTier, number> = {
     free: 0,
     pro: 1,
@@ -92,9 +138,12 @@ export const useAuthStore = create<AuthState>()(
                     return () => { }
                 }
 
-                // Recuperar sesión existente
+                // Recuperar sesión existente. Una sesión ANÓNIMA no cuenta: es la
+                // que se abre sola para que un visitante pruebe el asistente, y
+                // tratarla como login dejaría al visitante con cara de usuario
+                // registrado (sin botón "Ingresar" y sin saber por qué).
                 supabase.auth.getSession().then(async ({ data: { session } }) => {
-                    if (session?.user) {
+                    if (session?.user && !session.user.is_anonymous) {
                         const tier = await fetchProfile(session.user.id)
                         set({
                             user: supabaseUserToStore(session.user, tier),
@@ -116,7 +165,9 @@ export const useAuthStore = create<AuthState>()(
                         // resuelve y el botón queda en "Ingresando..." para siempre.
                         // Diferir al próximo tick libera el lock antes de consultar.
                         setTimeout(async () => {
-                            if (session?.user) {
+                            // Ver la nota de arriba: la sesión anónima del asistente
+                            // no es un login y no debe tocar el estado de la app.
+                            if (session?.user && !session.user.is_anonymous) {
                                 const tier = await fetchProfile(session.user.id)
                                 set({
                                     user: supabaseUserToStore(session.user, tier),
@@ -149,6 +200,7 @@ export const useAuthStore = create<AuthState>()(
                 }
 
                 try {
+                    await cerrarSesionAnonima()
                     const { error } = await supabase.auth.signInWithPassword({ email, password })
                     if (error) {
                         set({ isLoading: false, authError: friendlyError(error.message) })
@@ -179,6 +231,7 @@ export const useAuthStore = create<AuthState>()(
                 }
 
                 try {
+                    await cerrarSesionAnonima()
                     const { error } = await supabase.auth.signUp({ email, password })
                     if (error) {
                         set({ isLoading: false, authError: friendlyError(error.message) })

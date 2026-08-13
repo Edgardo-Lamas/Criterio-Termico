@@ -86,6 +86,87 @@
     color: var(--color-primary);
 }
 
+.heroNota {
+    margin-top: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+/* Asistente */
+.asistente {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2xl);
+    align-items: center;
+    padding: var(--spacing-2xl);
+    margin: var(--spacing-2xl) 0;
+    background: var(--color-bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-lg);
+}
+
+.asistenteEtiqueta {
+    display: inline-block;
+    margin-bottom: var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+}
+
+.asistenteTitulo {
+    font-size: var(--font-size-3xl);
+    margin-bottom: var(--spacing-md);
+}
+
+.asistenteBajada {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+}
+
+.asistenteNota {
+    margin-top: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}
+
+.asistentePreguntas {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+/* Cada pregunta abre el asistente con el texto ya escrito. Se ven como lo que
+   son —consultas de obra— y no como botones de marketing. */
+.preguntaBoton {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    text-align: left;
+    background: var(--color-bg-tertiary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    line-height: 1.5;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.preguntaBoton:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg-secondary);
+}
+
+.preguntaFlecha {
+    flex-shrink: 0;
+    color: var(--color-primary);
+    font-size: var(--font-size-lg);
+}
+
 /* Features */
 .features {
     padding: var(--spacing-2xl) 0;
@@ -177,7 +258,23 @@
     color: var(--color-text-secondary);
 }
 
+@media (max-width: 900px) {
+    .asistente {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-xl);
+        padding: var(--spacing-xl);
+    }
+}
+
 @media (max-width: 640px) {
+    .asistente {
+        padding: var(--spacing-lg);
+    }
+
+    .asistenteTitulo {
+        font-size: var(--font-size-2xl);
+    }
+
     .heroTitle {
         font-size: var(--font-size-3xl);
         flex-direction: column;

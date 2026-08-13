@@ -92,7 +92,7 @@
 .unit {
     font-size: var(--font-size-xs);
     color: var(--color-primary);
-    background: rgba(233, 69, 96, 0.12);
+    background: rgba(245, 158, 11, 0.12);
     padding: 1px 6px;
     border-radius: var(--border-radius-sm);
     font-weight: 600;

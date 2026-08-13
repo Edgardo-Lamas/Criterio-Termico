@@ -20,7 +20,6 @@ const PoliticaPrivacidad = lazy(() => import('./app/routes/PoliticaPrivacidad').
 
 function App() {
   const initAuth = useAuthStore(state => state.initAuth)
-  const isAuthenticated = useAuthStore(state => state.isAuthenticated)
 
   useEffect(() => {
     const unsubscribe = initAuth()
@@ -51,7 +50,11 @@ function App() {
           </Routes>
         </Suspense>
       </ErrorBoundary>
-      {isAuthenticated && <AsistenteTermico />}
+      {/* Siempre montado. Antes dependía de `isAuthenticated`, así que quien
+          entraba sin cuenta no veía la IA por ningún lado — justo lo que
+          distingue a la plataforma de una calculadora. El visitante pregunta con
+          una sesión anónima y un cupo bajo; ver ensureSesionParaAsistente. */}
+      <AsistenteTermico />
     </BrowserRouter>
   )
 }

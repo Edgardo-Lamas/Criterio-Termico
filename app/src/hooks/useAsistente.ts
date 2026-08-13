@@ -4,6 +4,8 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { ensureSesionParaAsistente } from '../stores/useAuthStore'
+import { useAsistenteUI } from '../stores/useAsistenteUI'
 
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 
@@ -42,6 +44,9 @@ export function useAsistente(): UseAsistente {
 
     const abortRef = useRef<AbortController | null>(null)
 
+    const preguntaPendiente = useAsistenteUI(s => s.preguntaPendiente)
+    const limpiarPregunta = useAsistenteUI(s => s.limpiar)
+
     // En el Simulador, cada consulta viaja con el resumen del proyecto abierto
     // (AsistenteTermico se monta dentro de BrowserRouter, así que hay Router).
     const location = useLocation()
@@ -65,6 +70,18 @@ export function useAsistente(): UseAsistente {
             abortRef.current?.abort()
         }
     }, [])
+
+    // Alguien pidió abrir el asistente con una pregunta ya escrita (las de la
+    // home). Se escribe en el campo en vez de enviarse sola: el que entra ve la
+    // pregunta antes de que salga y puede cambiarla — es su consulta, no un demo
+    // que se dispara solo.
+    useEffect(() => {
+        if (!preguntaPendiente) return
+
+        setOpen(true)
+        setInput(preguntaPendiente)
+        limpiarPregunta()
+    }, [preguntaPendiente, limpiarPregunta])
 
     const sendMessage = useCallback(async () => {
         const trimmed = input.trim()
@@ -94,10 +111,15 @@ export function useAsistente(): UseAsistente {
         abortRef.current = new AbortController()
 
         try {
-            // Obtener token JWT de la sesión activa
+            // El visitante sin cuenta también pregunta: si no hay sesión, se abre
+            // una anónima acá mismo. No es un login —el header sigue mostrando
+            // "Ingresar"— es el token que la Edge Function necesita para contar
+            // el uso y responder.
+            const listo = await ensureSesionParaAsistente()
             const { data: { session } } = await supabase.auth.getSession()
-            if (!session?.access_token) {
-                throw new Error('Sesión no válida. Iniciá sesión nuevamente.')
+
+            if (!listo || !session?.access_token) {
+                throw new Error('No se pudo abrir la conversación. Probá de nuevo en un momento.')
             }
 
             // Contexto del Simulador: se arma fresco en cada envío para que
