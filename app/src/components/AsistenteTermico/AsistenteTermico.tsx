@@ -1,9 +1,11 @@
 // Asistente técnico flotante "Criterio"
 // Botón FAB fijo en pantalla + panel de chat con streaming SSE.
-// Solo se monta si el usuario está autenticado (lo controla App.tsx).
+// Se monta SIEMPRE: el visitante sin cuenta también pregunta, con una sesión
+// anónima y un cupo bajo (ver ensureSesionParaAsistente en useAuthStore).
 
 import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
+import { MarkdownAsistente } from './MarkdownAsistente'
 import styles from './AsistenteTermico.module.css'
 import { Icon } from '../ui/Icon/Icon'
 
@@ -59,7 +61,13 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
             role="article"
             aria-label={isUser ? 'Tu mensaje' : 'Respuesta de Criterio'}
         >
-            {message.content}
+            {/* El asistente contesta en Markdown; el usuario escribe texto plano.
+                Mientras streamea, un `**` todavía sin cerrar se muestra tal cual
+                y pasa a negrita cuando llega el cierre — no hace falta esperar
+                al final de la respuesta para empezar a leerla bien. */}
+            {isUser
+                ? message.content
+                : <MarkdownAsistente texto={message.content} />}
             {showCursor && <span className={styles.cursor} aria-hidden="true">▋</span>}
         </div>
     )
