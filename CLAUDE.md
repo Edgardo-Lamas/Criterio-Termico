@@ -37,6 +37,29 @@ supabase functions deploy --all             # Deploy de todas las Edge Functions
 supabase gen types typescript --local       # Regenerar tipos TypeScript desde la BD
 ```
 
+⚠️ **El CLI se cuelga MUDO en shell no interactiva.** No puede leer el llavero,
+se queda esperando un login que nunca llega y no imprime nada: CPU en 0, sin
+conexiones de red, y parece que estuviera trabajando. Pasarle el token a mano:
+
+```bash
+export SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w \
+  | sed 's/^go-keyring-base64://' | base64 -d)
+```
+
+⚠️ **Aplicar migraciones a producción NO es `supabase db push`**: ese comando no
+acepta `--project-ref` y pide la contraseña de la base, así que también cuelga.
+Va por la Management API, con el mismo token:
+
+```bash
+python3 -c "import json;print(json.dumps({'query':open('supabase/migrations/X.sql').read()}))" > /tmp/mig.json
+curl -s -X POST "https://api.supabase.com/v1/projects/ntxkjtirkgqkjlzphvtd/database/query" \
+  -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" \
+  --data-binary @/tmp/mig.json     # devuelve [] cuando sale bien
+```
+
+Con `curl`, **no** con `urllib` de Python: Cloudflare bloquea su User-Agent (403,
+error 1010). El mismo endpoint sirve para consultar la base sin abrir el panel.
+
 ### Tests
 ```bash
 npm run test         # Tests unitarios (Vitest)
@@ -145,9 +168,17 @@ PORT=8000
 
 | Tier | Herramientas | IA/día |
 |---|---|---|
+| *(sin cuenta)* | prueba el asistente y nada más | 3 consultas |
 | `free` | Calculadora Potencia, 5 errores, índice manual | 10 consultas |
 | `pro` | + Diámetros, Caudal, Piso Radiante, Bombas | 50 consultas |
 | `premium` | + Simulador 2D, BIM, todo el manual | 200 consultas |
+
+El visitante sin cuenta usa una **sesión anónima de Supabase** (desde 2026-08-13):
+es una sesión real, así que el rate limiting y el RLS funcionan igual. ⚠ Una
+sesión anónima **no es un login** — el store la ignora a propósito y el header
+sigue mostrando "Ingresar". El cupo es bajo porque cada consulta se paga, pero
+el LARGO de la respuesta no se recorta: el que prueba sin cuenta se lleva la
+primera impresión del producto.
 
 El tier se guarda en la tabla `profiles.tier` y se controla con RLS en Supabase.
 **Nunca controlar acceso por tier en el frontend** — solo para mostrar UI.
@@ -159,22 +190,66 @@ La restricción real la hace la BD.
 
 | Función | Ruta | Descripción |
 |---|---|---|
-| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG sobre casos |
+| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber |
 | `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium, cupo 20/día) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago |
 | `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |
 
-### RAG del asistente (desde 2026-07-08)
+### Modelo de IA (desde 2026-08-14)
+
+Las dos funciones de IA corren **`claude-opus-5`** con pensamiento adaptativo en
+esfuerzo `medium`, SDK `@anthropic-ai/sdk@0.117.1`.
+
+⚠ **`max_tokens` topea PENSAMIENTO + RESPUESTA juntos.** Es el error que ya se
+cometió: con 512 las respuestas se cortaban a mitad sin dar ningún error. Hoy
+son 2048 (anónimo y free), 3072 (pro), 4096 (premium) y 8192 en `analizar-plano`.
+Si se sube el esfuerzo, subir también estos topes.
+
+### RAG del asistente (desde 2026-07-08, reescrito 2026-08-14)
+
 El asistente busca en `public.conocimiento` (pgvector, embeddings gte-small 384d
-generados en el Edge Runtime, costo cero) los fragmentos de casos más parecidos
-a la consulta y los inyecta en el system prompt. Para reindexar tras modificar
-casos en `src/content/errores/`:
-```bash
-node scripts/extraer-casos.mjs app/src/content/errores /tmp/casos.json
-# POST por lotes de ≤5 a /functions/v1/indexar-conocimiento con la service key
-# (lotes chicos: el runtime free se queda sin CPU con lotes grandes)
-```
+generados en el Edge Runtime, costo cero) los fragmentos más parecidos a la
+consulta: 40 candidatos → rondas por caso → 6 al prompt, tope 2 por caso.
+
+🔴 **Los fragmentos NO van en el system prompt.** Viajan como un mensaje de rol
+`system` al final de `messages`, detrás del turno del instalador. El motivo es
+la caché: la API cachea por PREFIJO, así que meter contenido variable adentro
+del system hacía que el prompt cambiara entero en cada consulta y la caché no
+pegara nunca. El system quedó estable (4 variantes: anónimo + los tres tiers) y
+marcado con `cache_control`. **No volver a meter nada variable ahí adentro.**
+
+🔴 **Los números duros van en el system prompt, no confiados al RAG.** La regla
+anti-invención no protege contra material que existe pero no se recuperó: el
+asistente dijo 3 cm de separación a la pared donde el manual dice 5, porque esa
+tabla nunca entró al contexto. Las separaciones del radiador, las fórmulas y la
+potencia por elemento viven en el prompt estable por eso.
+
+**Reindexar es automático**: el workflow `.github/workflows/reindex-rag.yml`
+corre en cada push a `main` que toque `app/src/content/errores/**`,
+`app/src/content/manual/**`, `ManualTecnico.tsx` o los scripts de extracción.
+También se dispara a mano desde la pestaña Actions. Sólo hace falta el POST
+manual a `indexar-conocimiento` (lotes de ≤5, el runtime free se queda sin CPU
+con lotes grandes) si se indexa material que no vive en esas rutas.
+
+### Bandeja de revisión (desde 2026-08-14)
+
+Las dos entradas por las que crece la base de conocimiento. Ninguna es que el
+instalador corrija el contenido: **criterio de Edgardo, no existe canal de
+"esto está mal"** — el crecimiento entra por casos, nunca por corrección.
+
+| Tabla | Qué guarda | RLS |
+|---|---|---|
+| `consultas_abiertas` | lo que el asistente declara no saber, con qué recuperó el RAG y su similitud | activo, **cero policies**: sólo service_role |
+| `contribuciones` | el caso que aporta el instalador | insert y select sobre lo propio; sin update ni delete |
+
+El asistente cierra con la marca `<<SIN_DOCUMENTAR>>` cuando escala; la función
+la detecta reteniendo la cola del stream y la borra antes de mandar el texto.
+**La señal la da el modelo, no un umbral de similitud del RAG** — la primera
+consulta registrada recuperó con similitud 0,891 y aun así no tenía la respuesta.
+
+⬜ Falta: enganchar `ContribucionForm` (hoy escribe en localStorage y muere ahí),
+la vista en `/panel` vía Edge Function con service_role, y el n8n que las levante.
 
 ---
 
@@ -259,7 +334,8 @@ chore:    tareas de mantenimiento (deps, config)
   son activo propio del proyecto. Siempre aplicar 15% de margen de seguridad.
 
 - **Contenido como código**: El manual (14 capítulos) y los casos de errores
-  (17 al 2026-07-24, con 149 subtemas anclados) están implementados como
+  (17 casos al 2026-08-14, con 151 anclas y 114 entradas en el índice temático —
+  contados contra el código, no de memoria) están implementados como
   componentes TSX nativos, sin CMS externo. **No usar cifras redondeadas hacia
   arriba acá ni en el sitio**: el "+200 errores" que se publicó durante meses
   no existía, y un instalador que se suscribe esperando eso concluye que se le
@@ -298,11 +374,18 @@ chore:    tareas de mantenimiento (deps, config)
   - MP envía cabecera `x-signature` con HMAC-SHA256. Debe verificarse antes de procesar.
   - Agregar env var `MP_WEBHOOK_SECRET` en Supabase Dashboard > Edge Functions.
 
-- [x] **[C-4] Contribuciones solo en localStorage — nunca llegan a la BD**
-  - Resuelto con Opción B (MVP): se sacó el punto de entrada (`ContributeSection` en
-    `ManualTecnico.tsx`). El store y `ContribucionForm.tsx` quedan sin uso, listos para
-    retomar con Opción A (tabla `contributions` + Storage) cuando haya un flujo real de
-    revisión/aprobación — hoy no hay panel de admin para procesarlas.
+- [ ] **[C-4] Contribuciones solo en localStorage — nunca llegan a la BD**
+  - 2026-07: parche provisorio (Opción B) — se sacó el punto de entrada
+    (`ContributeSection` en `ManualTecnico.tsx`); el store y `ContribucionForm.tsx`
+    quedaron sin uso porque no había flujo de revisión.
+  - 2026-08-14: **reabierto y a medio hacer.** Existe la tabla `contribuciones`
+    con RLS (ver «Bandeja de revisión» más arriba). Falta: enganchar el
+    formulario a la tabla, devolverle el punto de entrada, el Storage para fotos
+    y la vista de revisión en `/panel`.
+  - ⬜ **Bloqueante de producto, y es de Edgardo: qué gana el instalador que
+    aporta** (consultas al asistente / días de Pro / descuento). Sin eso el
+    cap. 14 no se publica —sería una promesa vacía— y el formulario pide sin
+    ofrecer nada.
 
 ### Día 1 — Calidad mínima de SaaS
 
@@ -374,10 +457,40 @@ chore:    tareas de mantenimiento (deps, config)
     `calculateBoilerPower`, `kcalToKw`/`kwToKcal` — factores térmicos, ajustes que
     suman (no multiplican), redondeo, división por cero y casos en 0.
 
-### Notas para la próxima sesión de trabajo
+### Estado real al 2026-08-14
 
-- El proyecto tiene **stack confirmado**: React 19 + TypeScript + Vite + Supabase + GitHub Pages.
-- No hay tests en absoluto en el proyecto (cero archivos `.test.ts` / `.spec.ts`).
-- La migración `ai_usage` es el primer paso obligatorio — sin eso nada del asistente funciona.
-- El webhook de MP es el segundo paso — es un riesgo de fraude activo desde el día 1.
-- El resto puede ir iterando, pero en ese orden.
+Este bloque decía, hasta hoy, que no había tests y que el hosting era GitHub
+Pages. Las dos cosas eran falsas hacía más de un mes: **si algo de acá no
+coincide con el código, gana el código, y se corrige este archivo en la misma
+sesión.**
+
+**Salud:** typecheck limpio, lint 0 errores (7 warnings viejos de
+`exhaustive-deps` en el Simulador), **186 tests en 14 archivos**, build ~7 s,
+producción al día.
+
+**Lo que está resuelto:** hosting en Vercel, `ai_usage` con RPC atómica, webhook
+de MP con verificación HMAC, RAG con reindexado automático, asistente en Opus 5
+abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
+
+**Lo que sigue abierto, en orden:**
+
+1. ⬜ **Cerrar la bandeja** — enganchar `ContribucionForm` a `contribuciones`,
+   la vista en `/panel` (vía Edge Function con service_role: el gate por email
+   del panel es de frontend y no alcanza para datos de instaladores) y el n8n.
+2. 🔴 **Test end-to-end de MercadoPago en sandbox.** Nunca se hizo y van a
+   cobrar. Los secrets `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` tampoco están
+   cargados en Supabase.
+3. ⬜ **Activar el filtro por tier del RAG.** La columna `conocimiento.tier`
+   está poblada pero el filtro no está encendido — decisión de Edgardo, se
+   enciende antes de empezar a cobrar (es pasarle el tier a `match_conocimiento`).
+4. ⬜ **SMTP real antes del lanzamiento.** Hoy `mailer_autoconfirm=true`: el
+   registro no verifica el email porque no hay servidor de correo.
+5. ⬜ **Auditar los 17 casos con Edgardo**, empezando por los de tier pro. Ya
+   apareció contenido técnico mal en tier pago más de una vez.
+6. ⬜ **Cap. 14 y las 5 fotos del manual** — los dos esperan material de él.
+
+⚠️ **Cuando hay que confirmar un número técnico, la fuente es Edgardo, no una
+fuente general ni el razonamiento propio.** Está en la skill
+`criterio-termico-obra`, junto con la separación entre lo que es **fondo**
+(ingeniería: se afirma) y lo que es **forma** (ejecución: hay varias maneras
+válidas y no se corona ninguna).
