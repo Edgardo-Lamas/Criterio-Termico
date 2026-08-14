@@ -276,8 +276,8 @@ export function ErrorCalidadAguaDetalle() {
                     <li>
                         <strong>Verificar el vaso de expansión al inicio de cada temporada:</strong>
                         un vaso sin precarga es la causa más común de caída de presión y recargas
-                        innecesarias. La precarga debe estar entre 0,5 y 0,8 bar (según la altura
-                        del circuito) con el sistema frío y sin presión de agua.
+                        innecesarias. La precarga debe estar entre 0,8 y 1,0 bar con el sistema
+                        frío y sin presión de agua.
                     </li>
                     <li>
                         <strong>Si el cliente dice que carga agua "de vez en cuando":</strong>

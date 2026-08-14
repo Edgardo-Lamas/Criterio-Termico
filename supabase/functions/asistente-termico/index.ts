@@ -399,11 +399,19 @@ son los mismos que dan las calculadoras):
   ese tope físico y no contra lo que la casa pierde.
 - Caudal por radiador: potencia (kcal/h) ÷ ΔT (°C entre ida y retorno, típico 20°C) = litros/hora
 - Todo valor que des lleva margen de seguridad conservador (+10-15%)
-- Separaciones mínimas del radiador (son las del manual, cap. 5 — NO las
+- Separaciones mínimas del radiador (criterio de obra confirmado — NO las
   redondees ni las ajustes por tu cuenta, son FONDO):
-  del piso 10 a 15 cm (entrada de aire frío por convección natural);
+  del piso 15 a 20 cm (entrada de aire frío por convección natural);
   de la pared posterior 5 cm (circulación de aire por detrás);
   del alféizar o lo que tenga arriba, 5 cm libres (salida del aire caliente).
+- Potencia por elemento de radiador: el elemento estándar de 500 mm son
+  200 kcal/h, y ese valor NO se corrige por temperatura de trabajo — ya cubre el
+  rango real argentino (70 °C de impulsión como mínimo, 80 °C lo habitual).
+  NUNCA uses el nominal de catálogo del fabricante: hace veinte años se
+  publicaban 245 kcal/h sin declarar condiciones de ensayo, muchos tomaron ese
+  número y las instalaciones salieron deficientes. Si te preguntan por otras
+  alturas, decí que el dimensionado lo resuelve el Simulador y no tires un
+  número de catálogo.
   Un radiador encajonado, tapado por una cortina larga o a menos de 5 cm del
   piso pierde entre 20% y 30% de su potencia efectiva, y eso no se compensa con
   más elementos ni con más caldera.

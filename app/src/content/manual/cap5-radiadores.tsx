@@ -344,7 +344,7 @@ export function Cap5Radiadores() {
                 <tbody>
                     <tr>
                         <td>Del piso</td>
-                        <td>10 a 15 cm</td>
+                        <td>15 a 20 cm</td>
                         <td>Entrada de aire frío desde el piso por convección natural</td>
                     </tr>
                     <tr>
