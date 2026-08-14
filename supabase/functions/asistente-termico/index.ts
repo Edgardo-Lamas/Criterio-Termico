@@ -3,7 +3,7 @@
 // Gestiona autenticación, rate limiting por tier y streaming SSE.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.39.0'
+import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.117.1'
 
 // Global del Edge Runtime de Supabase (no viene tipado en el SDK)
 declare const Supabase: {
@@ -32,19 +32,50 @@ interface Message {
     content: string
 }
 
-// ── Configuración por tier ────────────────────────────────────────────────────
-
-const TIER_CONFIG: Record<Tier, TierConfig> = {
-    free:    { maxRequestsPerDay: 10,  maxTokens: 512  },
-    pro:     { maxRequestsPerDay: 50,  maxTokens: 1024 },
-    premium: { maxRequestsPerDay: 200, maxTokens: 2048 },
+/**
+ * Mensaje tal como se le manda al modelo. Además de los turnos de la
+ * conversación admite el rol `system`, que es cómo se le pasa el contexto de
+ * ESTA consulta sin tocar el prompt de sistema (ver `construirContextoConsulta`).
+ */
+interface MensajeModelo {
+    role: 'user' | 'assistant' | 'system'
+    content: string
 }
 
-// Visitante sin cuenta (sesión anónima de Supabase). Alcanza para que pruebe el
-// asistente con una duda real de obra, y es un tope bajo a propósito: son
-// consultas que se pagan a la API y cualquiera puede abrir una sesión anónima.
+// ── Configuración por tier ────────────────────────────────────────────────────
+
+// ⚠ `maxTokens` topea PENSAMIENTO + RESPUESTA juntos: el modelo piensa antes de
+// escribir y las dos cosas salen del mismo presupuesto. Con los 512 que había
+// acá las respuestas se cortaban a mitad de la solución sin dar ningún error
+// —la respuesta simplemente se terminaba— y eso ya pasaba sin pensamiento.
+// Estos números dejan aire de sobra: no se paga el tope, se paga lo generado.
+const TIER_CONFIG: Record<Tier, TierConfig> = {
+    free:    { maxRequestsPerDay: 10,  maxTokens: 2048 },
+    pro:     { maxRequestsPerDay: 50,  maxTokens: 3072 },
+    premium: { maxRequestsPerDay: 200, maxTokens: 4096 },
+}
+
+// Visitante sin cuenta (sesión anónima de Supabase). El cupo es bajo a
+// propósito —son consultas que se pagan a la API y cualquiera puede abrir una
+// sesión anónima—, pero el LARGO de la respuesta no se recorta: el que prueba
+// sin cuenta se lleva la primera impresión del oficio y una respuesta cortada
+// a mitad es peor que no contestar.
 // El alta anónima además tiene su propio límite en Supabase (30/hora por IP).
-const ANON_CONFIG: TierConfig = { maxRequestsPerDay: 3, maxTokens: 512 }
+const ANON_CONFIG: TierConfig = { maxRequestsPerDay: 3, maxTokens: 2048 }
+
+// ── Modelo ────────────────────────────────────────────────────────────────────
+
+const MODELO = 'claude-opus-5'
+
+/**
+ * Cuánto piensa el modelo antes de contestar (`low`…`max`).
+ *
+ * `medium` es el punto de equilibrio para un chat: en Opus 5 los niveles bajos
+ * rinden muy por encima de lo que rendían en modelos anteriores, y cada escalón
+ * de más son segundos de silencio antes de que aparezca la primera palabra.
+ * Es una perilla: si alguna respuesta sale corta de criterio, se sube a `high`.
+ */
+const ESFUERZO = 'medium' as const
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
@@ -200,9 +231,7 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 
-        return `
-
-CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
+        return `CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
 ${fragmentos}
 
 Cuando la consulta coincida con este material, basá tu respuesta en él y citá la
@@ -223,9 +252,7 @@ fragmento no aplica realmente a la consulta, ignoralo.`
 
 function formatearContextoSimulador(contexto: string): string {
     if (!contexto) return ''
-    return `
-
-PROYECTO ABIERTO EN EL SIMULADOR 2D (estado actual del diseño del instalador, generado por la plataforma al momento de esta consulta):
+    return `PROYECTO ABIERTO EN EL SIMULADOR 2D (estado actual del diseño del instalador, generado por la plataforma al momento de esta consulta):
 ${contexto}
 
 CÓMO USAR ESTE CONTEXTO:
@@ -237,9 +264,41 @@ CÓMO USAR ESTE CONTEXTO:
 - Si la consulta no tiene relación con el proyecto, respondé normal sin forzar el contexto`
 }
 
-// ── System prompt de Criterio ─────────────────────────────────────────────────
+// ── Contexto de ESTA consulta ─────────────────────────────────────────────────
+// Todo lo que cambia consulta a consulta —el nombre del instalador, el proyecto
+// abierto en el Simulador y los fragmentos que trajo el RAG— viaja acá y NO en
+// el prompt de sistema.
+//
+// El motivo es la caché de prompt: la API cachea por PREFIJO, así que un solo
+// byte distinto al principio invalida todo lo que viene después. Con los
+// fragmentos del RAG metidos adentro del system, el prompt cambiaba entero en
+// cada consulta y la caché no pegaba nunca — se pagaba la entrada completa
+// siempre. Sacándolos, el system queda idéntico para todos (4 variantes: anónimo
+// y los tres tiers) y a partir de la segunda consulta se lee de caché a ~1/10.
+//
+// El rol `system` a mitad de conversación —en vez de pegar esto en el mensaje
+// del instalador— es además el canal correcto: son instrucciones de la
+// plataforma, no texto escrito por el usuario, y se leen con esa autoridad.
 
-function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, contextoSimulador: string, esAnonimo = false): string {
+function construirContextoConsulta(
+    userName: string,
+    esAnonimo: boolean,
+    contextoSimulador: string,
+    ragContext: string,
+): string {
+    const partes: string[] = []
+    if (!esAnonimo) partes.push(`El instalador con el que estás hablando se llama ${userName}.`)
+    const simulador = formatearContextoSimulador(contextoSimulador)
+    if (simulador) partes.push(simulador)
+    if (ragContext) partes.push(ragContext)
+    return partes.join('\n\n')
+}
+
+// ── System prompt de Criterio ─────────────────────────────────────────────────
+// Estable a propósito: solo depende del tier y de si hay cuenta. Cualquier dato
+// que cambie por consulta va en `construirContextoConsulta`, no acá.
+
+function buildSystemPrompt(tier: Tier, esAnonimo = false): string {
     const herramientasDisponibles = [
         '- Calculadora de Potencia (gratis): calcula la potencia térmica por ambiente',
         ...(tier !== 'free' ? [
@@ -261,7 +320,7 @@ function buildSystemPrompt(tier: Tier, userName: string, ragContext: string, con
 
 ${esAnonimo
             ? `Estás hablando con alguien que entró al sitio y todavía no tiene cuenta. Respondé su consulta técnica completa, igual que a cualquiera: la primera impresión del oficio se gana contestando bien, no reservando la respuesta. No le pidas que se registre ni menciones planes — de eso se encarga la aplicación.`
-            : `Estás hablando con ${userName}, un instalador con tier ${tier}.`}
+            : `Estás hablando con un instalador con tier ${tier}.`}
 
 TU ROL:
 Ayudar a instaladores a resolver dudas técnicas, interpretar resultados de calculadoras y diagnosticar problemas en instalaciones de calefacción hidrónica. Hablás como un colega experimentado con años en obra, no como un chatbot genérico ni como un académico.
@@ -327,7 +386,11 @@ LIMITACIONES QUE MENCIONÁS CUANDO APLICAN:
   gas en sí (conexión de artefactos, modificación o extensión de cañerías de gas,
   habilitaciones y certificaciones) debe ser ejecutada o certificada por un gasista
   matriculado según normativa ENARGAS — aclaralo cuando la consulta implique ese tipo
-  de intervención, sin negarte a explicar la parte técnica${formatearContextoSimulador(contextoSimulador)}${ragContext}`
+  de intervención, sin negarte a explicar la parte técnica
+
+FORMATO DE LA RESPUESTA:
+No incluyas etiquetas XML internas o de sistema en tu respuesta: el instalador
+lee sólo lo que escribís, en Markdown.`
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -473,11 +536,39 @@ Deno.serve(async (req: Request): Promise<Response> => {
             apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
         })
 
+        // El contexto de la consulta viaja como mensaje de sistema al final, detrás
+        // del turno del instalador: así el prompt de sistema queda estable y la
+        // caché pega. La API exige que un mensaje de sistema a mitad de conversación
+        // venga después de un turno de usuario — el frontend siempre cierra con la
+        // pregunta nueva, pero si alguna vez no fuera así se cae al camino viejo
+        // (contexto dentro del system) antes que rechazar la consulta.
+        const contextoConsulta = construirContextoConsulta(userName, esAnonimo, contextoSimulador, ragContext)
+        const cierraElInstalador = sanitizedMessages[sanitizedMessages.length - 1].role === 'user'
+
+        const mensajesParaModelo: MensajeModelo[] = [...sanitizedMessages]
+        if (contextoConsulta && cierraElInstalador) {
+            mensajesParaModelo.push({ role: 'system', content: contextoConsulta })
+        }
+
+        const systemPrompt = buildSystemPrompt(tier, esAnonimo)
+            + (contextoConsulta && !cierraElInstalador ? `\n\n${contextoConsulta}` : '')
+
         const stream = await anthropic.messages.stream({
-            model: 'claude-sonnet-4-6',
+            model: MODELO,
             max_tokens: tierConfig.maxTokens,
-            system: buildSystemPrompt(tier, userName, ragContext, contextoSimulador, esAnonimo),
-            messages: sanitizedMessages,
+            // En Opus 5 el pensamiento viene encendido por defecto; se declara
+            // explícito para que se lea en el código y no dependa del default.
+            thinking: { type: 'adaptive' },
+            output_config: { effort: ESFUERZO },
+            // El bloque de sistema se marca para caché: es el mismo texto en todas
+            // las consultas del tier, así que a partir de la segunda se lee a ~1/10
+            // del precio de entrada en lugar de reprocesarse entero.
+            system: [{
+                type: 'text',
+                text: systemPrompt,
+                cache_control: { type: 'ephemeral' },
+            }],
+            messages: mensajesParaModelo,
         })
 
         // ── 7. Stream SSE al frontend ────────────────────────────────────────

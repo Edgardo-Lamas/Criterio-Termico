@@ -54,6 +54,10 @@ interface BubbleProps {
 function Bubble({ message, isLast, streaming }: BubbleProps) {
     const isUser = message.role === 'user'
     const showCursor = !isUser && isLast && streaming && message.content.length > 0
+    // El modelo razona antes de escribir, así que entre el envío y la primera
+    // palabra hay unos segundos con la burbuja vacía. Sin esto se lee como que
+    // la consulta se perdió.
+    const pensando = !isUser && isLast && streaming && message.content.length === 0
 
     return (
         <div
@@ -67,7 +71,15 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
                 al final de la respuesta para empezar a leerla bien. */}
             {isUser
                 ? message.content
-                : <MarkdownAsistente texto={message.content} />}
+                : pensando
+                    ? (
+                        <span className={styles.pensando} role="status" aria-label="Criterio está pensando la respuesta">
+                            <span className={styles.punto} />
+                            <span className={styles.punto} />
+                            <span className={styles.punto} />
+                        </span>
+                    )
+                    : <MarkdownAsistente texto={message.content} />}
             {showCursor && <span className={styles.cursor} aria-hidden="true">▋</span>}
         </div>
     )
