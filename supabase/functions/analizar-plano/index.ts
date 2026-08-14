@@ -6,7 +6,7 @@
 // puerta. Solo Premium; se cuenta contra el uso diario de IA como el asistente.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.39.0'
+import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.117.1'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -208,11 +208,23 @@ Deno.serve(async (req: Request): Promise<Response> => {
             apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
         })
 
-        // Sonnet tiene buena visión y mantiene el costo del análisis acotado;
-        // si aparecen planos difíciles se puede subir a un modelo mayor.
+        // Opus 5 lee la imagen a 2576 px de lado largo, contra los 1568 del
+        // modelo anterior. En un plano eso es la diferencia entre leer las cotas
+        // ("2.55", "3.00" en tipografía chica sobre las líneas de medida) y
+        // tener que estimarlas — que es justo el dato que más se equivocaba.
+        // El frontend manda el plano sin redimensionar, así que la resolución
+        // extra se aprovecha sola.
+        //
+        // ⚠ `max_tokens` topea pensamiento + respuesta juntos: el modelo razona
+        // sobre el plano (encadenar cotas y sacar áreas es aritmética, no sólo
+        // percepción) y recién después escribe el JSON. Con los 2048 de antes
+        // el JSON se cortaba a mitad de la lista de ambientes y el análisis
+        // entero se caía en el parseo.
         const response = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 2048,
+            model: 'claude-opus-5',
+            max_tokens: 8192,
+            thinking: { type: 'adaptive' },
+            output_config: { effort: 'medium' },
             system: buildSystemPrompt(nombres),
             messages: [{
                 role: 'user',
