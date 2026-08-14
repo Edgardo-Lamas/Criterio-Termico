@@ -77,6 +77,18 @@ const MODELO = 'claude-opus-5'
  */
 const ESFUERZO = 'medium' as const
 
+/**
+ * Marca que el asistente escribe al final cuando declara que una consulta no
+ * está documentada. La función la detecta para registrar el hueco y la BORRA
+ * antes de mandar el texto al chat: el instalador nunca la ve.
+ *
+ * La señal la da el modelo y no la similitud del RAG, porque son cosas
+ * distintas: ante el código F75 de Vaillant el RAG recupera con buena similitud
+ * las tablas de PEISA y CALDAIA —son códigos de falla, se parecen— y aun así la
+ * respuesta no está. Quien sabe que no la tiene es el que la contesta.
+ */
+const MARCA_SIN_DOCUMENTAR = '<<SIN_DOCUMENTAR>>'
+
 // ── CORS ──────────────────────────────────────────────────────────────────────
 // ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
 // Centraliza el dominio permitido para no hardcodear el host del frontend
@@ -179,7 +191,29 @@ function diversificarPorFuente(fragmentos: FragmentoConocimiento[]): FragmentoCo
     return elegidos
 }
 
-async function buscarConocimiento(consulta: string): Promise<string> {
+/** Cliente con service_role: saltea RLS. Nunca se expone al navegador. */
+function clienteAdmin() {
+    return createClient(
+        Deno.env.get('SUPABASE_URL')!,
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    )
+}
+
+/**
+ * Lo que devuelve la búsqueda: el bloque listo para el prompt, y además QUÉ
+ * encontró. Eso último no es para el modelo — es para poder distinguir después
+ * dos causas que desde afuera se ven igual: que el material no exista, o que
+ * exista y no se haya recuperado.
+ */
+interface ResultadoRag {
+    texto: string
+    fuentes: string[]
+    similitudMax: number | null
+}
+
+const RAG_VACIO: ResultadoRag = { texto: '', fuentes: [], similitudMax: null }
+
+async function buscarConocimiento(consulta: string): Promise<ResultadoRag> {
     try {
         const embedding = await embedder.run(consulta.slice(0, 1500), {
             mean_pool: true,
@@ -187,10 +221,7 @@ async function buscarConocimiento(consulta: string): Promise<string> {
         })
 
         // Cliente service_role: match_conocimiento no es ejecutable por anon/authenticated
-        const admin = createClient(
-            Deno.env.get('SUPABASE_URL')!,
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-        )
+        const admin = clienteAdmin()
 
         // Se piden MUCHOS candidatos y después se recorta con un tope por caso.
         // Antes se pedían 4 y se usaban los 4: como un caso aporta hasta 10
@@ -205,7 +236,7 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             min_similarity: 0.35,
         })
 
-        if (error || !data || data.length === 0) return ''
+        if (error || !data || data.length === 0) return RAG_VACIO
 
         const ETIQUETA_TIPO: Record<string, string> = {
             caso: 'Caso documentado en la sección Errores Frecuentes',
@@ -231,17 +262,21 @@ async function buscarConocimiento(consulta: string): Promise<string> {
             .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 
-        return `CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
+        return {
+            texto: `CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
 ${fragmentos}
 
 Cuando la consulta coincida con este material, basá tu respuesta en él y citá la
 fuente tal como está etiquetada (caso de Errores Frecuentes, manual del fabricante,
 documentación técnica o criterio de oficio), nombrándola por su título. Si algún
-fragmento no aplica realmente a la consulta, ignoralo.`
+fragmento no aplica realmente a la consulta, ignoralo.`,
+            fuentes: elegidos.map(f => f.source_id),
+            similitudMax: candidatos[0]?.similarity ?? null,
+        }
     } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
         console.error('[asistente-termico] RAG no disponible:', detail)
-        return ''
+        return RAG_VACIO
     }
 }
 
@@ -430,6 +465,11 @@ criterio de oficio", que es improvisar con una etiqueta puesta.
   dejar mal parado al que preguntó algo que todavía no está escrito.
 - Nunca uses "no lo tengo documentado" como pie para tirar el dato igual. Si no lo
   tenés, no lo tenés.
+- Cuando contestes que no la tenés documentada, terminá con la marca
+  ${MARCA_SIN_DOCUMENTAR} sola en la última línea. Es lo que hace que esa consulta le
+  llegue de verdad a quien la va a estudiar — sin eso, "la llevo para estudiarla"
+  sería una promesa vacía. La plataforma la borra antes de mostrar tu respuesta:
+  el instalador nunca la ve. Si contestaste normal, no la pongas.
 
 DÓNDE ESTÁ LA LÍNEA:
 - Contestás normal el oficio establecido y las fórmulas de arriba: cómo se purga un
@@ -456,6 +496,41 @@ LIMITACIONES QUE MENCIONÁS CUANDO APLICAN:
 FORMATO DE LA RESPUESTA:
 No incluyas etiquetas XML internas o de sistema en tu respuesta: el instalador
 lee sólo lo que escribís, en Markdown.`
+}
+
+// ── Registro del hueco ────────────────────────────────────────────────────────
+// Cuando el asistente declara que una consulta no está documentada, la consulta
+// queda anotada para que Edgardo la estudie y la escriba. Ese caso nuevo entra a
+// `content/errores/`, el reindexado automático lo indexa y el asistente ya la
+// contesta: es el circuito que hace crecer la base.
+//
+// Nunca rompe la consulta: si el registro falla, el instalador ya recibió su
+// respuesta y lo único que se pierde es una anotación.
+
+async function registrarConsultaAbierta(datos: {
+    userId: string
+    esAnonimo: boolean
+    tier: Tier
+    pregunta: string
+    respuesta: string
+    rag: ResultadoRag
+}): Promise<void> {
+    try {
+        const { error } = await clienteAdmin().from('consultas_abiertas').insert({
+            user_id: datos.userId,
+            es_anonimo: datos.esAnonimo,
+            tier: datos.esAnonimo ? null : datos.tier,
+            pregunta: datos.pregunta,
+            respuesta: datos.respuesta,
+            rag_fuentes: datos.rag.fuentes,
+            rag_similitud_max: datos.rag.similitudMax,
+        })
+        if (error) throw new Error(error.message)
+        console.log(`[bandeja] consulta sin documentar registrada | rag_max=${datos.rag.similitudMax ?? 'nada'}`)
+    } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        console.error('[bandeja] no se pudo registrar la consulta abierta:', detail)
+    }
 }
 
 // ── Handler principal ─────────────────────────────────────────────────────────
@@ -594,7 +669,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const ultimoMensajeUsuario = [...sanitizedMessages]
             .reverse()
             .find(m => m.role === 'user')?.content ?? ''
-        const ragContext = await buscarConocimiento(ultimoMensajeUsuario)
+        const rag = await buscarConocimiento(ultimoMensajeUsuario)
+        const ragContext = rag.texto
 
         // ── 7. Llamar a Anthropic con streaming ──────────────────────────────
         const anthropic = new Anthropic({
@@ -639,19 +715,54 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // ── 7. Stream SSE al frontend ────────────────────────────────────────
         const encoder = new TextEncoder()
 
+        // Cuánto texto se retiene antes de emitir. La marca va al final, así que
+        // guardando su largo (más aire para saltos de línea) se garantiza que no
+        // salga al chat ni siquiera partida entre dos chunks. Son ~26 caracteres:
+        // invisible para el que lee.
+        const COLA_RETENIDA = MARCA_SIN_DOCUMENTAR.length + 8
+
         const readable = new ReadableStream({
             async start(controller) {
+                let acumulado = ''   // todo lo que escribió el modelo
+                let emitido = 0      // cuánto de eso ya salió al chat
+
+                const emitir = (texto: string) => {
+                    if (!texto) return
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: texto })}\n\n`))
+                }
+
                 try {
                     for await (const chunk of stream) {
                         if (
                             chunk.type === 'content_block_delta' &&
                             chunk.delta.type === 'text_delta'
                         ) {
-                            const data = JSON.stringify({ text: chunk.delta.text })
-                            controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+                            acumulado += chunk.delta.text
+                            const hasta = acumulado.length - COLA_RETENIDA
+                            if (hasta > emitido) {
+                                emitir(acumulado.slice(emitido, hasta))
+                                emitido = hasta
+                            }
                         }
                     }
+
+                    const sinDocumentar = acumulado.includes(MARCA_SIN_DOCUMENTAR)
+                    const respuesta = acumulado.replaceAll(MARCA_SIN_DOCUMENTAR, '').trimEnd()
+
+                    // Lo que quedaba retenido, ya sin la marca.
+                    emitir(respuesta.slice(emitido))
                     controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+
+                    if (sinDocumentar) {
+                        await registrarConsultaAbierta({
+                            userId: user.id,
+                            esAnonimo,
+                            tier,
+                            pregunta: ultimoMensajeUsuario,
+                            respuesta,
+                            rag,
+                        })
+                    }
                 } catch (streamError) {
                     const errData = JSON.stringify({ error: 'Error en el stream' })
                     controller.enqueue(encoder.encode(`data: ${errData}\n\n`))
