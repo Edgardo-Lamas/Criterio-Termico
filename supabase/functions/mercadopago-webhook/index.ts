@@ -11,8 +11,18 @@
  *
  * CONFIGURAR EN MP:
  *   URL: https://ntxkjtirkgqkjlzphvtd.supabase.co/functions/v1/mercadopago-webhook
- *   Eventos: subscription_preapproval
+ *   Eventos: subscription_preapproval  Y  subscription_authorized_payment
  *   https://www.mercadopago.com.ar/developers/panel/webhooks
+ *
+ *   ⚠ Los DOS eventos, no uno. El primero avisa del alta y de cada cambio de
+ *   estado; el segundo, de cada cobro mensual. Con sólo el primero, a un
+ *   instalador al que le rebota la tarjeta el segundo mes no se le entera
+ *   nadie hasta que MP dé la suscripción por vencida.
+ *
+ *   ⚠ Este webhook va en una APLICACIÓN PROPIA de MP, no en la del sitio: al
+ *   guardar la configuración de webhooks MP emite una clave secreta nueva y
+ *   descarta la anterior, así que tocar la del sitio le rompe el cobro de
+ *   repuestos, que ya factura.
  *
  * 🔴 DESPLEGAR SIN VERIFICACIÓN DE JWT:
  *     supabase functions deploy mercadopago-webhook --no-verify-jwt
@@ -23,7 +33,7 @@
  * TIERS VÁLIDOS en external_reference: "userId|pro" o "userId|premium"
  */
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const MP_ACCESS_TOKEN       = Deno.env.get('MP_ACCESS_TOKEN') ?? ''
 const MP_WEBHOOK_SECRET     = Deno.env.get('MP_WEBHOOK_SECRET') ?? ''
@@ -96,6 +106,119 @@ async function verifySignature(req: Request, dataId: string | null): Promise<boo
     return comparacionSegura(expected, v1)
 }
 
+// ── Consultas a MercadoPago ───────────────────────────────────────────────────
+
+async function mpGet(ruta: string): Promise<Record<string, unknown> | null> {
+    const res = await fetch(`https://api.mercadopago.com${ruta}`, {
+        headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
+    })
+    if (!res.ok) {
+        console.error(`[webhook] MP ${ruta} devolvió ${res.status}`)
+        return null
+    }
+    return await res.json()
+}
+
+// ── El tier sale de la tabla, no del aviso ────────────────────────────────────
+//
+// Un usuario puede tener más de una suscripción: la vieja que canceló y la
+// nueva que acaba de pagar. Si el tier se escribiera con el estado del último
+// aviso, el aviso de la cancelada dejaría en `free` a alguien que está al día
+// —y los avisos de MP además pueden llegar fuera de orden—. Así que se
+// recalcula: vale el tier más alto entre las suscripciones autorizadas, y si
+// no queda ninguna, `free`.
+
+async function recalcularTier(supabase: SupabaseClient, userId: string): Promise<string> {
+    const { data, error } = await supabase
+        .from('suscripciones')
+        .select('tier')
+        .eq('user_id', userId)
+        .eq('estado', 'authorized')
+
+    if (error) throw new Error(`leyendo suscripciones: ${error.message}`)
+
+    const tiers = new Set((data ?? []).map((fila: { tier: string }) => fila.tier))
+    const tier = tiers.has('premium') ? 'premium' : tiers.has('pro') ? 'pro' : 'free'
+
+    const { error: errorPerfil } = await supabase
+        .from('profiles')
+        .update({ tier })
+        .eq('id', userId)
+
+    if (errorPerfil) throw new Error(`actualizando perfil: ${errorPerfil.message}`)
+
+    return tier
+}
+
+/**
+ * Vuelve a preguntarle a MP en qué estado está la suscripción y deja la base
+ * igual a esa respuesta.
+ *
+ * No se deduce nada del cuerpo del aviso: puede llegar duplicado, tarde o
+ * desordenado. El aviso sólo dice QUÉ mirar; el estado lo dice MP.
+ */
+async function sincronizar(
+    preapprovalId: string,
+    pago: { fecha: string | null; estado: string | null } | null,
+): Promise<Response> {
+    const suscripcion = await mpGet(`/preapproval/${preapprovalId}`)
+    if (!suscripcion) {
+        // 500 a propósito: MP reintenta, y un fallo de red no puede quedar
+        // como si la suscripción no existiera.
+        return new Response('MP error', { status: 500 })
+    }
+
+    // external_reference = "userId|tier"
+    const externalRef = String(suscripcion.external_reference ?? '')
+    const [userId, tier] = externalRef.split('|')
+
+    if (!userId || !tier || !VALID_TIERS.has(tier)) {
+        console.error('[webhook] external_reference inválido:', externalRef)
+        return new Response('Bad reference', { status: 400 })
+    }
+
+    const estado = String(suscripcion.status ?? 'unknown')
+    const recurrente = (suscripcion.auto_recurring ?? {}) as Record<string, unknown>
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+    const fila: Record<string, unknown> = {
+        user_id: userId,
+        preapproval_id: preapprovalId,
+        tier,
+        estado,
+        monto: recurrente.transaction_amount ?? null,
+        moneda: recurrente.currency_id ?? null,
+        proximo_cobro_at: suscripcion.next_payment_date ?? null,
+        actualizada_at: new Date().toISOString(),
+    }
+
+    // Los datos del cobro sólo se pisan cuando el aviso ES de un cobro: un
+    // cambio de estado no puede borrar la fecha del último pago.
+    if (pago) {
+        fila.ultimo_pago_at = pago.fecha
+        fila.ultimo_pago_estado = pago.estado
+    }
+
+    const { error } = await supabase
+        .from('suscripciones')
+        .upsert(fila, { onConflict: 'preapproval_id' })
+
+    if (error) {
+        console.error('[webhook] Error guardando la suscripción:', error)
+        return new Response('DB error', { status: 500 })
+    }
+
+    const tierFinal = await recalcularTier(supabase, userId)
+
+    console.log(
+        `[webhook] ${preapprovalId} → estado MP: ${estado}` +
+        (pago ? ` · cobro ${pago.estado}` : '') +
+        ` · usuario ${userId} queda en tier: ${tierFinal}`,
+    )
+    return new Response('OK', { status: 200 })
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -121,49 +244,40 @@ Deno.serve(async (req) => {
     try {
         const body = await req.json()
         const { type, data } = body
+        const id = String(data?.id ?? dataIdDelQuery ?? '')
 
-        // Solo procesamos suscripciones
-        if (type !== 'subscription_preapproval') {
-            return new Response('OK', { status: 200 })
+        if (!id) {
+            console.error('[webhook] Aviso sin id:', JSON.stringify(body))
+            return new Response('Bad request', { status: 400 })
         }
 
-        // Consultar detalles de la suscripción en MP
-        const mpRes = await fetch(`https://api.mercadopago.com/preapproval/${data.id}`, {
-            headers: { Authorization: `Bearer ${MP_ACCESS_TOKEN}` },
-        })
-
-        if (!mpRes.ok) {
-            console.error('[webhook] No se pudo consultar la suscripción:', data.id)
-            return new Response('MP error', { status: 500 })
+        // Alta de la suscripción y cada cambio de estado.
+        if (type === 'subscription_preapproval') {
+            return await sincronizar(id, null)
         }
 
-        const subscription = await mpRes.json()
+        // Cada cobro mensual. El aviso trae el id de la FACTURA, no el de la
+        // suscripción: hay que pedirla para saber a qué suscripción pertenece.
+        if (type === 'subscription_authorized_payment') {
+            const factura = await mpGet(`/authorized_payments/${id}`)
+            if (!factura) return new Response('MP error', { status: 500 })
 
-        // external_reference = "userId|tier"
-        const externalRef: string = subscription.external_reference ?? ''
-        const [userId, tier] = externalRef.split('|')
+            const preapprovalId = String(factura.preapproval_id ?? '')
+            if (!preapprovalId) {
+                console.error('[webhook] Factura sin preapproval_id:', id)
+                return new Response('Bad reference', { status: 400 })
+            }
 
-        if (!userId || !tier || !VALID_TIERS.has(tier)) {
-            console.error('[webhook] external_reference inválido:', externalRef)
-            return new Response('Bad reference', { status: 400 })
+            const detallePago = (factura.payment ?? {}) as Record<string, unknown>
+            return await sincronizar(preapprovalId, {
+                fecha: (factura.date_created as string) ?? null,
+                // El estado del PAGO, que no es el de la suscripción: un cobro
+                // rechazado no la cancela, MP reintenta.
+                estado: (detallePago.status as string) ?? (factura.status as string) ?? null,
+            })
         }
 
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-
-        // authorized = pago activo → subir tier | cualquier otro estado → bajar a free
-        const newTier = subscription.status === 'authorized' ? tier : 'free'
-
-        const { error } = await supabase
-            .from('profiles')
-            .update({ tier: newTier })
-            .eq('id', userId)
-
-        if (error) {
-            console.error('[webhook] Error actualizando perfil:', error)
-            return new Response('DB error', { status: 500 })
-        }
-
-        console.log(`[webhook] Usuario ${userId} → tier: ${newTier} (estado MP: ${subscription.status})`)
+        // Cualquier otro tópico se contesta OK para que MP no reintente.
         return new Response('OK', { status: 200 })
 
     } catch (e) {

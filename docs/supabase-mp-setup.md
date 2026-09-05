@@ -101,25 +101,59 @@ VITE_SUPABASE_FUNCTIONS_URL=https://<project-ref>.supabase.co/functions/v1
 
 ## 3. MercadoPago — Configurar suscripciones
 
+### 3.0 🔴 Una aplicación PROPIA para el SaaS — no la del sitio
+
+La cuenta ya tiene la aplicación **«Criterio Termico»**, y su webhook apunta al sitio
+Astro (`crtermico.com/api/mp-webhook`, evento Pagos), que **cobra de verdad desde el
+1/9**.
+
+**No se reutiliza esa aplicación para el SaaS.** Motivo, documentado en el otro repo
+(`docs/mercadopago.md`) después de costar una tarde entera de 401: en *Webhooks →
+Configurar notificaciones*, **cada vez que se aprieta Guardar, MP emite una clave
+secreta nueva y descarta la anterior**. Entrar ahí para sumarle los eventos del SaaS
+deja vencida la clave del sitio en el mismo acto, y el síntoma es que los avisos de las
+ventas de repuestos empiezan a rebotar con 401 sin que nada avise.
+
+Cada aplicación tiene su propia URL de webhook y su propia clave. El dinero cae en la
+misma cuenta igual.
+
 ### 3.1 Crear los planes de suscripción
 
-En [Developers → Panel](https://www.mercadopago.com.ar/developers/panel):
+Los planes se crean por API, no a mano, así queda registrado con qué valores:
 
-1. Ir a **Suscripciones → Planes**
-2. Crear plan **Criterio Térmico PRO**:
-   - Frecuencia: mensual
-   - Monto: USD 10 (o ARS según precios actuales)
-3. Crear plan **Criterio Térmico PREMIUM**:
-   - Frecuencia: mensual
-   - Monto: USD 18
-4. Guardar los IDs de cada plan (`2c9380847xxxx`)
+```bash
+bash scripts/mp-suscripciones.sh --planes
+```
+
+Lee los montos y el token de `~/.ct-mp-secrets` (ver la cabecera del script; el archivo
+se crea a mano y se borra al terminar) y hace un `POST /preapproval_plan` con
+`frequency: 1`, `frequency_type: "months"` y `currency_id: "ARS"`. Devuelve el `id` de
+cada plan, que es lo que va en `MP_PRO_PLAN_ID` y `MP_PREMIUM_PLAN_ID`.
+
+⚠ **Los montos van en pesos.** MP Argentina cobra en ARS: el plan lleva un número fijo
+en pesos, no en dólares. Lo que la pantalla de `/cuenta` muestre en USD es otra
+decisión, y hoy no coincide con nada cobrado.
+
+⚠ **El plan anual que anuncia `/cuenta` no existe.** `create-subscription` maneja un
+solo plan por tier. O se crean dos planes más (`frequency: 12`) y se amplía la función,
+o se saca el cartel.
+
+Para cambiar el precio de un plan que ya existe: `PUT /preapproval_plan/{id}` — no hace
+falta crear otro ni migrar a los suscriptos.
 
 ### 3.2 Configurar el webhook
 
-En **Configuración → Webhooks**:
-- URL: `https://<project-ref>.supabase.co/functions/v1/mercadopago-webhook`
-- Eventos: `subscription_preapproval`
-- Copiar la **clave secreta** que genera MP → `supabase secrets set MP_WEBHOOK_SECRET="..."`
+En la aplicación NUEVA, **Webhooks → Configurar notificaciones**:
+- URL: `https://ntxkjtirkgqkjlzphvtd.supabase.co/functions/v1/mercadopago-webhook`
+- Eventos: **`subscription_preapproval` Y `subscription_authorized_payment`**
+- Copiar la **clave secreta** → va a `~/.ct-mp-secrets` como `MP_WEBHOOK_SECRET`
+
+**Los dos eventos, no uno.** El primero avisa del alta y de cada cambio de estado; el
+segundo, de cada cobro mensual. Con sólo el primero, a quien le rebote la tarjeta el
+segundo mes le sigue funcionando todo hasta que MP dé la suscripción por vencida.
+
+🔑 **Copiar la clave y salir SIN volver a guardar**, por lo dicho en 3.0: guardar
+otra vez emite una clave nueva y deja vencida la que acabás de copiar.
 
 #### La firma del webhook
 
@@ -177,3 +211,29 @@ Si `VITE_SUPABASE_URL` está vacío, la app funciona en **modo demo**:
 - Login con cualquier email, sin contraseña real
 - Tier siempre `free`
 - Los botones de upgrade no hacen nada
+
+---
+
+## 7. Qué queda guardado de cada suscripción
+
+Desde el 2026-09-05 el webhook no sólo pisa `profiles.tier`: escribe la tabla
+`suscripciones` (migración `20260905_suscripciones.sql`) con el `preapproval_id`, el
+tier, el estado crudo de MP, el monto, la moneda, el último cobro y el próximo. Sin eso
+no había con qué contestarle a alguien que reclama un pago, ni forma de cancelar una
+suscripción desde la app (cancelar es un `PUT /preapproval/{id}` y ese id no se
+guardaba).
+
+**El tier ya no sale del último aviso: se recalcula.** Vale el más alto entre las
+suscripciones `authorized` del usuario, y `free` si no queda ninguna. Con el modelo
+viejo, alguien con una suscripción vieja cancelada y una nueva activa bajaba a `free`
+cuando llegaba un aviso de la vieja — y los avisos de MP pueden llegar fuera de orden.
+
+Puesta en marcha completa, un paso por corrida:
+
+```bash
+bash scripts/mp-suscripciones.sh --migracion   # crea la tabla
+bash scripts/mp-suscripciones.sh --planes      # crea los planes en MP
+bash scripts/mp-suscripciones.sh --secrets     # carga los 4 secrets
+bash scripts/mp-suscripciones.sh --deploy      # sube el webhook nuevo
+bash scripts/mp-suscripciones.sh --verificar   # controla que quedó todo
+```

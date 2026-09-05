@@ -92,7 +92,7 @@ criterio-termico/
 │   └── package.json
 ├── supabase/
 │   ├── functions/         # Edge Functions (Deno)
-│   └── migrations/        # 8 migraciones SQL
+│   └── migrations/        # 9 migraciones SQL
 ├── scripts/               # Extracción de contenido y reindexado del RAG
 ├── docs/                  # Planes y auditorías
 ├── .github/workflows/     # deploy.yml (CI) + reindex-rag.yml
@@ -474,12 +474,35 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
 1. ⬜ **Cerrar la bandeja** — enganchar `ContribucionForm` a `contribuciones`,
    la vista en `/panel` (vía Edge Function con service_role: el gate por email
    del panel es de frontend y no alcanza para datos de instaladores) y el n8n.
-2. 🔴 **Test end-to-end de MercadoPago en sandbox.** Nunca se hizo y van a
-   cobrar. Los secrets `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` tampoco están
-   cargados en Supabase.
+2. 🔴 **El cobro de suscripciones: falta la configuración, no el código.**
+   Estado al 2026-09-05, medido contra producción con
+   `bash scripts/mp-suscripciones.sh --verificar`: los cuatro secrets de MP
+   (`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_PRO_PLAN_ID`,
+   `MP_PREMIUM_PLAN_ID`) **no están cargados**, los planes **no existen en MP** y
+   el test end-to-end nunca se hizo.
 
-   ✅ **2026-08-28 — dos bugs que lo habrían hecho fallar en silencio, arreglados
-   sin desplegar todavía:**
+   🔴 **La aplicación de MP tiene que ser NUEVA, no la del sitio.** La cuenta
+   tiene una sola, «Criterio Termico» (AppID `1426858103774532`), y su webhook
+   apunta a `crtermico.com/api/mp-webhook`, que cobra de verdad desde el 1/9.
+   Guardar la configuración de webhooks **emite una clave secreta nueva y
+   descarta la anterior**: tocar esa app rompe el cobro del sitio en silencio.
+
+   ⚠ **Los montos van en ARS.** La pantalla de `/cuenta` anuncia USD 10 y USD 18,
+   y además ofrece un plan anual que **no tiene implementación**:
+   `create-subscription` maneja un solo plan por tier. Decisión de Edgardo
+   pendiente; el 5/9 dijo «primero que cobre, después los valores».
+
+   ⬜ **2026-09-05 — escrito y compilando, PERO SIN APLICAR TODAVÍA** (falta
+   correr `--migracion` y `--deploy` del script): tabla `suscripciones`
+   (el webhook guardaba NADA: sin `preapproval_id` no se podía ni contestar un
+   reclamo ni cancelar desde la app), el evento `subscription_authorized_payment`
+   (los cobros mensuales no se escuchaban: una tarjeta que rebota el segundo mes
+   no bajaba a nadie) y **el tier pasó a recalcularse** desde las suscripciones
+   autorizadas en vez de salir del último aviso, que con dos suscripciones del
+   mismo usuario dejaba en `free` a alguien al día.
+
+   ✅ **2026-08-28 — dos bugs que lo habrían hecho fallar en silencio, ya
+   desplegados el 5/9:**
 
    - **El gateway de Supabase rechazaba a MercadoPago.** Verificado con curl contra
      producción: el webhook contestaba `UNAUTHORIZED_NO_AUTH_HEADER` a cualquier
