@@ -149,12 +149,20 @@ for req in ("MP_ACCESS_TOKEN", "MP_WEBHOOK_SECRET", "MP_PRO_PLAN_ID", "MP_PREMIU
     print("  " + ("✓" if req in nombres else "🔴 FALTA") + " " + req)
 '
     echo
-    echo "Tabla suscripciones:"
-    python3 -c "import json;print(json.dumps({'query':'select count(*) as filas from public.suscripciones'}))" > /tmp/ct-q.json
+    echo "Tabla suscripciones (filas, RLS y policies — sin RLS la tabla queda abierta):"
+    cat > /tmp/ct-q.sql <<'SQL'
+select
+    (select count(*) from public.suscripciones)                          as filas,
+    c.relrowsecurity                                                     as rls_activa,
+    (select count(*) from pg_policies where tablename = 'suscripciones') as policies
+from pg_class c
+where c.relname = 'suscripciones'
+SQL
+    python3 -c "import json;print(json.dumps({'query':open('/tmp/ct-q.sql').read()}))" > /tmp/ct-q.json
     curl -s -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
         -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
         -H "Content-Type: application/json" --data-binary @/tmp/ct-q.json
-    rm -f /tmp/ct-q.json
+    rm -f /tmp/ct-q.json /tmp/ct-q.sql
     echo
     echo
     echo "Webhook (con los secrets cargados tiene que dar 401 por FIRMA, ya no 500):"
