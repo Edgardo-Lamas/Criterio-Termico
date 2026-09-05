@@ -14,6 +14,12 @@
  *   Eventos: subscription_preapproval
  *   https://www.mercadopago.com.ar/developers/panel/webhooks
  *
+ * 🔴 DESPLEGAR SIN VERIFICACIÓN DE JWT:
+ *     supabase functions deploy mercadopago-webhook --no-verify-jwt
+ *   (o dejar que lo tome de supabase/config.toml, donde ya está declarado)
+ *   MercadoPago no manda JWT. Con la verificación puesta, el gateway de Supabase
+ *   rechaza cada aviso con 401 antes de ejecutar este archivo y el tier nunca sube.
+ *
  * TIERS VÁLIDOS en external_reference: "userId|pro" o "userId|premium"
  */
 
@@ -28,18 +34,53 @@ const VALID_TIERS = new Set(['pro', 'premium'])
 
 // ── Verificación de firma HMAC-SHA256 ─────────────────────────────────────────
 // MercadoPago envía: x-signature: ts=<timestamp>,v1=<hmac>
-// El manifest que firman es: "id:<x-request-id>;request-date:<ts>;"
-async function verifySignature(req: Request, requestId: string): Promise<boolean> {
+//
+// El texto que MP firma es, textual:
+//     id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+// donde `data.id` sale del QUERY de la URL (?data.id=...), NO del cuerpo. Si
+// alguna de las tres partes no viene, se omite junto con su clave.
+//
+// ⚠ CORREGIDO 2026-08-28. Antes se armaba `id:<x-request-id>;request-date:<ts>;`,
+// que no es ningún formato de MP: ponía el request-id donde va el data.id y usaba
+// una clave inexistente. El efecto no era un agujero de seguridad sino lo
+// contrario, y peor de encontrar: RECHAZABA todos los pagos legítimos con 401 sin
+// que nada diera error. Verificado con HMAC reales antes de cambiarlo.
+function armarManifest(dataId: string | null, requestId: string | null, ts: string): string {
+    let manifest = ''
+    if (dataId) manifest += `id:${dataId};`
+    if (requestId) manifest += `request-id:${requestId};`
+    if (ts) manifest += `ts:${ts};`
+    return manifest
+}
+
+// Comparar con === le dice a quien mida los tiempos cuántos caracteres acertó.
+// Esta versión recorre siempre los dos strings enteros.
+function comparacionSegura(a: string, b: string): boolean {
+    if (a.length !== b.length) return false
+    let diferencia = 0
+    for (let i = 0; i < a.length; i++) {
+        diferencia |= a.charCodeAt(i) ^ b.charCodeAt(i)
+    }
+    return diferencia === 0
+}
+
+async function verifySignature(req: Request, dataId: string | null): Promise<boolean> {
     if (!MP_WEBHOOK_SECRET) return false
 
     const signature = req.headers.get('x-signature') ?? ''
-    const parts = Object.fromEntries(signature.split(',').map(p => p.split('=')))
+    const parts: Record<string, string> = {}
+    for (const trozo of signature.split(',')) {
+        const [clave, valor] = trozo.split('=')
+        if (clave && valor) parts[clave.trim()] = valor.trim()
+    }
     const ts = parts['ts']
     const v1 = parts['v1']
 
     if (!ts || !v1) return false
 
-    const manifest = `id:${requestId};request-date:${ts};`
+    const requestId = req.headers.get('x-request-id')
+    const manifest = armarManifest(dataId, requestId, ts)
+
     const key = await crypto.subtle.importKey(
         'raw',
         new TextEncoder().encode(MP_WEBHOOK_SECRET),
@@ -52,7 +93,7 @@ async function verifySignature(req: Request, requestId: string): Promise<boolean
         .map(b => b.toString(16).padStart(2, '0'))
         .join('')
 
-    return expected === v1
+    return comparacionSegura(expected, v1)
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -68,9 +109,10 @@ Deno.serve(async (req) => {
         return new Response('Configuration error', { status: 500 })
     }
 
-    // Verificar firma HMAC antes de procesar nada
-    const requestId = req.headers.get('x-request-id') ?? ''
-    const isValid = await verifySignature(req, requestId)
+    // Verificar firma HMAC antes de procesar nada. El id que entra en la firma es
+    // el del query de la URL (?data.id=...), que es lo que MP firmó.
+    const dataIdDelQuery = new URL(req.url).searchParams.get('data.id')
+    const isValid = await verifySignature(req, dataIdDelQuery)
     if (!isValid) {
         console.error('[webhook] Firma inválida — posible request no autorizado')
         return new Response('Unauthorized', { status: 401 })

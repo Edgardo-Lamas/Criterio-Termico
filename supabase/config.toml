@@ -1,0 +1,37 @@
+# Configuración del proyecto Supabase.
+#
+# Se creó el 2026-08-28 por un solo motivo: dejar declarado que el webhook de
+# MercadoPago NO lleva verificación de JWT. Todo lo demás usa los valores por
+# defecto del CLI a propósito — este archivo no pretende describir el proyecto
+# entero, solo fijar lo que no puede quedar librado a la memoria de quien depliegue.
+
+project_id = "ntxkjtirkgqkjlzphvtd"
+
+# ── Edge Functions ────────────────────────────────────────────────────────────
+#
+# Supabase exige por defecto un JWT de sesión en TODA Edge Function, y lo rechaza
+# en su gateway antes de que el código de la función llegue a ejecutarse.
+#
+# 🔴 MercadoPago no manda ningún JWT: manda su propia firma en `x-signature`. Con
+# la verificación activada, cada aviso de pago se contesta con
+#   {"code":"UNAUTHORIZED_NO_AUTH_HEADER","message":"Missing authorization header"}
+# y el tier del usuario NUNCA sube, aunque el pago se haya cobrado bien. Verificado
+# contra producción con curl el 2026-08-28.
+#
+# La función igual no queda abierta: valida la firma HMAC de MP antes de tocar nada
+# (ver mercadopago-webhook/index.ts). Se cambia un control que no aplica por el que sí.
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+# Las demás sí lo llevan: las llama el front con la sesión del usuario.
+[functions.create-subscription]
+verify_jwt = true
+
+[functions.asistente-termico]
+verify_jwt = true
+
+[functions.analizar-plano]
+verify_jwt = true
+
+[functions.indexar-conocimiento]
+verify_jwt = true

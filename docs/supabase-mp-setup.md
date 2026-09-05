@@ -72,8 +72,19 @@ supabase secrets set APP_URL="https://edgardolamas.github.io/Criterio-Termico"
 
 ```bash
 supabase functions deploy create-subscription
-supabase functions deploy mercadopago-webhook
+supabase functions deploy mercadopago-webhook --no-verify-jwt
 ```
+
+> 🔴 **El `--no-verify-jwt` del webhook no es opcional.** Supabase exige por defecto
+> un JWT de sesión en toda Edge Function y lo rechaza en su gateway, antes de que el
+> código se ejecute. MercadoPago no manda JWT: manda su firma en `x-signature`. Con
+> la verificación puesta, cada aviso de pago recibe
+> `{"code":"UNAUTHORIZED_NO_AUTH_HEADER"}` y **el tier del usuario nunca sube, aunque
+> el pago se haya cobrado bien**. Verificado contra producción el 2026-08-28.
+>
+> La función no queda desprotegida: valida la firma HMAC de MP antes de tocar nada.
+> Se reemplaza un control que no aplica por el que sí. `supabase/config.toml` ya lo
+> deja declarado, así que el CLI lo toma solo.
 
 ### 2.5 Obtener la URL de las funciones
 
@@ -108,6 +119,22 @@ En [Developers → Panel](https://www.mercadopago.com.ar/developers/panel):
 En **Configuración → Webhooks**:
 - URL: `https://<project-ref>.supabase.co/functions/v1/mercadopago-webhook`
 - Eventos: `subscription_preapproval`
+- Copiar la **clave secreta** que genera MP → `supabase secrets set MP_WEBHOOK_SECRET="..."`
+
+#### La firma del webhook
+
+MP firma cada aviso con HMAC-SHA256 sobre este texto exacto:
+
+```
+id:<data.id>;request-id:<x-request-id>;ts:<ts>;
+```
+
+El `id` sale del **query de la URL** (`?data.id=…`), no del cuerpo. Si alguna de las
+tres partes no viene, se omite junto con su clave.
+
+⚠ Esto es fácil de equivocar y **equivocarlo no da error**: el webhook rechaza todos
+los pagos legítimos con 401 y no se entera nadie hasta que un cliente reclama que pagó
+y sigue en `free`. Estuvo mal en este repo hasta el 2026-08-28.
 
 ### 3.3 Obtener credenciales
 
