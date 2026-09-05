@@ -117,6 +117,11 @@ ventas de repuestos empiezan a rebotar con 401 sin que nada avise.
 Cada aplicación tiene su propia URL de webhook y su propia clave. El dinero cae en la
 misma cuenta igual.
 
+**La aplicación del SaaS ya existe: «Criterio Termico Plataforma», AppID
+`4528717241708762`** (creada el 2026-09-05, producto *suscripciones*, MLA). De ahí salen
+el `MP_ACCESS_TOKEN` y la clave del webhook. La del sitio, «Criterio Termico»
+(`1426858103774532`), no se toca.
+
 ### 3.1 Crear los planes de suscripción
 
 Los planes se crean por API, no a mano, así queda registrado con qué valores:

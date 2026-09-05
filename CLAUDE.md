@@ -481,11 +481,14 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    `MP_PREMIUM_PLAN_ID`) **no están cargados**, los planes **no existen en MP** y
    el test end-to-end nunca se hizo.
 
-   🔴 **La aplicación de MP tiene que ser NUEVA, no la del sitio.** La cuenta
-   tiene una sola, «Criterio Termico» (AppID `1426858103774532`), y su webhook
-   apunta a `crtermico.com/api/mp-webhook`, que cobra de verdad desde el 1/9.
-   Guardar la configuración de webhooks **emite una clave secreta nueva y
-   descarta la anterior**: tocar esa app rompe el cobro del sitio en silencio.
+   ✅ **La aplicación del SaaS ya está creada: «Criterio Termico Plataforma»,
+   AppID `4528717241708762`** (5/9, producto *suscripciones*, MLA). De ahí salen
+   el `MP_ACCESS_TOKEN` y la clave del webhook.
+
+   🔴 **NO usar la del sitio, «Criterio Termico» (`1426858103774532`).** Su
+   webhook apunta a `crtermico.com/api/mp-webhook`, que cobra de verdad desde el
+   1/9, y guardar la configuración de webhooks **emite una clave secreta nueva y
+   descarta la anterior**: tocarla rompe el cobro de repuestos en silencio.
 
    ⚠ **Los montos van en ARS.** La pantalla de `/cuenta` anuncia USD 10 y USD 18,
    y además ofrece un plan anual que **no tiene implementación**:
