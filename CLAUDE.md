@@ -2,7 +2,10 @@
 
 Plataforma SaaS para instaladores de calefacción por radiadores.
 Stack: React 19 + TypeScript 5.9 + Vite 7 + Supabase + Vercel.
-Producción: https://criterio-termico.vercel.app (root directory: `app/`).
+Producción: **https://app.crtermico.com** (root directory: `app/`).
+`criterio-termico.vercel.app` sigue existiendo y redirige con 308 al dominio propio
+(`app/vercel.json`). El sitio institucional es OTRO repo y OTRO proyecto de Vercel:
+`crtermico.com` = `criteriotermico-web`, en Astro.
 
 ---
 
@@ -62,9 +65,8 @@ error 1010). El mismo endpoint sirve para consultar la base sin abrir el panel.
 
 ### Tests
 ```bash
-npm run test         # Tests unitarios (Vitest)
-npm run test:ui      # Tests con interfaz visual
-npm run test:e2e     # Tests end-to-end (Playwright)
+npm run test          # Tests unitarios (Vitest) — 186 en 14 archivos
+npm run test:ui       # Tests con interfaz visual
 npm run test:coverage # Coverage report
 ```
 
@@ -74,30 +76,31 @@ npm run test:coverage # Coverage report
 
 ```
 criterio-termico/
-├── src/
-│   ├── components/        # Componentes reutilizables
-│   ├── pages/             # Páginas (lazy loaded)
-│   ├── hooks/             # Custom hooks
-│   ├── store/             # Zustand stores
-│   ├── lib/               # Utilidades y cálculos de ingeniería
-│   ├── types/             # TypeScript types e interfaces
-│   ├── styles/            # CSS Modules globales y design tokens
-│   └── content/           # Manual y casos de errores (TSX nativo)
+├── app/                   # ⚠ TODO el frontend vive acá (root directory de Vercel)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── routes/    # Las 11 páginas (lazy loaded)
+│   │   │   └── layouts/   # MainLayout
+│   │   ├── components/    # ui/, calculadoras/, simulador/, AsistenteTermico/…
+│   │   ├── stores/        # Zustand
+│   │   ├── lib/           # Servicios de cálculo (bombas, caudal, diámetros, piso radiante)
+│   │   ├── hooks/
+│   │   ├── styles/        # tokens.css + global.css — el resto es CSS Modules
+│   │   └── content/       # Manual y casos de errores (TSX nativo)
+│   ├── api/               # Serverless de Vercel (Node): search-console.ts
+│   ├── vercel.json
+│   └── package.json
 ├── supabase/
 │   ├── functions/         # Edge Functions (Deno)
-│   ├── migrations/        # Migraciones SQL ordenadas
-│   └── seed.sql           # Datos iniciales para desarrollo
-├── mcp-server/            # Servidor MCP de Criterio Térmico
-│   └── src/
-│       ├── index.ts
-│       ├── tools/         # Handlers de cada herramienta MCP
-│       └── lib/           # Cliente Supabase, cálculos, tipos
-├── public/                # Assets estáticos
-├── .github/
-│   └── workflows/         # GitHub Actions (CI/CD)
-├── CLAUDE.md              # Este archivo
-└── .mcp.json              # Configuración del servidor MCP local
+│   └── migrations/        # 8 migraciones SQL
+├── scripts/               # Extracción de contenido y reindexado del RAG
+├── docs/                  # Planes y auditorías
+├── .github/workflows/     # deploy.yml (CI) + reindex-rag.yml
+└── CLAUDE.md              # Este archivo
 ```
+
+⚠ **No hay `src/` ni `pages/` ni `types/` en la raíz**: el frontend entero está bajo
+`app/`. `app/src/features/` existe pero está vacío (vestigio).
 
 ---
 
@@ -112,11 +115,19 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 ### Edge Functions — Supabase Dashboard > Settings > Edge Functions
 ```
 ANTHROPIC_API_KEY=sk-ant-...
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
+MP_ACCESS_TOKEN=APP_USR-...          # el código lee este nombre, no MERCADOPAGO_ACCESS_TOKEN
+MP_WEBHOOK_SECRET=...                # clave secreta del webhook, panel MP > Webhooks
+MP_PRO_PLAN_ID=2c93808...            # id del plan PRO creado en MP
+MP_PREMIUM_PLAN_ID=2c93808...        # id del plan PREMIUM
+APP_URL=https://app.crtermico.com     # a dónde vuelve el comprador desde el checkout de MP
 MAX_REQUESTS_PER_USER_FREE=10
 MAX_REQUESTS_PER_USER_PRO=50
 MAX_REQUESTS_PER_USER_PREMIUM=200
-ALLOWED_ORIGIN=https://criterio-termico.vercel.app   # origen permitido para CORS — actualizar al comprar dominio propio
+ALLOWED_ORIGIN=https://app.crtermico.com,https://criterio-termico.vercel.app
+#   ↑ admite VARIOS separados por coma (ver supabase/functions/_shared/cors.ts).
+#   La función contesta el origen que pidió, si está en la lista. Con un solo
+#   valor, el navegador descarta las respuestas del otro dominio y el asistente
+#   se queda mudo SIN que nada falle del lado del servidor.
 ```
 
 ### MCP Server — `.env` en `/mcp-server`
@@ -193,7 +204,7 @@ La restricción real la hace la BD.
 | `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber |
 | `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium, cupo 20/día) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
-| `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago |
+| `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago. **Única función sin `verify_jwt`** (ver `supabase/config.toml`): MP no manda JWT, manda firma HMAC |
 | `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |
 
 ### Modelo de IA (desde 2026-08-14)
@@ -253,42 +264,28 @@ la vista en `/panel` vía Edge Function con service_role, y el n8n que las levan
 
 ---
 
-## Servidor MCP — configuración local
+## Servidor MCP — NO existe en este repo
 
-```json
-// .mcp.json en la raíz del proyecto
-{
-  "mcpServers": {
-    "criterio-termico": {
-      "type": "url",
-      "url": "http://localhost:8000/mcp",
-      "headers": {
-        "Authorization": "Bearer <SUPABASE_ANON_KEY>"
-      }
-    }
-  }
-}
-```
-
-Herramientas disponibles en el MCP:
-- `buscar_caso_error` — busca en los casos documentados
-- `calcular_potencia_ambiente` — cálculo de potencia térmica
-- `consultar_manual` — acceso al contenido del manual
-- `verificar_usuario` — perfil y tier del usuario
-- `validar_diseno_instalacion` — validación técnica de un diseño
-- `obtener_estadisticas_proyecto` — métricas actuales del proyecto
+🔴 **Verificado el 2026-08-28: no hay `mcp-server/` ni `.mcp.json` en el repositorio.**
+Este archivo documentaba una carpeta, un archivo de configuración y seis herramientas
+(`buscar_caso_error`, `calcular_potencia_ambiente`, `consultar_manual`,
+`verificar_usuario`, `validar_diseno_instalacion`, `obtener_estadisticas_proyecto`)
+que nunca se escribieron. Sigue siendo una idea del roadmap, no código. Si se encara,
+escribirlo antes de volver a documentarlo acá.
 
 ---
 
 ## Skills del proyecto
 
-Las tres skills del proyecto están en la raíz del repo:
+Las skills **no están en el repo**: viven en `~/.claude/skills/` (por eso no se
+versionan con el código y pueden quedar viejas — la fuente de verdad es este archivo).
 
-| Archivo | Cuándo Claude lo usa |
-|---|---|
-| `criterio-termico-dev/SKILL.md` | Arquitectura, stack, convenciones de código |
-| `criterio-termico-ia/SKILL.md` | Prompts del asistente, Edge Functions de IA |
-| `criterio-termico-mcp/SKILL.md` | Servidor MCP, herramientas, SQL |
+| Skill | Cuándo se usa | Estado |
+|---|---|---|
+| `criterio-termico-obra` | **Criterio técnico de obra: qué es verdad.** La fuente. | al día |
+| `criterio-termico-dev` | Arquitectura, stack, convenciones | ⚠ desactualizada: dice TanStack Query (no se usa), GitHub Pages, modelos 4-6, y lista A* como pendiente cuando ya está implementado |
+| `criterio-termico-ia` | Prompts del asistente, Edge Functions de IA | revisar |
+| `criterio-termico-mcp` | Servidor MCP | ⚠ describe código que no existe |
 
 ---
 
@@ -480,6 +477,28 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
 2. 🔴 **Test end-to-end de MercadoPago en sandbox.** Nunca se hizo y van a
    cobrar. Los secrets `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` tampoco están
    cargados en Supabase.
+
+   ✅ **2026-08-28 — dos bugs que lo habrían hecho fallar en silencio, arreglados
+   sin desplegar todavía:**
+
+   - **El gateway de Supabase rechazaba a MercadoPago.** Verificado con curl contra
+     producción: el webhook contestaba `UNAUTHORIZED_NO_AUTH_HEADER` a cualquier
+     POST sin JWT, y MP no manda JWT. Ningún pago habría subido el tier jamás.
+     Declarado `verify_jwt = false` en el nuevo `supabase/config.toml`; al
+     desplegar a mano va `--no-verify-jwt`.
+   - **El manifest de la firma HMAC estaba mal armado.** Era
+     `id:<x-request-id>;request-date:<ts>;` y el formato real de MP es
+     `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, con el `data.id` sacado del
+     QUERY de la URL. Rechazaba todos los pagos legítimos con 401 sin dar error.
+     Comprobado con HMAC reales: ahora acepta la firma de MP y sigue rechazando
+     firma vieja, firma inventada y secreto incorrecto. La comparación pasó a ser
+     en tiempo constante.
+
+   🔑 **La referencia correcta está en el otro repo**, el sitio Astro:
+   `api/mp-webhook.js` de `~/Desktop/Trabajos/Criterio Termico`, con su
+   `docs/mercadopago.md`. Ahí el mismo circuito quedó armado de cero el 28/8.
+
+   🔴 **Falta desplegar**: el CLI de Supabase no está autenticado en esta máquina.
 3. ⬜ **Activar el filtro por tier del RAG.** La columna `conocimiento.tier`
    está poblada pero el filtro no está encendido — decisión de Edgardo, se
    enciende antes de empezar a cobrar (es pasarle el tier a `match_conocimiento`).
@@ -488,6 +507,88 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
 5. ⬜ **Auditar los 17 casos con Edgardo**, empezando por los de tier pro. Ya
    apareció contenido técnico mal en tier pago más de una vez.
 6. ⬜ **Cap. 14 y las 5 fotos del manual** — los dos esperan material de él.
+
+### Dominio propio — 2026-09-05
+
+La plataforma pasó de `criterio-termico.vercel.app` a **`app.crtermico.com`**.
+El DNS no hubo que tocarlo: `crtermico.com` tiene un comodín `*` ALIAS a Vercel,
+así que el subdominio ya resolvía y sólo faltaba que un proyecto lo reclamara
+(`vercel domains add app.crtermico.com criterio-termico`). El sitio institucional
+no se tocó: sigue con `crtermico.com` y `www.` en el proyecto `criteriotermico-web`.
+
+**Lo que hubo que mover, que es más de lo que parece.** Mudar un dominio acá no
+es cambiar un enlace: hay tres cosas que se rompen calladas.
+
+1. 🔴 **CORS de las Edge Functions.** Servido desde el dominio nuevo, con el
+   secret viejo el navegador descarta las respuestas: el asistente, el análisis
+   de plano y el alta de suscripción dejan de andar y el servidor no registra
+   ningún error. Ahora `_shared/cors.ts` acepta varios orígenes y contesta el
+   que pidió.
+2. 🔴 **Site URL de Auth.** De ahí salen los links de los correos de
+   confirmación y de recuperar contraseña; apuntando al dominio viejo el usuario
+   termina en otro lado. La lista de redirects se amplía, nunca se pisa.
+3. 🟡 **`APP_URL`** — a dónde vuelve el comprador desde el checkout de MP.
+
+Lo demás es visible y se corrigió junto: canonical, `og:url`, `og:image`,
+`twitter:image`, `sitemap.xml`, `robots.txt`, el JSON-LD del Home, `ficha.html`,
+el default de `GSC_SITE` y el `PLATFORM_URL` del sitio Astro
+(`src/pages/plataforma.astro`), que alimenta los siete CTA que son la única
+puerta de entrada al SaaS.
+
+`app/vercel.json` redirige con **308** todo lo que llegue por
+`criterio-termico.vercel.app`. Sin eso quedarían dos sitios idénticos en Google.
+Las URLs de preview no se ven afectadas: tienen otro host.
+
+⚠ **La parte de Supabase se corre a mano** — necesita el token del llavero, que
+el asistente no puede leer:
+
+```bash
+bash scripts/dominio-a-supabase.sh --solo-diagnostico   # no toca nada
+bash scripts/dominio-a-supabase.sh                      # auth + secrets + deploy + verificación
+```
+
+⬜ **Pendiente de Search Console:** la propiedad `app.crtermico.com` hay que
+verificarla en GSC o el panel `/panel` va a mostrar las instrucciones en vez de
+las métricas. Alternativa: cargar `GSC_SITE=sc-domain:crtermico.com` en Vercel,
+pero eso mezcla las visitas del sitio con las de la plataforma.
+
+### Hallazgos del relevamiento de stack — 2026-08-28
+
+Verificados contra el código al escribir el informe de stack (artifact
+`5347d113-807f-4535-a5b4-7f91009e49fe`). Ninguno estaba anotado acá:
+
+1. 🔴 **La cuota se descuenta ANTES de validar el body.** `asistente-termico`
+   corre `increment_ai_usage` (paso 3) y recién después parsea y valida
+   `messages` (paso 5): un pedido mal formado devuelve 400 y ya se llevó una
+   consulta del cupo, sin haber llamado al modelo. Es orden, no diseño.
+2. 🔴 **«Proyectos guardados ilimitados» (Premium) no tiene implementación.**
+   `projectStorage.ts` guarda UN proyecto en localStorage bajo la clave
+   `currentProject`, sin la imagen del plano. No hay tabla, ni sincronización,
+   ni export del proyecto a archivo (sí a IFC y PDF). Es la brecha más visible
+   entre lo que vende `Cuenta.tsx` y lo que hay.
+3. ⬜ **Exportador IFC: los 3 bugs del plan siguen ahí** (reverificado hoy):
+   `setupProject()` se llama en las líneas 682 y 727 (doble raíz), los caños
+   sólo tienen representación `'Axis'` (línea 514, salen sin cuerpo) y la
+   caldera usa el mismo `placement` para el sólido y el `IFCLOCALPLACEMENT`
+   (603-627, queda al doble de distancia). Plan escrito en
+   `docs/plan-exportador-ifc.md` — **sin commitear**.
+4. ⬜ **`app/vercel.json` no tiene cabeceras de seguridad**: sólo define caché
+   de `/assets`. El HSTS lo pone Vercel; faltan `X-Content-Type-Options`,
+   `X-Frame-Options` y `Referrer-Policy`.
+5. ✅ **El default de `ALLOWED_ORIGIN` apuntaba a GitHub Pages** (dado de baja).
+   Resuelto el 2026-09-05 con la mudanza a `app.crtermico.com`: los defaults
+   viven en `supabase/functions/_shared/cors.ts` y son los dos dominios reales.
+6. ⬜ **8 de los 14 capítulos del manual dicen «disponible próximamente»** — hay
+   5 escritos y el 13 redirige a `/errores`. Varios de los vacíos son de tier
+   pago: un Premium ve capítulos anunciados sin texto.
+7. ⚠ **El paywall de calculadoras y contenido es de cliente** — y no puede no
+   serlo mientras el cálculo corra offline en el browser. Lo único que la BD
+   controla de verdad es la IA y los datos por cuenta. Es tensión de producto,
+   no bug; conviene decidirla antes de cobrar.
+8. ⚠ **CI y deploy son circuitos independientes**: el repo no declara ninguna
+   dependencia entre GitHub Actions y la publicación de Vercel, así que un push
+   con tests rotos se publica igual salvo que Vercel esté configurado para
+   esperar los checks.
 
 ⚠️ **Cuando hay que confirmar un número técnico, la fuente es Edgardo, no una
 fuente general ni el razonamiento propio.** Está en la skill

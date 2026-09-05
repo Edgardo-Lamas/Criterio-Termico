@@ -313,7 +313,7 @@ function SetupGuide({ error }: { error?: string }) {
         },
         {
             title: 'Cargar las variables en Vercel',
-            desc: 'En Vercel → Project Settings → Environment Variables agregá GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y GOOGLE_REFRESH_TOKEN (y GSC_SITE si tu propiedad no es el dominio vercel.app). Hacé redeploy.',
+            desc: 'En Vercel → Project Settings → Environment Variables agregá GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET y GOOGLE_REFRESH_TOKEN (y GSC_SITE si tu propiedad de Search Console no es https://app.crtermico.com/). Hacé redeploy.',
             link: 'https://vercel.com/dashboard',
             linkLabel: 'Abrir Vercel →',
         },

@@ -4,6 +4,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.117.1'
+import { corsPara } from '../_shared/cors.ts'
 
 // Global del Edge Runtime de Supabase (no viene tipado en el SDK)
 declare const Supabase: {
@@ -90,18 +91,9 @@ const ESFUERZO = 'medium' as const
 const MARCA_SIN_DOCUMENTAR = '<<SIN_DOCUMENTAR>>'
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-// ALLOWED_ORIGIN se configura en Supabase Dashboard > Edge Functions.
-// Centraliza el dominio permitido para no hardcodear el host del frontend
-// (facilita migrar de GitHub Pages a otro hosting sin tocar código).
-
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://edgardo-lamas.github.io'
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-}
+// Los dominios permitidos —y por qué son varios— viven en _shared/cors.ts.
+// Las cabeceras se arman POR PEDIDO, dentro del handler: dependen de quién
+// pregunta, así que no pueden ser una constante de módulo.
 
 // ── Búsqueda semántica (RAG) sobre la base de conocimiento ───────────────────
 // Busca los fragmentos de casos documentados más parecidos a la consulta y los
@@ -544,6 +536,8 @@ async function registrarConsultaAbierta(datos: {
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request): Promise<Response> => {
+    const corsHeaders = corsPara(req)
+
     // Preflight CORS
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })

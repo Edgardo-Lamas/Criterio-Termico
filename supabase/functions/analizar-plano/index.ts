@@ -7,6 +7,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.117.1'
+import { corsPara } from '../_shared/cors.ts'
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -24,14 +25,8 @@ interface AmbienteAnalizado {
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 
-const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? 'https://criterio-termico.vercel.app'
-
-const corsHeaders = {
-    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Vary': 'Origin',
-}
+// Los dominios permitidos viven en _shared/cors.ts. Las cabeceras se arman POR
+// PEDIDO, dentro del handler: dependen de quién pregunta.
 
 // Límite de análisis de plano por día — es una operación con imagen (más
 // costosa que una consulta de texto), así que tiene su propio cupo, más chico.
@@ -89,6 +84,8 @@ function parsearRespuesta(texto: string): { ambientes: AmbienteAnalizado[] } {
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request): Promise<Response> => {
+    const corsHeaders = corsPara(req)
+
     if (req.method === 'OPTIONS') {
         return new Response('ok', { headers: corsHeaders })
     }

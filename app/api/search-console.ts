@@ -6,8 +6,11 @@
 //
 // Auth: OAuth2 con refresh token. Variables de entorno en Vercel:
 //   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN
-//   GSC_SITE  (opcional) — ej: 'sc-domain:criteriotermico.com' o
-//             'https://criterio-termico.vercel.app/'. Default: el dominio Vercel.
+//   GSC_SITE  (opcional) — ej: 'sc-domain:crtermico.com' (cubre el sitio Y la
+//             plataforma juntos) o 'https://app.crtermico.com/' (sólo la
+//             plataforma). Default: la plataforma sola, que es lo que mide este
+//             panel. ⚠ La propiedad tiene que estar verificada en Search Console
+//             o la función devuelve { live: false } y el panel explica cómo.
 //
 // Caché en memoria 30 min para no gastar cuota de la API en cada visita.
 // Nunca lanza: ante cualquier problema devuelve { live: false, error } y el
@@ -15,7 +18,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const GSC_SITE = process.env.GSC_SITE ?? 'sc-domain:criterio-termico.vercel.app'
+const GSC_SITE = process.env.GSC_SITE ?? 'https://app.crtermico.com/'
 const TTL_MS = 30 * 60 * 1000
 
 interface GscRow {
