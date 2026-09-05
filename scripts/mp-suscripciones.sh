@@ -171,6 +171,34 @@ SQL
         -H "Content-Type: application/json" -d '{"type":"test"}'
     ;;
 
+# ── Registros de las funciones ────────────────────────────────────────────────
+# Lectura pura. Para ver qué contestó MercadoPago cuando el navegador falla sin
+# decir nada. Segundo argumento: function_logs (los console.log de la función,
+# por defecto) o function_edge_logs (los pedidos que entran).
+--logs)
+    supabase_token
+    TABLA="${2:-function_logs}"
+    # -G con --data-urlencode arma el query string solo: nada de escapar a mano.
+    curl -s -G "https://api.supabase.com/v1/projects/$REF/analytics/endpoints/logs.all" \
+        -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+        --data-urlencode "sql=select timestamp, event_message from $TABLA order by timestamp desc limit 30" \
+        | python3 -c '
+import json, sys
+crudo = sys.stdin.read()
+try:
+    d = json.loads(crudo)
+except Exception:
+    print(crudo[:600]); raise SystemExit
+if isinstance(d, dict) and d.get("error"):
+    print("error:", d["error"]); raise SystemExit
+filas = d.get("result") if isinstance(d, dict) else d
+if not filas:
+    print("(sin registros en esa tabla)")
+for fila in filas or []:
+    print(fila.get("timestamp"), "·", str(fila.get("event_message"))[:400])
+'
+    ;;
+
 *)
     sed -n '2,30p' "$0"
     ;;

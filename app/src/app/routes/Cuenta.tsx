@@ -57,6 +57,7 @@ export function Cuenta() {
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
     const [upgradeLoading, setUpgradeLoading] = useState(false)
+    const [upgradeError, setUpgradeError] = useState('')
     // Arranca en 'login': el botón "Ingresar" de la barra de navegación trae
     // acá, y mostrar "Crear cuenta" a quien vino a loguearse confunde.
     const [mode, setMode] = useState<'login' | 'register'>('login')
@@ -89,9 +90,15 @@ export function Cuenta() {
         }
     }
 
+    // ⚠ Este botón supo fallar EN SILENCIO. Si MercadoPago rechazaba el pedido
+    // —pasó: la suscripción se pedía de una forma que exige la tarjeta ya
+    // tokenizada— no había init_point, no se redirigía y no se mostraba nada:
+    // desde afuera, apretarlo no hacía absolutamente nada. Cualquier salida que
+    // no sea el checkout tiene que decirle algo al instalador.
     const handleUpgrade = async (tier: SubscriptionTier) => {
         if (!isSupabaseConfigured || !FUNCTIONS_URL) return
         setUpgradeLoading(true)
+        setUpgradeError('')
         try {
             const { data: { session } } = await supabase.auth.getSession()
             const res = await fetch(`${FUNCTIONS_URL}/create-subscription`, {
@@ -103,9 +110,17 @@ export function Cuenta() {
                 body: JSON.stringify({ tier }),
             })
             const data = await res.json()
+
             if (data.init_point) {
                 window.location.href = data.init_point
+                return
             }
+
+            setUpgradeError(data.error ?? 'No se pudo iniciar el pago. Probá de nuevo en un rato.')
+        } catch {
+            // Se cae la red o la función no responde: el usuario tiene que
+            // enterarse igual.
+            setUpgradeError('No se pudo contactar al servidor de pagos.')
         } finally {
             setUpgradeLoading(false)
         }
@@ -282,7 +297,7 @@ export function Cuenta() {
                                         disabled={upgradeLoading}
                                         className={`${styles.upgradeButton} ${tier.id === 'pro' ? styles.buttonPro : styles.buttonPremium}`}
                                     >
-                                        Actualizar a {tier.name}
+                                        {upgradeLoading ? 'Abriendo el pago…' : `Actualizar a ${tier.name}`}
                                     </button>
                                 ) : tier.id === 'free' ? (
                                     <span className={styles.currentPlan}>—</span>
@@ -293,6 +308,12 @@ export function Cuenta() {
                         )
                     })}
                 </div>
+
+                {upgradeError && (
+                    <p className={styles.errorBox} style={{ marginTop: '1rem' }} role="alert">
+                        {upgradeError}
+                    </p>
+                )}
 
                 {!isSupabaseConfigured && (
                     <p className={styles.demoNote} style={{ marginTop: '1rem' }}>
