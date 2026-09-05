@@ -474,35 +474,57 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
 1. ⬜ **Cerrar la bandeja** — enganchar `ContribucionForm` a `contribuciones`,
    la vista en `/panel` (vía Edge Function con service_role: el gate por email
    del panel es de frontend y no alcanza para datos de instaladores) y el n8n.
-2. 🔴 **El cobro de suscripciones: falta la configuración, no el código.**
-   Estado al 2026-09-05, medido contra producción con
-   `bash scripts/mp-suscripciones.sh --verificar`: los cuatro secrets de MP
-   (`MP_ACCESS_TOKEN`, `MP_WEBHOOK_SECRET`, `MP_PRO_PLAN_ID`,
-   `MP_PREMIUM_PLAN_ID`) **no están cargados**, los planes **no existen en MP** y
-   el test end-to-end nunca se hizo.
+2. 🟡 **El cobro de suscripciones: armado y andando en PRUEBA. Falta pagar
+   una vez.** Estado al 2026-09-05, verificado contra producción con
+   `bash scripts/mp-suscripciones.sh --verificar`:
 
-   ✅ **La aplicación del SaaS ya está creada: «Criterio Termico Plataforma»,
-   AppID `4528717241708762`** (5/9, producto *suscripciones*, MLA). De ahí salen
-   el `MP_ACCESS_TOKEN` y la clave del webhook.
+   ✅ Tabla `suscripciones` aplicada (RLS activa, 1 policy) · los 4 secrets de
+   MP cargados · las 4 Edge Functions desplegadas · el webhook contesta **401
+   por firma** (antes 500) · los dos planes creados en MP
+   (`MP_PRO_PLAN_ID=3233f403c5bb4671b228bd6ebd1821c6`,
+   `MP_PREMIUM_PLAN_ID=912cf6425db543218fcb09ee42210618`, $12.000 y $21.000 ARS
+   provisorios) · **el checkout ABRE y muestra «Criterio Térmico PRO $12.000»**.
 
-   🔴 **NO usar la del sitio, «Criterio Termico» (`1426858103774532`).** Su
-   webhook apunta a `crtermico.com/api/mp-webhook`, que cobra de verdad desde el
-   1/9, y guardar la configuración de webhooks **emite una clave secreta nueva y
-   descarta la anterior**: tocarla rompe el cobro de repuestos en silencio.
+   🔑 **Se está usando la aplicación NUEVA de MP: «Criterio Termico Plataforma»,
+   AppID `4528717241708762`, con CREDENCIALES DE PRUEBA.** La del sitio,
+   «Criterio Termico» (`1426858103774532`), no se toca: guardar su configuración
+   de webhooks regenera la clave y le rompe el cobro de repuestos, que factura
+   desde el 1/9.
 
-   ⚠ **Los montos van en ARS.** La pantalla de `/cuenta` anuncia USD 10 y USD 18,
-   y además ofrece un plan anual que **no tiene implementación**:
-   `create-subscription` maneja un solo plan por tier. Decisión de Edgardo
-   pendiente; el 5/9 dijo «primero que cobre, después los valores».
+   🔜 **ACÁ SE SIGUE (lunes 2026-09-08): pagar una vez con el comprador de
+   prueba** y confirmar que el tier sube solo y que queda la fila en
+   `suscripciones`. Recorrido: cerrar sesión de MP o ventana de incógnito →
+   entrar con la cuenta de prueba (panel → Cuentas de prueba) → desde
+   `app.crtermico.com/cuenta` con una cuenta gratuita apretar «Actualizar a
+   PRO» → pagar con tarjeta de prueba MLA (Mastercard `5031 7557 3453 0604`,
+   CVV 123, 11/30; titular **APRO**, DNI 12345678 = pago aprobado).
+   ⚠ MP NO deja suscribirse con la cuenta dueña del servicio: con la sesión real
+   de Edgardo el pago no va a andar.
 
-   ⬜ **2026-09-05 — escrito y compilando, PERO SIN APLICAR TODAVÍA** (falta
-   correr `--migracion` y `--deploy` del script): tabla `suscripciones`
-   (el webhook guardaba NADA: sin `preapproval_id` no se podía ni contestar un
-   reclamo ni cancelar desde la app), el evento `subscription_authorized_payment`
-   (los cobros mensuales no se escuchaban: una tarjeta que rebota el segundo mes
-   no bajaba a nadie) y **el tier pasó a recalcularse** desde las suscripciones
-   autorizadas en vez de salir del último aviso, que con dos suscripciones del
-   mismo usuario dejaba en `free` a alguien al día.
+   ⬜ **Después de la prueba**: repetir con credenciales de PRODUCCIÓN — planes
+   nuevos con el token productivo, `--secrets` de nuevo y el webhook en «Modo
+   productivo» (la clave secreta es otra).
+
+   ⚠ **Los montos van en ARS y la pantalla anuncia USD** (USD 10 / USD 18) más
+   un plan anual que no tiene implementación. Decisión de Edgardo, la dejó para
+   después de que cobre: «primero que cobre, después los valores».
+
+   ✅ **2026-09-05 — lo que se arregló en el camino**: la suscripción se pedía
+   con `preapproval_plan_id`, y ese camino exige `card_token_id` (tarjeta
+   tokenizada en formulario propio): MP contestaba 400 y **el botón no hacía
+   nada ni mostraba nada**. Ahora se crea SIN plan asociado —MP la deja en
+   `pending`, devuelve el checkout y conserva el `external_reference`— y el
+   importe se lee del plan, así cambiar el precio en MP no obliga a
+   redesplegar. El front pasó a mostrar el motivo de cualquier fallo.
+
+   ✅ **2026-09-05 — lo estructural**: tabla `suscripciones` (no quedaba
+   registro de nada: sin `preapproval_id` no se podía contestar un reclamo ni
+   cancelar desde la app), el evento `subscription_authorized_payment` (los
+   cobros mensuales no se escuchaban) y el tier recalculado desde las
+   suscripciones autorizadas en vez de salir del último aviso.
+
+   ⚠ **El archivo `~/.ct-mp-secrets` sigue en el disco** con el token y la clave
+   del webhook. Se borra cuando termine la puesta en marcha: `rm ~/.ct-mp-secrets`.
 
    ✅ **2026-08-28 — dos bugs que lo habrían hecho fallar en silencio, ya
    desplegados el 5/9:**
@@ -510,21 +532,21 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    - **El gateway de Supabase rechazaba a MercadoPago.** Verificado con curl contra
      producción: el webhook contestaba `UNAUTHORIZED_NO_AUTH_HEADER` a cualquier
      POST sin JWT, y MP no manda JWT. Ningún pago habría subido el tier jamás.
-     Declarado `verify_jwt = false` en el nuevo `supabase/config.toml`; al
-     desplegar a mano va `--no-verify-jwt`.
+     Declarado `verify_jwt = false` en `supabase/config.toml`.
    - **El manifest de la firma HMAC estaba mal armado.** Era
      `id:<x-request-id>;request-date:<ts>;` y el formato real de MP es
      `id:<data.id>;request-id:<x-request-id>;ts:<ts>;`, con el `data.id` sacado del
      QUERY de la URL. Rechazaba todos los pagos legítimos con 401 sin dar error.
-     Comprobado con HMAC reales: ahora acepta la firma de MP y sigue rechazando
-     firma vieja, firma inventada y secreto incorrecto. La comparación pasó a ser
-     en tiempo constante.
+     La comparación pasó a ser en tiempo constante.
 
-   🔑 **La referencia correcta está en el otro repo**, el sitio Astro:
+   🔑 **La referencia del mismo circuito está en el otro repo**, el sitio Astro:
    `api/mp-webhook.js` de `~/Desktop/Trabajos/Criterio Termico`, con su
-   `docs/mercadopago.md`. Ahí el mismo circuito quedó armado de cero el 28/8.
+   `docs/mercadopago.md`.
 
-   🔴 **Falta desplegar**: el CLI de Supabase no está autenticado en esta máquina.
+2bis. ⬜ **El asistente aparece en la pantalla de login de `/cuenta`.** Lo vio
+   Edgardo el 5/9: ahí no va, el visitante todavía no tiene sesión. Sin mirar
+   todavía.
+
 3. ⬜ **Activar el filtro por tier del RAG.** La columna `conocimiento.tier`
    está poblada pero el filtro no está encendido — decisión de Edgardo, se
    enciende antes de empezar a cobrar (es pasarle el tier a `match_conocimiento`).
