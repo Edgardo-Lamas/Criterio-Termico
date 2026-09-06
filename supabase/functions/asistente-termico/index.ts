@@ -343,7 +343,7 @@ function buildSystemPrompt(tier: Tier, esAnonimo = false): string {
         '- Errores Frecuentes: casos de obra documentados con problema, causa y solución',
     ].join('\n')
 
-    return `Sos Criterio, el asistente técnico de Criterio Térmico — una plataforma para instaladores profesionales de calefacción por radiadores en Argentina y Latinoamérica.
+    return `Sos Martín, el ayudante técnico de Criterio Térmico — una plataforma para instaladores profesionales de calefacción por radiadores en Argentina y Latinoamérica. Si te preguntan cómo te llamás, sos Martín; Criterio Térmico es la plataforma, no vos.
 
 ${esAnonimo
             ? `Estás hablando con alguien que entró al sitio y todavía no tiene cuenta. Respondé su consulta técnica completa, igual que a cualquiera: la primera impresión del oficio se gana contestando bien, no reservando la respuesta. No le pidas que se registre ni menciones planes — de eso se encarga la aplicación.`

@@ -1,47 +1,15 @@
-// Asistente técnico flotante "Criterio"
-// Botón FAB fijo en pantalla + panel de chat con streaming SSE.
+// Martín — el ayudante técnico de la plataforma
+// De cuerpo entero en la esquina mientras está cerrado, panel de chat con
+// streaming SSE al abrirlo. El personaje vive en Martin.tsx.
 // Se monta SIEMPRE: el visitante sin cuenta también pregunta, con una sesión
 // anónima y un cupo bajo (ver ensureSesionParaAsistente en useAuthStore).
 
-import { useEffect, useId, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
 import { MarkdownAsistente } from './MarkdownAsistente'
+import { MartinCuerpo, MartinRetrato } from './Martin'
 import styles from './AsistenteTermico.module.css'
 import { Icon } from '../ui/Icon/Icon'
-
-// ── Llama de Criterio ─────────────────────────────────────────────────────────
-// Marca del asistente: llama rellena con gradiente cálido y núcleo claro, en
-// vez del trazo genérico de Lucide. useId evita ids de gradiente duplicados
-// cuando conviven varias instancias (FAB + header del panel).
-
-function FlameMark({ size = 28 }: { size?: number }) {
-    const uid = useId()
-    const outerId = `flame-outer-${uid}`
-    const coreId = `flame-core-${uid}`
-    return (
-        <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-            <defs>
-                <linearGradient id={outerId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#ffb15c" />
-                    <stop offset="0.55" stopColor="#ff7a3d" />
-                    <stop offset="1" stopColor="#ea580c" />
-                </linearGradient>
-                <linearGradient id={coreId} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stopColor="#fff3c4" />
-                    <stop offset="1" stopColor="#ffc25e" />
-                </linearGradient>
-            </defs>
-            <path
-                fill={`url(#${outerId})`}
-                d="M16 2c1.1 4.8 3.9 7.4 6.4 10.1C24.8 14.6 26 17.2 26 20a10 10 0 0 1-20 0c0-2.4.8-4.5 2.2-6.3.6 1.5 1.6 2.6 3 3.2C10.4 12.1 12.4 7 16 2z"
-            />
-            <path
-                fill={`url(#${coreId})`}
-                d="M16.2 14.6c2.3 2.5 3.6 4.4 3.6 6.5a3.8 3.8 0 0 1-7.6 0c0-2.1 1.6-4 4-6.5z"
-            />
-        </svg>
-    )
-}
 
 // ── Burbuja de mensaje ────────────────────────────────────────────────────────
 
@@ -59,11 +27,13 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
     // la consulta se perdió.
     const pensando = !isUser && isLast && streaming && message.content.length === 0
 
-    return (
+    // La respuesta va con la cara de Martín al lado: es lo que lo convierte en
+    // alguien que contesta y no en un cuadro de texto que aparece.
+    const cuerpo = (
         <div
             className={`${styles.bubble} ${isUser ? styles.bubbleUser : styles.bubbleAssistant}`}
             role="article"
-            aria-label={isUser ? 'Tu mensaje' : 'Respuesta de Criterio'}
+            aria-label={isUser ? 'Tu mensaje' : 'Respuesta de Martín'}
         >
             {/* El asistente contesta en Markdown; el usuario escribe texto plano.
                 Mientras streamea, un `**` todavía sin cerrar se muestra tal cual
@@ -73,7 +43,7 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
                 ? message.content
                 : pensando
                     ? (
-                        <span className={styles.pensando} role="status" aria-label="Criterio está pensando la respuesta">
+                        <span className={styles.pensando} role="status" aria-label="Martín está pensando la respuesta">
                             <span className={styles.punto} />
                             <span className={styles.punto} />
                             <span className={styles.punto} />
@@ -81,6 +51,15 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
                     )
                     : <MarkdownAsistente texto={message.content} />}
             {showCursor && <span className={styles.cursor} aria-hidden="true">▋</span>}
+        </div>
+    )
+
+    if (isUser) return cuerpo
+
+    return (
+        <div className={styles.filaAsistente}>
+            <span className={styles.caraMensaje}><MartinRetrato size={26} /></span>
+            {cuerpo}
         </div>
     )
 }
@@ -122,14 +101,25 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
     const canSend = input.trim().length > 0 && !streaming && isOnline
 
     return (
-        <div className={styles.panel} role="dialog" aria-label="Asistente técnico Criterio" aria-modal="false">
+        <div className={styles.panel} role="dialog" aria-label="Martín, tu ayudante técnico" aria-modal="false">
             {/* Header */}
             <div className={styles.panelHeader}>
                 <div className={styles.panelTitle}>
-                    <span className={styles.panelIcon} aria-hidden="true"><FlameMark size={24} /></span>
+                    <span
+                        className={`${styles.panelIcon} ${streaming ? styles.panelIconPensando : ''}`}
+                        aria-hidden="true"
+                    >
+                        <MartinRetrato size={38} />
+                    </span>
                     <div>
-                        <span className={styles.panelName}>Criterio</span>
-                        <span className={styles.panelSub}>Asistente técnico</span>
+                        <span className={styles.panelName}>Martín</span>
+                        <span className={styles.panelSub}>
+                            {!isOnline
+                                ? 'Tu ayudante técnico'
+                                : streaming
+                                    ? 'Pensando…'
+                                    : 'Tu ayudante técnico · en línea'}
+                        </span>
                     </div>
                 </div>
                 <div className={styles.panelControls}>
@@ -161,7 +151,7 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
                 </div>
             )}
 
-            {/* En el Simulador: Criterio recibe el proyecto abierto en cada consulta */}
+            {/* En el Simulador: Martín recibe el proyecto abierto en cada consulta */}
             {enSimulador && (
                 <div className={styles.contextStrip}>
                     <Icon name="ruler" size={13} /> Veo el proyecto abierto en el Simulador
@@ -172,7 +162,7 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
             <div className={styles.messages} role="log" aria-live="polite" aria-label="Conversación">
                 {messages.length === 0 ? (
                     <div className={styles.welcome}>
-                        <p className={styles.welcomeTitle}>Hola. Soy Criterio.</p>
+                        <p className={styles.welcomeTitle}>Hola. Soy Martín.</p>
                         <p className={styles.welcomeText}>
                             Describime tu consulta o el problema que tenés en obra y te ayudo.
                         </p>
@@ -247,9 +237,50 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
 
 // ── Componente raíz — única instancia del hook ────────────────────────────────
 
+const SALUDO_VISTO = 'ct.martin.saludo'
+
+// sessionStorage tira excepción en algunos navegadores con las cookies
+// bloqueadas, y ahí es preferible saludar de más que romper la pantalla.
+function leerSaludoVisto(): boolean {
+    try {
+        return sessionStorage.getItem(SALUDO_VISTO) === '1'
+    } catch {
+        return false
+    }
+}
+
+function guardarSaludoVisto() {
+    try {
+        sessionStorage.setItem(SALUDO_VISTO, '1')
+    } catch {
+        /* sin almacenamiento: el saludo puede volver a aparecer, nada más */
+    }
+}
+
 export function AsistenteTermico() {
     const asistente = useAsistente()
-    const { open, setOpen } = asistente
+    const { open, setOpen, enSimulador } = asistente
+    const [saludo, setSaludo] = useState(false)
+
+    // El saludo aparece una sola vez por visita, unos segundos después de
+    // entrar: es lo que arranca la conversación sin que el instalador tenga que
+    // decidir apretar nada. Si abrió el chat alguna vez, no vuelve a aparecer.
+    useEffect(() => {
+        if (open) return
+        if (leerSaludoVisto()) return
+        const t = setTimeout(() => setSaludo(true), 4000)
+        return () => clearTimeout(t)
+    }, [open])
+
+    const cerrarSaludo = () => {
+        setSaludo(false)
+        guardarSaludoVisto()
+    }
+
+    const abrir = () => {
+        cerrarSaludo()
+        setOpen(true)
+    }
 
     return (
         <div className={styles.root}>
@@ -261,26 +292,60 @@ export function AsistenteTermico() {
                 {open && <ChatPanel asistente={asistente} onClose={() => setOpen(false)} />}
             </div>
 
-            {/* Botón FAB — píldora etiquetada cerrado, círculo de cierre abierto */}
-            <button
-                className={`${styles.fab} ${open ? styles.fabOpen : ''}`}
-                onClick={() => setOpen(!open)}
-                aria-label={open ? 'Cerrar asistente técnico' : 'Abrir asistente técnico Criterio'}
-                aria-expanded={open}
-            >
-                {open ? (
+            {!open && saludo && (
+                <div className={styles.saludo} role="status">
+                    <button className={styles.saludoTexto} onClick={abrir}>
+                        ¿Te tiro una mano con el cálculo?
+                    </button>
+                    <button
+                        className={styles.saludoCerrar}
+                        onClick={cerrarSaludo}
+                        aria-label="No, gracias"
+                        title="No, gracias"
+                    >
+                        ✕
+                    </button>
+                </div>
+            )}
+
+            {/* Martín parado en la esquina; con el chat abierto deja su lugar al
+                botón de cierre, que si no le queda encima al panel. */}
+            {open ? (
+                <button
+                    className={`${styles.fab} ${styles.fabOpen}`}
+                    onClick={() => setOpen(false)}
+                    aria-label="Cerrar el chat con Martín"
+                    aria-expanded={true}
+                >
                     <span className={styles.fabIcon} aria-hidden="true">
                         <Icon name="close" size={24} />
                     </span>
-                ) : (
-                    <>
-                        <span className={styles.fabIcon} aria-hidden="true">
-                            <FlameMark size={30} />
+                </button>
+            ) : (
+                <button
+                    className={`${styles.botonMartin} ${enSimulador ? styles.soloPildora : ''}`}
+                    onClick={abrir}
+                    aria-label="Consultarle a Martín, tu ayudante técnico"
+                    aria-expanded={false}
+                >
+                    {/* De cuerpo entero donde hay lugar; en el celular y en el
+                        Simulador, la píldora con su cara: ahí la esquina es mesa
+                        de trabajo y le taparía los controles del plano. */}
+                    <span className={styles.figura} aria-hidden="true">
+                        <span className={styles.holo}>
+                            <MartinCuerpo alto={200} />
                         </span>
-                        <span className={styles.fabLabel}>Asistente Criterio</span>
-                    </>
-                )}
-            </button>
+                        <span className={styles.cartel}>
+                            <span className={styles.cartelNombre}>Martín</span>
+                            <span className={styles.cartelOficio}>Ayudante técnico</span>
+                        </span>
+                    </span>
+                    <span className={styles.pildora} aria-hidden="true">
+                        <span className={styles.pildoraCara}><MartinRetrato size={36} /></span>
+                        <span className={styles.pildoraTexto}>Martín</span>
+                    </span>
+                </button>
+            )}
         </div>
     )
 }

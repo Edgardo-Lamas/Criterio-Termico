@@ -212,7 +212,7 @@ export const RoomPanel: React.FC = () => {
 
   // Si está colapsado, solo mostrar botón flotante. Va en la columna superior
   // derecha, debajo del de Configuración: la esquina inferior derecha la ocupa
-  // el FAB del asistente Criterio (píldora ancha, z-modal).
+  // el ayudante Martín (en el Simulador va compacto: píldora ancha, z-modal).
   if (isCollapsed) {
     return (
       <SimFab

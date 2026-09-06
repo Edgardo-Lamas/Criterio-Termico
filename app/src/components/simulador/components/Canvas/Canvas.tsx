@@ -1439,7 +1439,7 @@ export const Canvas = () => {
       />
 
       {/* Controles de Zoom — corridos hacia arriba: la esquina inferior
-          derecha la ocupa el FAB del asistente Criterio (56px + margen) */}
+          derecha la ocupa el ayudante Martín (compacto acá: 52px + margen) */}
       <div style={{
         position: 'absolute',
         bottom: 96,

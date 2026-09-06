@@ -49,7 +49,7 @@ const CAPACIDADES = [
     },
     {
         icon: 'flame' as const,
-        titulo: 'Criterio, el asistente técnico',
+        titulo: 'Martín, tu ayudante técnico',
         texto: 'Un especialista en calefacción disponible en toda la plataforma. Consultale cálculos, diagnóstico de fallas —ruidos, zonas frías, presión que cae—, criterios de instalación y puesta en marcha. Responde con el manual y los casos de obra documentados como respaldo, y si estás en el Simulador también revisa tu proyecto con vos.',
     },
     {
@@ -155,7 +155,8 @@ export function GuiaDeUso() {
                     </li>
                     <li className={styles.empezarItem}>
                         <strong>¿Un problema en una instalación que ya funciona?</strong> Contale los
-                        síntomas a Criterio —el botón flotante con la llama— o buscá el caso en{' '}
+                        síntomas a Martín —el técnico parado en la esquina de la pantalla— o buscá
+                        el caso en{' '}
                         <Link to="/errores" className={styles.linkInline}>Errores Frecuentes</Link>.
                     </li>
                 </ul>

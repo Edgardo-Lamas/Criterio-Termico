@@ -1,4 +1,4 @@
-// Resumen del proyecto abierto en el Simulador 2D para el asistente Criterio.
+// Resumen del proyecto abierto en el Simulador 2D para Martín, el ayudante.
 // Arma un texto compacto con los MISMOS números que muestra la plataforma:
 // cargas por cargaDeDisenoKcalh (vara según emisor), caldera por
 // calculateBoilerPower con el mismo filtro de ambientes calefaccionados que el
