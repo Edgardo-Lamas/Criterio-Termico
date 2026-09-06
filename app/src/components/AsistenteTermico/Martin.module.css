@@ -1,0 +1,48 @@
+/* Martín animado — los clips sobre la imagen fija.
+
+   Los videos traen transparencia real (VP9 con canal alfa). Se probó antes
+   fundir un fondo negro con `mix-blend-mode`, y no sirve acá: el asistente vive
+   en una capa fija de la pantalla, que arma su propio contexto de dibujo, así
+   que la mezcla nunca alcanza el fondo de la página y quedaba un rectángulo
+   negro alrededor de la figura. */
+
+.escena {
+    position: relative;
+    display: block;
+    line-height: 0;
+}
+
+.base,
+.clip {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+/* La imagen se ve primero y sostiene el lugar hasta que el video puede
+   reproducirse. Cuando el video entra hay que APAGARLA: el clip tiene
+   transparencia real, así que una imagen quieta debajo se ve a través y
+   aparecen dos Martín, uno moviéndose y otro clavado. */
+.base {
+    position: relative;
+    transition: opacity 420ms ease;
+}
+
+.baseOculta {
+    opacity: 0;
+}
+
+.clip {
+    opacity: 0;
+    /* Corto: durante el cruce se ven los dos clips a la vez, y con la misma
+       figura en los dos, cuanto menos dure menos se nota. */
+    transition: opacity 220ms ease;
+    pointer-events: none;
+}
+
+.visible {
+    opacity: 1;
+}

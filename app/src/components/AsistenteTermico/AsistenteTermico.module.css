@@ -347,6 +347,13 @@
     98%, 100% { transform: none; opacity: 1; filter: none; }
 }
 
+/* Con el video andando el barrido sobra, y encima molesta: su molde es la
+   silueta de la imagen fija, así que al levantar el brazo la luz seguiría
+   dibujando la pose vieja — un segundo Martín hecho de luz. */
+.holo:has(video[data-activo='si'])::after {
+    opacity: 0;
+}
+
 @keyframes martinBarrido {
     from { background-position: 0 140%; }
     to   { background-position: 0 -140%; }

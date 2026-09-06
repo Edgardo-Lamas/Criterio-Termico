@@ -7,7 +7,8 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
 import { MarkdownAsistente } from './MarkdownAsistente'
-import { MartinCuerpo, MartinRetrato } from './Martin'
+import { MartinCuerpo, MartinRetrato, MartinAnimado } from './Martin'
+import { useMartinAnimado } from '../../hooks/useMartinAnimado'
 import styles from './AsistenteTermico.module.css'
 import { Icon } from '../ui/Icon/Icon'
 
@@ -244,11 +245,25 @@ type EstadoHolo = 'calma' | 'atento' | 'pensando' | 'hablando'
  * La figura con los efectos encima. El estado no es decoración: es la única
  * señal de que del otro lado está pasando algo mientras la respuesta tarda.
  */
-function Holograma({ alto, estado }: { alto: number; estado: EstadoHolo }) {
+function Holograma({ alto, estado, animado, conversando }: {
+    alto: number
+    estado: EstadoHolo
+    animado: boolean
+    /** Con el chat abierto se adelanta la carga del clip de hablar. */
+    conversando: boolean
+}) {
     return (
         <span className={styles.holo} data-estado={estado} aria-hidden="true">
             <span className={styles.pulso}>
-                <MartinCuerpo alto={alto} />
+                {animado
+                    ? (
+                        <MartinAnimado
+                            alto={alto}
+                            hablando={estado === 'hablando'}
+                            precargarHabla={conversando}
+                        />
+                    )
+                    : <MartinCuerpo alto={alto} />}
             </span>
         </span>
     )
@@ -280,6 +295,7 @@ export function AsistenteTermico() {
     const asistente = useAsistente()
     const { open, setOpen, enSimulador, streaming, input, messages } = asistente
     const [saludo, setSaludo] = useState(false)
+    const animado = useMartinAnimado()
 
     // Mientras la respuesta se está armando hay dos momentos bien distintos: el
     // modelo razonando (burbuja todavía vacía) y el texto llegando. Se ven
@@ -322,7 +338,7 @@ export function AsistenteTermico() {
             <div className={styles.fila}>
                 {open && (
                     <span className={styles.holoLado}>
-                        <Holograma alto={330} estado={estado} />
+                        <Holograma alto={330} estado={estado} animado={animado} conversando={open} />
                     </span>
                 )}
                 <div
@@ -373,7 +389,7 @@ export function AsistenteTermico() {
                         Simulador, la píldora con su cara: ahí la esquina es mesa
                         de trabajo y le taparía los controles del plano. */}
                     <span className={styles.figura} aria-hidden="true">
-                        <Holograma alto={200} estado={estado} />
+                        <Holograma alto={200} estado={estado} animado={animado} conversando={open} />
                         <span className={styles.cartel}>
                             <span className={styles.cartelNombre}>Martín</span>
                             <span className={styles.cartelOficio}>Ayudante técnico</span>

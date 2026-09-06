@@ -201,7 +201,7 @@ La restricción real la hace la BD.
 
 | Función | Ruta | Descripción |
 |---|---|---|
-| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber. **El asistente se llama Martín** (6/9): el nombre está en el prompt del sistema y el personaje en `app/src/components/AsistenteTermico/Martin.tsx` |
+| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber. **El asistente se llama Martín** (6/9): el nombre está en el prompt del sistema y el personaje en `app/src/components/AsistenteTermico/Martin.tsx`. ⚠ **Sin desplegar, se sigue presentando como «Criterio»** |
 | `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium, cupo 20/día) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago. **Única función sin `verify_jwt`** (ver `supabase/config.toml`): MP no manda JWT, manda firma HMAC |
@@ -216,6 +216,48 @@ esfuerzo `medium`, SDK `@anthropic-ai/sdk@0.117.1`.
 cometió: con 512 las respuestas se cortaban a mitad sin dar ningún error. Hoy
 son 2048 (anónimo y free), 3072 (pro), 4096 (premium) y 8192 en `analizar-plano`.
 Si se sube el esfuerzo, subir también estos topes.
+
+### Martín, el personaje (desde 2026-09-06)
+
+El asistente no es un botón: es un tipo de obra proyectado en la esquina de la
+pantalla. Ilustración de Edgardo, generada en Gemini; el original vive fuera del
+repo (`~/Desktop/Martin-criterio.jpeg`) y los clips en
+`~/Desktop/Trabajos de edicion/doc Criterio Termico/img y videos/`.
+
+| Pieza | Dónde | Peso |
+|---|---|---|
+| `martin-cuerpo.png` | esquina, con el chat cerrado | 28 KB |
+| `martin-cara.png` | encabezado del panel y cada respuesta | 10 KB |
+| `martin-reposo.webm` | quieto, respirando | 328 KB |
+| `martin-hablando.webm` | gesticulando | 400 KB |
+
+**Las trampas, todas encontradas probando y ninguna visible leyendo el código:**
+
+1. **Los videos van con canal alfa de verdad (VP9 `yuva420p`), no con fondo
+   negro fundido.** Se intentó `mix-blend-mode: screen` y no sirve: el asistente
+   vive en una capa `position: fixed`, que arma su propio contexto de dibujo, y
+   la mezcla nunca llega al fondo de la página — quedaba un rectángulo negro.
+2. **Con el video andando hay que apagar la imagen fija y el barrido de luz.**
+   Si no, se ven **dos Martín**: la imagen quieta se transparenta bajo el clip, y
+   el barrido usa la silueta de la imagen como molde, así que dibuja la pose
+   vieja cuando la del video levanta el brazo.
+3. **Se comprueba la transparencia en el navegador, no por el nombre del
+   navegador**: se lee un píxel del borde del video en un canvas. Si es opaco, no
+   hay alfa y queda la imagen fija (`tieneTransparencia` en `Martin.tsx`).
+4. **Los clips son ida y vuelta** (el clip más su propio reverso, hecho con
+   ffmpeg): así el bucle no da el salto al volver a empezar.
+5. **Los videos NO entran al precache de la PWA** — si entraran, se bajarían
+   también en el celular. Verificar en `dist/sw.js` después de tocar el build.
+6. **Sólo se cargan en escritorio** (≥900 px), nunca con `prefers-reduced-motion`
+   ni con ahorro de datos, y recién 2,5 s después de cargar la página. El clip de
+   hablar se precarga al ABRIR el chat: pedirlo cuando llega la respuesta es
+   tarde. Ver `useMartinAnimado`.
+7. **`RUTAS_SIN_ASISTENTE` en `App.tsx`** lista dónde no se dibuja (hoy,
+   `/cuenta`). En el Simulador y en el celular se muestra compacto: la figura
+   entera tapaba los controles del plano.
+
+⬜ **Pendiente: cómo queda en el celular.** Hoy ahí sólo se ve su cara. La idea
+acordada es ponerlo de medio cuerpo asomando sobre el encabezado del chat.
 
 ### RAG del asistente (desde 2026-07-08, reescrito 2026-08-14)
 
