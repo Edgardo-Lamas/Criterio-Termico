@@ -766,6 +766,10 @@ Deno.serve(async (req: Request): Promise<Response> => {
                         })
                     }
                 } catch (streamError) {
+                    // Al usuario se le dice poco a propósito, pero el motivo real
+                    // tiene que quedar en los logs: sin esto, un asistente mudo
+                    // no se puede diagnosticar desde ningún lado.
+                    console.error('[asistente-termico] falló el stream:', streamError)
                     const errData = JSON.stringify({ error: 'Error en el stream' })
                     controller.enqueue(encoder.encode(`data: ${errData}\n\n`))
                 } finally {
