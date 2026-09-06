@@ -240,9 +240,54 @@
     display: block;
     width: max-content;
     margin-inline: auto;
-    animation:
-        martinEnciende 1s ease-out both,
-        martinGlitch 14s steps(1, end) 1.4s infinite;
+    /* El encendido va acá y el resto adentro, en .pulso: si estuvieran en el
+       mismo elemento, cada cambio de estado volvería a encenderlo de cero. */
+    animation: martinEnciende 1s ease-out both;
+    --barrido: 5.5s;
+}
+
+/* Lo que hace mientras conversás. La interferencia y el barrido cambian de
+   ritmo, así el que preguntó ve que del otro lado está pasando algo. */
+.pulso {
+    display: block;
+    animation: martinGlitch 14s steps(1, end) 1.4s infinite;
+}
+
+/* Escribiendo la consulta: se aviva, atento. Va como animación y no como
+   filtro suelto porque los keyframes de las otras animaciones fijan `filter`,
+   y una animación sólo la sobreescribe otra animación. */
+.holo[data-estado='atento'] .pulso {
+    animation: martinAtento 3.2s ease-in-out infinite;
+}
+
+@keyframes martinAtento {
+    0%, 100% { filter: brightness(1.1) saturate(1.05); }
+    50%      { filter: brightness(1.24) saturate(1.1); }
+}
+
+/* Razonando: la señal se pone inestable y el barrido se acelera. */
+.holo[data-estado='pensando'] {
+    --barrido: 1.8s;
+}
+
+.holo[data-estado='pensando'] .pulso {
+    animation: martinGlitch 3.4s steps(1, end) infinite;
+}
+
+/* Hablando: late al ritmo del texto que va llegando. */
+.holo[data-estado='hablando'] {
+    --barrido: 3.2s;
+}
+
+.holo[data-estado='hablando'] .pulso {
+    animation: martinHabla 1.15s ease-in-out infinite;
+}
+
+@keyframes martinHabla {
+    0%, 100% { filter: brightness(1); transform: none; }
+    30%      { filter: brightness(1.28); transform: translateY(-1px); }
+    55%      { filter: brightness(1.05); }
+    78%      { filter: brightness(1.18); transform: translateY(-0.5px); }
 }
 
 .holo::after {
@@ -267,7 +312,7 @@
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
     mix-blend-mode: screen;
-    animation: martinBarrido 5.5s linear infinite;
+    animation: martinBarrido var(--barrido) linear infinite;
 }
 
 /* Se materializa de abajo hacia arriba, con el destello del arranque. */
@@ -308,7 +353,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .holo { animation: none; }
+    .holo,
+    .pulso,
+    .holo[data-estado] .pulso { animation: none; }
     .holo::after { animation: none; opacity: 0; }
 }
 
@@ -400,6 +447,41 @@
     box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.35);
     color: var(--color-primary);
     line-height: 0;
+}
+
+/* ── Martín conversando, al lado del panel ────────────────────────────────── */
+
+.fila {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    pointer-events: none;
+}
+
+.fila > * {
+    pointer-events: auto;
+}
+
+/* Decorativo: no tiene que robarle el clic a nada de lo que hay detrás. */
+.holoLado {
+    display: block;
+    pointer-events: none;
+    animation: martinLlega var(--transition-normal) ease-out;
+}
+
+@keyframes martinLlega {
+    from { opacity: 0; transform: translateX(18px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Sin ancho suficiente, el panel manda y Martín se va: no vale taparle la
+   pantalla a alguien que está escribiendo una consulta. */
+@media (max-width: 1180px) {
+    .holoLado { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .holoLado { animation: none; }
 }
 
 /* ── Panel wrapper — controla apertura con animación ─────────────────────── */

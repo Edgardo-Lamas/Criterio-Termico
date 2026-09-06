@@ -235,6 +235,25 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
     )
 }
 
+// ── El holograma y sus estados ────────────────────────────────────────────────
+
+/** Lo que Martín está haciendo, y que se nota en cómo se proyecta. */
+type EstadoHolo = 'calma' | 'atento' | 'pensando' | 'hablando'
+
+/**
+ * La figura con los efectos encima. El estado no es decoración: es la única
+ * señal de que del otro lado está pasando algo mientras la respuesta tarda.
+ */
+function Holograma({ alto, estado }: { alto: number; estado: EstadoHolo }) {
+    return (
+        <span className={styles.holo} data-estado={estado} aria-hidden="true">
+            <span className={styles.pulso}>
+                <MartinCuerpo alto={alto} />
+            </span>
+        </span>
+    )
+}
+
 // ── Componente raíz — única instancia del hook ────────────────────────────────
 
 const SALUDO_VISTO = 'ct.martin.saludo'
@@ -259,8 +278,21 @@ function guardarSaludoVisto() {
 
 export function AsistenteTermico() {
     const asistente = useAsistente()
-    const { open, setOpen, enSimulador } = asistente
+    const { open, setOpen, enSimulador, streaming, input, messages } = asistente
     const [saludo, setSaludo] = useState(false)
+
+    // Mientras la respuesta se está armando hay dos momentos bien distintos: el
+    // modelo razonando (burbuja todavía vacía) y el texto llegando. Se ven
+    // distinto, igual que alguien que piensa antes de hablar y después habla.
+    const ultimo = messages[messages.length - 1]
+    const armandoRespuesta = streaming && ultimo?.role === 'assistant'
+    const estado: EstadoHolo = armandoRespuesta
+        ? (ultimo.content.length === 0 ? 'pensando' : 'hablando')
+        : streaming
+            ? 'pensando'
+            : input.trim().length > 0
+                ? 'atento'
+                : 'calma'
 
     // El saludo aparece una sola vez por visita, unos segundos después de
     // entrar: es lo que arranca la conversación sin que el instalador tenga que
@@ -284,12 +316,21 @@ export function AsistenteTermico() {
 
     return (
         <div className={styles.root}>
-            {/* Panel de chat — comparte la instancia del hook */}
-            <div
-                className={`${styles.panelWrapper} ${open ? styles.panelOpen : ''}`}
-                aria-hidden={!open}
-            >
-                {open && <ChatPanel asistente={asistente} onClose={() => setOpen(false)} />}
+            {/* Con el chat abierto, Martín se queda al lado del panel en vez de
+                desaparecer: es la conversación la que lo necesita moviéndose.
+                En pantallas angostas no entra y el CSS lo esconde. */}
+            <div className={styles.fila}>
+                {open && (
+                    <span className={styles.holoLado}>
+                        <Holograma alto={330} estado={estado} />
+                    </span>
+                )}
+                <div
+                    className={`${styles.panelWrapper} ${open ? styles.panelOpen : ''}`}
+                    aria-hidden={!open}
+                >
+                    {open && <ChatPanel asistente={asistente} onClose={() => setOpen(false)} />}
+                </div>
             </div>
 
             {!open && saludo && (
@@ -332,9 +373,7 @@ export function AsistenteTermico() {
                         Simulador, la píldora con su cara: ahí la esquina es mesa
                         de trabajo y le taparía los controles del plano. */}
                     <span className={styles.figura} aria-hidden="true">
-                        <span className={styles.holo}>
-                            <MartinCuerpo alto={200} />
-                        </span>
+                        <Holograma alto={200} estado={estado} />
                         <span className={styles.cartel}>
                             <span className={styles.cartelNombre}>Martín</span>
                             <span className={styles.cartelOficio}>Ayudante técnico</span>
