@@ -543,9 +543,11 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    `api/mp-webhook.js` de `~/Desktop/Trabajos/Criterio Termico`, con su
    `docs/mercadopago.md`.
 
-2bis. ⬜ **El asistente aparece en la pantalla de login de `/cuenta`.** Lo vio
-   Edgardo el 5/9: ahí no va, el visitante todavía no tiene sesión. Sin mirar
-   todavía.
+2bis. ✅ **El asistente ya no aparece en `/cuenta`** (6/9). Lo había visto
+   Edgardo el 5/9. La regla vive en `app/src/App.tsx`: `RUTAS_SIN_ASISTENTE`
+   lista las rutas donde no se dibuja, y ahí ni se monta el hook del chat.
+   Se sacó de toda la ruta, no sólo del login: en el celular el botón le
+   quedaba encima de «Actualizar a PRO».
 
 3. ⬜ **Activar el filtro por tier del RAG.** La columna `conocimiento.tier`
    está poblada pero el filtro no está encendido — decisión de Edgardo, se

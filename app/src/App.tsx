@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect } from 'react'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { useAuthStore } from './stores/useAuthStore'
 import { ErrorBoundary } from './components/ui/ErrorBoundary/ErrorBoundary'
 import { AsistenteTermico } from './components/AsistenteTermico/AsistenteTermico'
@@ -17,6 +17,22 @@ const Cuenta           = lazy(() => import('./app/routes/Cuenta').then(m => ({ d
 const Panel            = lazy(() => import('./app/routes/Panel').then(m => ({ default: m.Panel })))
 const TerminosDeUso    = lazy(() => import('./app/routes/TerminosDeUso').then(m => ({ default: m.TerminosDeUso })))
 const PoliticaPrivacidad = lazy(() => import('./app/routes/PoliticaPrivacidad').then(m => ({ default: m.PoliticaPrivacidad })))
+
+// Rutas donde el asistente no se dibuja. `/cuenta` es la pantalla de ingreso y
+// la administración del plan: ahí nadie está calculando nada, y en pantallas
+// chicas el botón flotante le queda encima de «Actualizar a PRO».
+const RUTAS_SIN_ASISTENTE = ['/cuenta']
+
+// Va adentro del router — `useLocation` sólo funciona ahí. Devolver null
+// también evita montar el hook del chat en esas pantallas.
+function AsistenteSegunRuta() {
+  const { pathname } = useLocation()
+  const oculto = RUTAS_SIN_ASISTENTE.some(
+    ruta => pathname === ruta || pathname.startsWith(`${ruta}/`)
+  )
+  if (oculto) return null
+  return <AsistenteTermico />
+}
 
 function App() {
   const initAuth = useAuthStore(state => state.initAuth)
@@ -50,11 +66,13 @@ function App() {
           </Routes>
         </Suspense>
       </ErrorBoundary>
-      {/* Siempre montado. Antes dependía de `isAuthenticated`, así que quien
-          entraba sin cuenta no veía la IA por ningún lado — justo lo que
-          distingue a la plataforma de una calculadora. El visitante pregunta con
-          una sesión anónima y un cupo bajo; ver ensureSesionParaAsistente. */}
-      <AsistenteTermico />
+      {/* Montado en todas las pantallas de trabajo, con o sin cuenta: antes
+          dependía de `isAuthenticated`, así que quien entraba sin cuenta no veía
+          la IA por ningún lado — justo lo que distingue a la plataforma de una
+          calculadora. El visitante pregunta con una sesión anónima y un cupo
+          bajo; ver ensureSesionParaAsistente. Las excepciones, en
+          RUTAS_SIN_ASISTENTE. */}
+      <AsistenteSegunRuta />
     </BrowserRouter>
   )
 }
