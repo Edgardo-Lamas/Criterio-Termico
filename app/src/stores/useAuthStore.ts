@@ -18,6 +18,14 @@ interface AuthState {
     isLoading: boolean
     isAuthenticated: boolean
     authError: string | null
+    /**
+     * El usuario llegó desde el enlace de recuperación y todavía no eligió una
+     * contraseña nueva. Va aparte de `isAuthenticated` a propósito: ese enlace
+     * ABRE sesión, así que sin esta marca cae en /cuenta ya logueado, nunca ve
+     * dónde escribir la contraseña, y en cuanto la sesión se vence vuelve a
+     * quedar afuera igual que antes.
+     */
+    recoveryMode: boolean
 
     // Actions
     setUser: (user: User | null) => void
@@ -27,6 +35,9 @@ interface AuthState {
     register: (email: string, password: string) => Promise<void>
     logout: () => Promise<void>
     clearError: () => void
+    requestPasswordReset: (email: string) => Promise<boolean>
+    updatePassword: (nuevaPassword: string) => Promise<boolean>
+    exitRecoveryMode: () => void
 
     // Tier helpers
     canAccess: (requiredTier: SubscriptionTier) => boolean
@@ -126,10 +137,12 @@ export const useAuthStore = create<AuthState>()(
             isLoading: true,
             isAuthenticated: false,
             authError: null,
+            recoveryMode: false,
 
             setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
             setLoading: (isLoading) => set({ isLoading }),
             clearError: () => set({ authError: null }),
+            exitRecoveryMode: () => set({ recoveryMode: false }),
 
             // ── initAuth — llamar una vez al montar la app ───────────────
             initAuth: () => {
@@ -158,6 +171,14 @@ export const useAuthStore = create<AuthState>()(
                 // Escuchar cambios de sesión (login, logout, token refresh)
                 const { data: { subscription } } = supabase.auth.onAuthStateChange(
                     (event, session) => {
+                        // Supabase avisa con PASSWORD_RECOVERY cuando la sesión
+                        // viene del enlace del mail. Se marca de forma síncrona
+                        // (no toca la BD, así que no hay riesgo del deadlock de
+                        // abajo) y la pantalla de contraseña nueva la levanta.
+                        if (event === 'PASSWORD_RECOVERY') {
+                            set({ recoveryMode: true })
+                        }
+
                         // IMPORTANTE: no llamar a la BD (fetchProfile) directamente acá.
                         // supabase-js mantiene un lock de auth mientras notifica a los
                         // suscriptores; una query adentro del callback espera ese mismo
@@ -251,7 +272,77 @@ export const useAuthStore = create<AuthState>()(
                 if (isSupabaseConfigured) {
                     await supabase.auth.signOut()
                 }
-                set({ user: null, isAuthenticated: false })
+                set({ user: null, isAuthenticated: false, recoveryMode: false })
+            },
+
+            // ── requestPasswordReset ─────────────────────────────────────
+            /**
+             * Manda el mail con el enlace para elegir una contraseña nueva.
+             *
+             * ⚠ `redirectTo` tiene que estar cargado en Supabase → Authentication
+             * → URL Configuration → Redirect URLs. Si no está, Supabase ignora el
+             * parámetro y manda al Site URL: el usuario aterriza en la home, sin
+             * pantalla donde escribir la contraseña, y el enlace se quema igual.
+             *
+             * Devuelve true aunque el email no exista. Es deliberado: contestar
+             * "ese email no está registrado" le confirma a cualquiera qué
+             * direcciones tienen cuenta acá. Supabase tampoco lo distingue.
+             */
+            requestPasswordReset: async (email) => {
+                set({ isLoading: true, authError: null })
+
+                if (!isSupabaseConfigured) {
+                    await new Promise(resolve => setTimeout(resolve, 600))
+                    set({ isLoading: false })
+                    return true
+                }
+
+                try {
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: `${window.location.origin}/cuenta`,
+                    })
+                    if (error) {
+                        set({ isLoading: false, authError: friendlyError(error.message) })
+                        return false
+                    }
+                    set({ isLoading: false })
+                    return true
+                } catch (err) {
+                    set({ isLoading: false, authError: friendlyError(err instanceof Error ? err.message : '') })
+                    return false
+                }
+            },
+
+            // ── updatePassword ───────────────────────────────────────────
+            /**
+             * Escribe la contraseña nueva. Sirve para los dos casos: el que llegó
+             * del mail de recuperación y el que la está cambiando desde su cuenta.
+             * En ambos hace falta una sesión viva, que es lo que el enlace abre.
+             */
+            updatePassword: async (nuevaPassword) => {
+                set({ isLoading: true, authError: null })
+
+                if (!isSupabaseConfigured) {
+                    await new Promise(resolve => setTimeout(resolve, 600))
+                    set({ isLoading: false, recoveryMode: false })
+                    return true
+                }
+
+                try {
+                    const { error } = await supabase.auth.updateUser({ password: nuevaPassword })
+                    if (error) {
+                        set({ isLoading: false, authError: friendlyError(error.message) })
+                        return false
+                    }
+                    // Se sale del modo recuperación recién acá: si se saliera al
+                    // entrar, un error de validación dejaría al usuario en la
+                    // pantalla de cuenta sin haber cambiado nada.
+                    set({ isLoading: false, recoveryMode: false })
+                    return true
+                } catch (err) {
+                    set({ isLoading: false, authError: friendlyError(err instanceof Error ? err.message : '') })
+                    return false
+                }
             },
 
             // ── canAccess ────────────────────────────────────────────────
@@ -281,5 +372,8 @@ function friendlyError(msg: string): string {
     if (msg.includes('User already registered')) return 'Ya existe una cuenta con ese email.'
     if (msg.includes('Password should be at least')) return 'La contraseña debe tener al menos 6 caracteres.'
     if (msg.includes('rate limit')) return 'Demasiados intentos. Esperá unos minutos.'
+    if (msg.includes('For security purposes')) return 'Esperá un minuto antes de pedir otro enlace.'
+    if (msg.includes('should be different from the old password')) return 'La contraseña nueva tiene que ser distinta de la anterior.'
+    if (msg.includes('Auth session missing')) return 'El enlace venció. Pedí uno nuevo desde "Olvidé mi contraseña".'
     return 'Ocurrió un error. Intentá de nuevo.'
 }

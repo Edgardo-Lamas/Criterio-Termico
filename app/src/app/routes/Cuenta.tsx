@@ -51,8 +51,37 @@ const tiers: { id: SubscriptionTier; name: string; price: string; priceAnual: st
 
 const FUNCTIONS_URL = import.meta.env.VITE_SUPABASE_FUNCTIONS_URL ?? ''
 
+type AuthMode = 'login' | 'register' | 'recuperar'
+
+const TITULOS: Record<AuthMode, string> = {
+    login: 'Ingresar',
+    register: 'Crear cuenta',
+    recuperar: 'Recuperar contraseña',
+}
+
+const SUBTITULOS: Record<AuthMode, string> = {
+    login: 'Accedé a tus herramientas y contenido guardado.',
+    register: 'Creá tu cuenta gratuita en segundos.',
+    recuperar: 'Poné tu email y te mandamos un enlace para elegir una nueva.',
+}
+
+const BOTONES: Record<AuthMode, string> = {
+    login: 'Ingresar',
+    register: 'Crear cuenta',
+    recuperar: 'Enviarme el enlace',
+}
+
+const BOTONES_CARGANDO: Record<AuthMode, string> = {
+    login: 'Ingresando...',
+    register: 'Creando cuenta...',
+    recuperar: 'Enviando...',
+}
+
 export function Cuenta() {
-    const { user, isAuthenticated, login, register, logout, clearError, authError } = useAuthStore()
+    const {
+        user, isAuthenticated, login, register, logout, clearError, authError,
+        recoveryMode, requestPasswordReset, updatePassword,
+    } = useAuthStore()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
     const [isLoading, setIsLoading] = useState(false)
@@ -60,9 +89,20 @@ export function Cuenta() {
     const [upgradeError, setUpgradeError] = useState('')
     // Arranca en 'login': el botón "Ingresar" de la barra de navegación trae
     // acá, y mostrar "Crear cuenta" a quien vino a loguearse confunde.
-    const [mode, setMode] = useState<'login' | 'register'>('login')
+    const [mode, setMode] = useState<AuthMode>('login')
     const [registerSuccess, setRegisterSuccess] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    // Enlace de recuperación pedido: se muestra el mismo mensaje exista o no la
+    // cuenta, para no confirmarle a nadie qué emails están registrados.
+    const [resetSent, setResetSent] = useState(false)
+    // Contraseña nueva — sirve para el que vuelve del mail y para el que la
+    // cambia desde su cuenta ya estando adentro.
+    const [nuevaPassword, setNuevaPassword] = useState('')
+    const [passwordLoading, setPasswordLoading] = useState(false)
+    const [passwordOk, setPasswordOk] = useState(false)
+    // El store apaga recoveryMode apenas la contraseña se guarda, así que sin
+    // esta marca la pantalla desaparecería antes de poder confirmar nada.
+    const [recoveryOk, setRecoveryOk] = useState(false)
 
     usePageMeta({
         title: 'Mi Cuenta',
@@ -74,7 +114,11 @@ export function Cuenta() {
         clearError()
         setIsLoading(true)
         try {
-            if (mode === 'login') {
+            if (mode === 'recuperar') {
+                if (await requestPasswordReset(email)) {
+                    setResetSent(true)
+                }
+            } else if (mode === 'login') {
                 await login(email, password)
             } else {
                 await register(email, password)
@@ -126,22 +170,100 @@ export function Cuenta() {
         }
     }
 
-    const switchMode = (m: 'login' | 'register') => {
+    const switchMode = (m: AuthMode) => {
         setMode(m)
         clearError()
         setRegisterSuccess(false)
+        setResetSent(false)
+        setPassword('')
+    }
+
+    /** Guarda la contraseña nueva. Mismo handler para los dos casos. */
+    const handleNuevaPassword = async (e: { preventDefault(): void }) => {
+        e.preventDefault()
+        clearError()
+        setPasswordLoading(true)
+        try {
+            if (await updatePassword(nuevaPassword)) {
+                setNuevaPassword('')
+                setPasswordOk(true)
+                if (recoveryMode) setRecoveryOk(true)
+            }
+        } finally {
+            setPasswordLoading(false)
+        }
+    }
+
+    // Va antes del chequeo de sesión a propósito: el enlace del mail ya deja al
+    // usuario logueado, así que si esto fuera después caería en su cuenta y el
+    // enlace no habría servido de nada.
+    if (recoveryMode || recoveryOk) {
+        return (
+            <div className={styles.page}>
+                <div className={styles.authContainer}>
+                    <h1>Elegí una contraseña nueva</h1>
+
+                    {recoveryOk ? (
+                        <div className={styles.successBox}>
+                            <p>Listo. Ya podés entrar con la contraseña nueva.</p>
+                            <button
+                                className={styles.linkButton}
+                                onClick={() => { setRecoveryOk(false); setPasswordOk(false) }}
+                            >
+                                Ir a mi cuenta →
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <p className={styles.authSubtitle}>
+                                Es el último paso: escribila y quedás adentro.
+                            </p>
+
+                            {authError && <div className={styles.errorBox}>{authError}</div>}
+
+                            <form onSubmit={handleNuevaPassword} className={styles.form}>
+                                <div className={styles.formGroup}>
+                                    <label htmlFor="nueva-password">Contraseña nueva</label>
+                                    <div className={styles.passwordField}>
+                                        <input
+                                            id="nueva-password"
+                                            type={showPassword ? 'text' : 'password'}
+                                            value={nuevaPassword}
+                                            onChange={e => setNuevaPassword(e.target.value)}
+                                            placeholder="Al menos 6 caracteres"
+                                            required
+                                            minLength={6}
+                                            autoComplete="new-password"
+                                        />
+                                        <button
+                                            type="button"
+                                            className={styles.togglePassword}
+                                            onClick={() => setShowPassword(v => !v)}
+                                            aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                            aria-pressed={showPassword}
+                                            tabIndex={-1}
+                                        >
+                                            {showPassword ? '🙈' : '👁️'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <button type="submit" className={styles.submitButton} disabled={passwordLoading}>
+                                    {passwordLoading ? 'Guardando...' : 'Guardar y entrar'}
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </div>
+            </div>
+        )
     }
 
     if (!isAuthenticated) {
         return (
             <div className={styles.page}>
                 <div className={styles.authContainer}>
-                    <h1>{mode === 'login' ? 'Ingresar' : 'Crear cuenta'}</h1>
-                    <p className={styles.authSubtitle}>
-                        {mode === 'login'
-                            ? 'Accedé a tus herramientas y contenido guardado.'
-                            : 'Creá tu cuenta gratuita en segundos.'}
-                    </p>
+                    <h1>{TITULOS[mode]}</h1>
+                    <p className={styles.authSubtitle}>{SUBTITULOS[mode]}</p>
 
                     {registerSuccess ? (
                         <div className={styles.successBox}>
@@ -154,6 +276,17 @@ export function Cuenta() {
                                 onClick={() => { setRegisterSuccess(false); setMode('login') }}
                             >
                                 Ir al login →
+                            </button>
+                        </div>
+                    ) : resetSent ? (
+                        <div className={styles.successBox}>
+                            <p>Si hay una cuenta con ese email, ya salió el enlace.</p>
+                            <p className={styles.successHint}>
+                                Abrilo en este mismo navegador. Vence en una hora, y si no
+                                aparece, mirá en correo no deseado.
+                            </p>
+                            <button className={styles.linkButton} onClick={() => switchMode('login')}>
+                                Volver al login →
                             </button>
                         </div>
                     ) : (
@@ -175,6 +308,7 @@ export function Cuenta() {
                                         autoComplete="email"
                                     />
                                 </div>
+                                {mode !== 'recuperar' && (
                                 <div className={styles.formGroup}>
                                     <label htmlFor="password">Contraseña</label>
                                     <div className={styles.passwordField}>
@@ -200,15 +334,31 @@ export function Cuenta() {
                                         </button>
                                     </div>
                                 </div>
+                                )}
+
+                                {mode === 'login' && (
+                                    <button
+                                        type="button"
+                                        className={styles.linkButton}
+                                        onClick={() => switchMode('recuperar')}
+                                    >
+                                        Olvidé mi contraseña
+                                    </button>
+                                )}
+
                                 <button type="submit" className={styles.submitButton} disabled={isLoading}>
-                                    {isLoading
-                                        ? (mode === 'login' ? 'Ingresando...' : 'Creando cuenta...')
-                                        : (mode === 'login' ? 'Ingresar' : 'Crear cuenta')}
+                                    {isLoading ? BOTONES_CARGANDO[mode] : BOTONES[mode]}
                                 </button>
                             </form>
 
                             <p className={styles.switchMode}>
-                                {mode === 'login' ? (
+                                {mode === 'recuperar' ? (
+                                    <>¿Te acordaste?{' '}
+                                        <button className={styles.linkButton} onClick={() => switchMode('login')}>
+                                            Volver al login
+                                        </button>
+                                    </>
+                                ) : mode === 'login' ? (
                                     <>¿No tenés cuenta?{' '}
                                         <button className={styles.linkButton} onClick={() => switchMode('register')}>
                                             Registrate gratis
@@ -259,6 +409,50 @@ export function Cuenta() {
                         </span>
                     </div>
                 </div>
+            </section>
+
+            {/* Seguridad — cambiar la contraseña ya estando adentro */}
+            <section className={styles.section}>
+                <h2>Seguridad</h2>
+
+                {passwordOk && (
+                    <div className={styles.successBox}>
+                        <p>Contraseña actualizada.</p>
+                    </div>
+                )}
+
+                {authError && <div className={styles.errorBox}>{authError}</div>}
+
+                <form onSubmit={handleNuevaPassword} className={styles.form}>
+                    <div className={styles.formGroup}>
+                        <label htmlFor="cambiar-password">Contraseña nueva</label>
+                        <div className={styles.passwordField}>
+                            <input
+                                id="cambiar-password"
+                                type={showPassword ? 'text' : 'password'}
+                                value={nuevaPassword}
+                                onChange={e => { setNuevaPassword(e.target.value); setPasswordOk(false) }}
+                                placeholder="Al menos 6 caracteres"
+                                required
+                                minLength={6}
+                                autoComplete="new-password"
+                            />
+                            <button
+                                type="button"
+                                className={styles.togglePassword}
+                                onClick={() => setShowPassword(v => !v)}
+                                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                                aria-pressed={showPassword}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? '🙈' : '👁️'}
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" className={styles.submitButton} disabled={passwordLoading}>
+                        {passwordLoading ? 'Guardando...' : 'Cambiar contraseña'}
+                    </button>
+                </form>
             </section>
 
             {/* Subscription Plans */}
