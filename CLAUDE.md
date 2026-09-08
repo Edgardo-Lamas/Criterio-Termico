@@ -524,8 +524,8 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    MP cargados · las 4 Edge Functions desplegadas · el webhook contesta **401
    por firma** (antes 500) · los dos planes creados en MP
    (`MP_PRO_PLAN_ID=3233f403c5bb4671b228bd6ebd1821c6`,
-   `MP_PREMIUM_PLAN_ID=912cf6425db543218fcb09ee42210618`, $12.000 y $21.000 ARS
-   provisorios) · **el checkout ABRE y muestra «Criterio Térmico PRO $12.000»**.
+   `MP_PREMIUM_PLAN_ID=912cf6425db543218fcb09ee42210618`, **$30.000 y $40.000
+   ARS desde el 2026-09-08**) · **el checkout ABRE con el importe correcto**.
 
    🔑 **Se está usando la aplicación NUEVA de MP: «Criterio Termico Plataforma»,
    AppID `4528717241708762`, con CREDENCIALES DE PRUEBA.** La del sitio,
@@ -547,9 +547,37 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    nuevos con el token productivo, `--secrets` de nuevo y el webhook en «Modo
    productivo» (la clave secreta es otra).
 
-   ⚠ **Los montos van en ARS y la pantalla anuncia USD** (USD 10 / USD 18) más
-   un plan anual que no tiene implementación. Decisión de Edgardo, la dejó para
-   después de que cobre: «primero que cobre, después los valores».
+   ✅ **2026-09-08 — LOS PRECIOS: $30.000 PRO y $40.000 PREMIUM, en pesos.**
+   Antes la pantalla anunciaba USD 10 / USD 18 mientras MP cobraba $12.000 y
+   $21.000: con el dólar a $1.530 se cobraba un 22% menos de lo anunciado, y el
+   desfasaje crecía solo cada vez que se movía el dólar. Se cobra en Argentina
+   por MercadoPago, así que el cobro es en pesos y el cartel dice lo mismo.
+
+   🔑 **El precio vive en DOS lugares y los dos se mueven juntos:**
+   1. **Lo que se COBRA**: el plan de MP (`PUT /preapproval_plan/{id}` con
+      `auto_recurring`). `create-subscription` lo lee antes de cada alta, así
+      que cambiarlo NO obliga a redesplegar.
+   2. **Lo que se MUESTRA**: `app/src/app/routes/Cuenta.tsx` **y**
+      `src/pages/plataforma.astro` del repo del SITIO, que es la puerta de
+      entrada al SaaS. Los tres desalineados es como estaba antes.
+
+   ⚠ **El plan anual salió del cartel.** Anunciaba «USD 100/año (2 meses
+   gratis)» y no existía: el botón manda `{ tier }` y cada tier mapea a UN plan
+   de MP, el mensual, así que el que leía el precio anual y apretaba terminaba
+   en el mensual. Para traerlo: dos planes anuales en MP y un selector.
+
+   ⬜ **Los topes son 80 (PRO) y 120 (PREMIUM) consultas AL MES**, y 15 al mes
+   el gratuito — ya anunciados en el sitio, **todavía NO implementados**: el
+   código sigue con los límites diarios de `LIMITES_POR_TIER` (10/50/200 por
+   día). Hasta que esté el contador mensual, el sistema **da más de lo que
+   anuncia**. Sin suscriptores reales no hay riesgo, pero no se abre el cobro
+   productivo antes de cerrar esto.
+
+   📐 **De dónde salen esos números** (monotributo, dólar a $1.530, comisión de
+   MP del 7,25% con acreditación inmediata): el costo medido de una consulta es
+   de USD 0,09 —USD 0,05 si se acota el historial—, y con 80 y 120 el margen
+   queda en 56% y 51% hoy, 72% y 70% con el historial acotado. Premium rinde
+   más que Pro **mientras la consulta cueste menos de USD 0,15**.
 
    ✅ **2026-09-05 — lo que se arregló en el camino**: la suscripción se pedía
    con `preapproval_plan_id`, y ese camino exige `card_token_id` (tarjeta
