@@ -543,6 +543,23 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    ⚠ MP NO deja suscribirse con la cuenta dueña del servicio: con la sesión real
    de Edgardo el pago no va a andar.
 
+   ✅ **2026-09-08 — el webhook aceptaba cualquier texto como usuario** (ya
+   desplegado, versión 12; verificado en producción: POST sin firma contesta
+   `401 Unauthorized` en texto plano, o sea contesta la función y no el gateway). A la
+   01:56 llegó un aviso real con `external_reference` = `"diagnostico|…"`: el
+   código comprobaba que el tier fuera válido pero del usuario sólo que no
+   estuviera vacío, así que ese texto llegó hasta una columna `uuid` y Postgres
+   cortó con `22P02 invalid input syntax for type uuid`. El webhook contestaba
+   **500 y MP reintenta todo lo que no conteste 200/201**, de manera que el
+   mismo aviso roto vuelve para siempre y el webhook figura como fallado en el
+   panel. Ahora el usuario se valida como UUID y **lo que no se puede procesar
+   nunca se descarta con 200 dejando rastro en el log** (referencia inválida,
+   aviso sin id, factura sin `preapproval_id`); lo que sí puede salir bien en el
+   reintento —MP o la base caídas— sigue con 500. De paso, `recalcularTier`
+   verifica que el perfil exista: un `update` que no encuentra a nadie no es
+   error para PostgREST y el log venía diciendo que el tier subió sin que
+   subiera nada.
+
    ⬜ **Después de la prueba**: repetir con credenciales de PRODUCCIÓN — planes
    nuevos con el token productivo, `--secrets` de nuevo y el webhook en «Modo
    productivo» (la clave secreta es otra).
@@ -658,12 +675,27 @@ Verificados contra el código al escribir el informe de stack (artifact
    `currentProject`, sin la imagen del plano. No hay tabla, ni sincronización,
    ni export del proyecto a archivo (sí a IFC y PDF). Es la brecha más visible
    entre lo que vende `Cuenta.tsx` y lo que hay.
-3. ⬜ **Exportador IFC: los 3 bugs del plan siguen ahí** (reverificado hoy):
-   `setupProject()` se llama en las líneas 682 y 727 (doble raíz), los caños
-   sólo tienen representación `'Axis'` (línea 514, salen sin cuerpo) y la
-   caldera usa el mismo `placement` para el sólido y el `IFCLOCALPLACEMENT`
-   (603-627, queda al doble de distancia). Plan escrito en
-   `docs/plan-exportador-ifc.md` — **sin commitear**.
+3. ✅ **Exportador IFC: arreglado el 2026-09-08** (rama `arreglo/exportador-ifc`).
+   Eran los 3 bugs del plan **más dos que la auditoría no había visto**:
+   - 🔴 **Los radiadores no se exportaban.** El botón los comprobaba para
+     habilitarse y después no se los pasaba a `downloadIFCFile`. Una
+     instalación de radiadores salía sin radiadores.
+   - 🔴 **El archivo declaraba IFC2X3 y escribía entidades de IFC4**
+     (`IFCBOILER`, `IFCPIPESEGMENT`): en 2X3 esas entidades no existen. Pasó a
+     declarar IFC4, que es lo que realmente escribe.
+   - 🔴 **La escala estaba a la mitad**: 100 px/m escritos a mano contra los 50
+     del simulador. Ahora sale de `PIXELS_PER_METER`. **No volver a copiar el
+     número.**
+   - Doble `IfcProject` (guard de idempotencia en `setupProject`), caldera al
+     doble de distancia (la posición vive sólo en el `IFCLOCALPLACEMENT`) y
+     caños sin cuerpo (`IFCSWEPTDISKSOLID` con representación
+     **`'AdvancedSweptSolid'`**, no `'SweptSolid'`).
+
+   7 casos nuevos en `ifcExporter.test.ts` fijan cada invariante: ninguno de
+   estos errores daba error, el archivo se generaba igual. Detalle completo en
+   `docs/plan-exportador-ifc.md`. ⬜ Siguen abiertos: colectores, `IfcSpace` por
+   ambiente con la carga, y qué hacer cuando el usuario sube un plano con SU
+   escala.
 4. ⬜ **`app/vercel.json` no tiene cabeceras de seguridad**: sólo define caché
    de `/assets`. El HSTS lo pone Vercel; faltan `X-Content-Type-Options`,
    `X-Frame-Options` y `Referrer-Policy`.

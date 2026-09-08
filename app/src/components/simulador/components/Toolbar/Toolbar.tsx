@@ -389,9 +389,10 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            /* Same export logic, keeping concise for refactor */
             if (radiators.length === 0 && boilers.length === 0) return alert('Sin elementos');
-            downloadIFCFile({ boilers, pipes, projectName: projectName || 'Proyecto' }, `${projectName}.ifc`);
+            // Los radiadores van SÍ o SÍ: se los comprobaba acá arriba y
+            // después no se los pasaba, así que el archivo salía sin ellos.
+            downloadIFCFile({ boilers, pipes, radiators, projectName: projectName || 'Proyecto' }, `${projectName}.ifc`);
           }}
           title="Exportar modelo BIM (formato IFC)"
         >

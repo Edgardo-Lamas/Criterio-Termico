@@ -1,24 +1,33 @@
 /**
  * Exportador IFC (Industry Foundation Classes) para Sistema de Calefacción
- * 
- * Este módulo genera archivos IFC 2x3 compatibles con:
- * - Autodesk Revit
- * - Graphisoft ArchiCAD
- * - Trimble Tekla
- * - Solibri
- * - Navisworks
- * - Cualquier visor IFC
- * 
+ *
+ * Genera archivos IFC4 que abren en Revit, ArchiCAD, Tekla, Solibri, Navisworks
+ * y cualquier visor IFC.
+ *
  * Exporta:
- * - Tuberías de piso radiante (IfcPipeSegment)
- * - Colectores (IfcDistributionChamberElement)
  * - Calderas (IfcBoiler)
- * - Zonas/Espacios (IfcSpace)
- * - Conexiones y propiedades MEP
+ * - Radiadores (IfcSpaceHeater)
+ * - Tuberías, con cuerpo y con eje (IfcPipeSegment)
+ *
+ * ⚠ EL ESQUEMA ES IFC4, NO IFC2X3. Es lo que corresponde a lo que este archivo
+ * escribe: en IFC2X3 no existen `IfcBoiler`, `IfcPipeSegment` ni
+ * `IfcSpaceHeater` —sólo sus `...Type`, y la ocurrencia va como
+ * `IfcFlowSegment` / `IfcEnergyConversionDevice` / `IfcFlowTerminal`—. El
+ * encabezado decía IFC2X3 mientras el cuerpo usaba entidades de IFC4: un visor
+ * tolerante lo abría igual, pero Revit o Solibri pueden descartar esos
+ * elementos sin avisar. Verificado contra el listado de entidades de
+ * buildingSMART el 2026-09-08.
+ *
+ * NO exporta todavía: colectores y ambientes (IfcSpace) con su carga térmica.
+ *
+ * ⚠ Todo lo que se agregue acá se mide en píxeles del canvas y se convierte con
+ * PIXELS_TO_METERS. Nunca escribir una escala a mano.
  */
 
 import type { Boiler } from '../models/Boiler';
 import type { PipeSegment } from '../models/PipeSegment';
+import type { Radiator } from '../models/Radiator';
+import { PIXELS_PER_METER } from './floorHeating';
 
 // ============================================
 // TIPOS Y CONSTANTES
@@ -36,13 +45,24 @@ interface Point3D {
   z: number;
 }
 
-// Escala: convertir píxeles a metros
-const PIXELS_TO_METERS = 0.01; // 100 píxeles = 1 metro
+// Escala: convertir píxeles a metros.
+//
+// 🔴 Sale de la MISMA constante que usa el simulador para medir todo lo demás
+// (`PIXELS_PER_METER` = 50). Estaba escrita a mano como 0.01, o sea los 100 px/m
+// de la escala vieja, y el modelo entero se exportaba a la MITAD del tamaño
+// real: un ambiente de 8 × 12 m salía de 4 × 6. No volver a copiar el número.
+const PIXELS_TO_METERS = 1 / PIXELS_PER_METER;
 
 // Altura de elementos por defecto
 const DEFAULT_PIPE_HEIGHT = 0.05; // 5cm sobre el suelo (piso radiante embebido)
 
 const DEFAULT_BOILER_HEIGHT = 0; // En el suelo
+
+// Alto del radiador cuando la batería no trae la medida del elemento.
+// ⚠ El radiador se dibuja apoyado en el piso (z = 0). Si conviene levantarlo
+// los centímetros reales del zócalo, es criterio de obra: preguntárselo a
+// Edgardo antes de inventar un número.
+const DEFAULT_RADIATOR_HEIGHT = 0.6;
 
 // ============================================
 // CLASE PRINCIPAL DEL EXPORTADOR
@@ -57,6 +77,8 @@ export class IFCExporter {
   private storeyGroundId: number = 0;
   private storeyFirstId: number = 0;
   private ownerHistoryId: number = 0;
+  // El andamiaje del proyecto se arma UNA vez por archivo (ver setupProject).
+  private projectReady: boolean = false;
   private contextId: number = 0;
   private context3DId: number = 0;
 
@@ -265,6 +287,17 @@ export class IFCExporter {
   // ============================================
 
   private setupProject(): void {
+    // 🔴 Idempotente a propósito. `exportProject()` tiene que armar el proyecto
+    // ANTES de exportar elementos —los necesita para saber en qué planta va
+    // cada uno— y `generate()` también lo llamaba al final, así que el archivo
+    // salía con DOS IfcProject, dos IfcSite, dos IfcBuilding y cuatro plantas.
+    // Un IFC admite una sola raíz. La segunda quedaba huérfana, sin un solo
+    // elemento adentro, y el visor mostraba cualquier cosa. Guard acá y no en
+    // uno de los dos llamadores porque `generate()` es público y se puede
+    // llamar solo: así el proyecto está armado en los dos caminos.
+    if (this.projectReady) return;
+    this.projectReady = true;
+
     // Persona y organización
     const personId = this.addEntity('IFCPERSON', [
       '$', this.formatString(this.authorName), '$', '$', '$', '$', '$', '$'
@@ -486,8 +519,10 @@ export class IFCExporter {
     pipe: PipeSegment,
     circuitLabel?: string
   ): number {
-    const floor = pipe.floor as 'ground' | 'first';
-    const storeyId = this.getStoreyId(floor);
+    // Un montante entre plantas (`'vertical'`) nace abajo: se cuelga de la
+    // planta baja en vez de caer por descarte en la alta, que es lo que hacía
+    // el cast de antes.
+    const storeyId = this.getStoreyId(pipe.floor === 'first' ? 'first' : 'ground');
 
     // Convertir puntos a metros
     const points3D: Point3D[] = pipe.points.map(p => ({
@@ -502,13 +537,35 @@ export class IFCExporter {
     );
     const polylineId = this.createPolyline(pointIds);
 
-    // Perfil circular para la tubería
+    // Diámetro EXTERIOR en mm (ver pipeDimensioning.ts) → radio en metros.
     const diameter = 'diameter' in pipe ? pipe.diameter : 20;
+    const radio = diameter / 2000;
 
-    // const profileId = this.createCircleProfile(radius); // Unused
+    // 🔴 El cuerpo del caño. Antes se exportaba SÓLO el eje ('Axis' / Curve3D):
+    // el archivo salía con alambres sin espesor y el visor no dibujaba ninguna
+    // cañería. IFCSWEPTDISKSOLID barre un disco a lo largo de la polilínea que
+    // ya teníamos, que es justamente lo que es un caño.
+    //
+    // El tipo de representación es 'AdvancedSweptSolid', no 'SweptSolid':
+    // 'SweptSolid' es para extrusiones y revoluciones; barrer un perfil a lo
+    // largo de una directriz cae en 'AdvancedSweptSolid' (IFC4, tabla 693).
+    const solidoId = this.addEntity('IFCSWEPTDISKSOLID', [
+      this.formatRef(polylineId),
+      this.formatReal(radio),
+      '$', // sin radio interior: el espesor de pared no se modela
+      '$',
+      '$'
+    ]);
 
-    // Crear swept solid (tubería extruida a lo largo del path)
-    // Nota: IFC usa IfcSweptDiskSolid para tuberías, pero simplificamos con representación de curva
+    const bodyRepId = this.createShapeRepresentation(
+      this.context3DId,
+      'Body',
+      'AdvancedSweptSolid',
+      [solidoId]
+    );
+
+    // El eje se conserva ADEMÁS del cuerpo, que es lo correcto en IFC: es lo
+    // que otros programas usan para conectar tramos y medir recorridos.
     const curveRepId = this.createShapeRepresentation(
       this.context3DId,
       'Axis',
@@ -516,7 +573,7 @@ export class IFCExporter {
       [polylineId]
     );
 
-    const shapeId = this.createProductDefinitionShape([curveRepId]);
+    const shapeId = this.createProductDefinitionShape([bodyRepId, curveRepId]);
 
     // Placement
     const originPoint = this.createCartesianPoint(0, 0, 0);
@@ -555,7 +612,7 @@ export class IFCExporter {
     const props = [
       this.createPropertySingleValue('Diámetro', diameter),
       this.createPropertySingleValue('DiámetroNominal', `DN${diameter}`),
-      this.createPropertySingleValue('Material', 'PEX'),
+      this.createPropertySingleValue('Material', pipe.material || 'PEX'),
       this.createPropertySingleValue('Longitud', length),
       this.createPropertySingleValue('TipoFlujo', pipeType === 'supply' ? 'Ida' : 'Retorno'),
       this.createPropertySingleValue('Sistema', 'Piso Radiante'),
@@ -599,11 +656,20 @@ export class IFCExporter {
     const height = boiler.height * PIXELS_TO_METERS;
     const depth = 0.6; // 60cm de profundidad (altura física de la caldera)
 
-    // Crear representación
-    const originPoint = this.createCartesianPoint(x, y, z);
+    // 🔴 La posición vive en UN solo lado: el IFCLOCALPLACEMENT del objeto.
+    // El sólido se dibuja en el origen del sistema local de la caldera. Antes
+    // el mismo placement se usaba en los dos lugares y la traslación se
+    // aplicaba dos veces: una caldera puesta en (3,82 · 5,99) terminaba en
+    // (7,64 · 11,97), fuera de un modelo que medía 4 × 6 m.
     const zAxis = this.createDirection(0, 0, 1);
     const xAxis = this.createDirection(1, 0, 0);
-    const placement = this.createAxis2Placement3D(originPoint, zAxis, xAxis);
+
+    const posicion = this.createAxis2Placement3D(
+      this.createCartesianPoint(x, y, z), zAxis, xAxis
+    );
+    const enElOrigen = this.createAxis2Placement3D(
+      this.createCartesianPoint(0, 0, 0), zAxis, xAxis
+    );
 
     const rectProfile = this.addEntity('IFCRECTANGLEPROFILEDEF', [
       this.formatEnum('AREA'),
@@ -614,7 +680,7 @@ export class IFCExporter {
     ]);
 
     const extrudeDir = this.createDirection(0, 0, 1);
-    const solidId = this.createExtrudedAreaSolid(rectProfile, placement, extrudeDir, depth);
+    const solidId = this.createExtrudedAreaSolid(rectProfile, enElOrigen, extrudeDir, depth);
 
     const bodyRep = this.createShapeRepresentation(
       this.context3DId,
@@ -624,7 +690,7 @@ export class IFCExporter {
     );
 
     const shapeId = this.createProductDefinitionShape([bodyRep]);
-    const localPlacement = this.createLocalPlacement(null, placement);
+    const localPlacement = this.createLocalPlacement(null, posicion);
 
     // Potencia en kW
     const powerKW = boiler.power / 860; // Kcal/h a kW
@@ -666,6 +732,110 @@ export class IFCExporter {
   }
 
   /**
+   * Exporta un radiador
+   *
+   * 🔴 No se exportaba. El botón de la Toolbar comprobaba que hubiera
+   * radiadores para habilitarse y después no se los pasaba a nadie: en una
+   * instalación de radiadores, el archivo salía sin un solo radiador.
+   *
+   * Va como IfcSpaceHeater con PredefinedType .RADIATOR. — la entidad que IFC4
+   * tiene para esto (subtipo de IfcFlowTerminal).
+   */
+  exportRadiator(radiator: Radiator): number {
+    const storeyId = this.getStoreyId(radiator.floor || 'ground');
+
+    const x = radiator.x * PIXELS_TO_METERS;
+    const y = radiator.y * PIXELS_TO_METERS;
+
+    // El ancho y el fondo salen de lo dibujado en planta; el alto, de la
+    // medida del elemento de la batería (500 / 600 / 700 mm).
+    const width = radiator.width * PIXELS_TO_METERS;
+    const depth = radiator.height * PIXELS_TO_METERS;
+    const alto = radiator.alturaElementoMm
+      ? radiator.alturaElementoMm / 1000
+      : DEFAULT_RADIATOR_HEIGHT;
+
+    const zAxis = this.createDirection(0, 0, 1);
+    const xAxis = this.createDirection(1, 0, 0);
+
+    // Misma regla que la caldera: el sólido en el origen local, la posición
+    // una sola vez en el IFCLOCALPLACEMENT.
+    const posicion = this.createAxis2Placement3D(
+      this.createCartesianPoint(x, y, 0), zAxis, xAxis
+    );
+    const enElOrigen = this.createAxis2Placement3D(
+      this.createCartesianPoint(0, 0, 0), zAxis, xAxis
+    );
+
+    const rectProfile = this.addEntity('IFCRECTANGLEPROFILEDEF', [
+      this.formatEnum('AREA'),
+      '$',
+      '$',
+      this.formatReal(width),
+      this.formatReal(depth)
+    ]);
+
+    const solidId = this.createExtrudedAreaSolid(
+      rectProfile, enElOrigen, this.createDirection(0, 0, 1), alto
+    );
+
+    const bodyRep = this.createShapeRepresentation(
+      this.context3DId, 'Body', 'SweptSolid', [solidId]
+    );
+    const shapeId = this.createProductDefinitionShape([bodyRep]);
+    const localPlacement = this.createLocalPlacement(null, posicion);
+
+    const bateria = radiator.elementos && radiator.alturaElementoMm
+      ? `${radiator.elementos} elementos de ${radiator.alturaElementoMm} mm`
+      : null;
+
+    const radiatorId = this.addEntity('IFCSPACEHEATER', [
+      this.formatString(this.generateGUID()),
+      this.formatRef(this.ownerHistoryId),
+      this.formatString('Radiador'),
+      this.formatString(
+        bateria
+          ? `Radiador ${bateria} - ${radiator.power} Kcal/h`
+          : `Radiador ${radiator.power} Kcal/h`
+      ),
+      '$',
+      this.formatRef(localPlacement),
+      this.formatRef(shapeId),
+      '$',
+      this.formatEnum('RADIATOR')
+    ]);
+
+    const props = [
+      this.createPropertySingleValue('PotenciaKcal', radiator.power),
+      this.createPropertySingleValue('PotenciaNominal', radiator.power / 860),
+      this.createPropertySingleValue('Sistema', 'Calefacción'),
+    ];
+
+    // Sólo si la batería los trae: los radiadores puestos a mano pueden no
+    // tenerlos, y una propiedad inventada en un archivo BIM es peor que la
+    // propiedad ausente.
+    if (radiator.elementos) {
+      props.push(this.createPropertySingleValue('Elementos', radiator.elementos));
+    }
+    if (radiator.alturaElementoMm) {
+      props.push(this.createPropertySingleValue('AlturaElemento', radiator.alturaElementoMm));
+    }
+
+    const propSetId = this.createPropertySet('Pset_SpaceHeaterCommon', props);
+    this.createRelDefinesByProperties([radiatorId], propSetId);
+
+    this.addEntity('IFCRELCONTAINEDINSPATIALSTRUCTURE', [
+      this.formatString(this.generateGUID()),
+      this.formatRef(this.ownerHistoryId),
+      '$', '$',
+      this.formatList([this.formatRef(radiatorId)]),
+      this.formatRef(storeyId)
+    ]);
+
+    return radiatorId;
+  }
+
+  /**
    * Exporta una zona de piso radiante como espacio
    */
 
@@ -687,9 +857,9 @@ export class IFCExporter {
 
     const header = `ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('ViewDefinition [CoordinationView]'),'2;1');
+FILE_DESCRIPTION(('ViewDefinition [DesignTransferView_V1.0]'),'2;1');
 FILE_NAME('${this.projectName}.ifc','${timestamp}',('${this.authorName}'),('${this.organizationName}'),'${this.applicationName} ${this.applicationVersion}','${this.applicationName}','');
-FILE_SCHEMA(('IFC2X3'));
+FILE_SCHEMA(('IFC4'));
 ENDSEC;
 
 DATA;
@@ -710,18 +880,18 @@ END-ISO-10303-21;
   }
 
   /**
-   * Exporta todo el proyecto de piso radiante
-   */
-  /**
-   * Exporta todo el proyecto de calefacción (Calderas y Tuberías)
+   * Exporta todo el proyecto de calefacción: calderas, radiadores y tuberías.
    */
   exportProject(
     boilers: Boiler[],
-    pipes: PipeSegment[]
+    pipes: PipeSegment[],
+    radiators: Radiator[] = []
   ): string {
-    // Reset
+    // Reset — incluye el andamiaje, o una segunda exportación con el mismo
+    // objeto saldría sin proyecto.
     this.entities = [];
     this.currentId = 1;
+    this.projectReady = false;
 
     // Setup
     this.setupProject();
@@ -729,6 +899,11 @@ END-ISO-10303-21;
     // Exportar calderas
     boilers.forEach(boiler => {
       this.exportBoiler(boiler);
+    });
+
+    // Exportar radiadores
+    radiators.forEach(radiator => {
+      this.exportRadiator(radiator);
     });
 
     // Exportar tuberías principales
@@ -745,17 +920,18 @@ END-ISO-10303-21;
 // ============================================
 
 /**
- * Genera y descarga un archivo IFC con el proyecto de piso radiante
+ * Genera y descarga un archivo IFC con el proyecto de calefacción
  */
 export function downloadIFCFile(
   data: {
     boilers: Boiler[];
     pipes: PipeSegment[];
+    radiators?: Radiator[];
     projectName: string;
   },
   filename?: string
 ): void {
-  const { boilers, pipes, projectName } = data;
+  const { boilers, pipes, radiators = [], projectName } = data;
 
   const exporter = new IFCExporter(
     projectName,
@@ -766,7 +942,8 @@ export function downloadIFCFile(
 
   const ifcContent = exporter.exportProject(
     boilers,
-    pipes
+    pipes,
+    radiators
   );
 
   // Crear blob y descargar
