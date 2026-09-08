@@ -30,6 +30,13 @@ export interface UseAsistente extends AsistenteState {
     error: string | null
     /** true si el usuario está en el Simulador 2D: Criterio ve el proyecto abierto */
     enSimulador: boolean
+    /**
+     * Cuántas consultas del cupo mensual lleva usadas y cuándo se le renueva.
+     * `null` hasta que haga la primera consulta de la sesión —el saldo llega en
+     * las cabeceras de la respuesta— y también para el visitante sin cuenta,
+     * cuyas 3 consultas no se renuevan.
+     */
+    cupo: { usadas: number; limite: number; renueva: string | null } | null
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -41,6 +48,12 @@ export function useAsistente(): UseAsistente {
     const [open, setOpen] = useState(false)
     const [isOnline, setIsOnline] = useState(navigator.onLine)
     const [error, setError] = useState<string | null>(null)
+
+    // Cuántas consultas le quedan del mes. Sale de las cabeceras de la
+    // respuesta del asistente, así que se actualiza sola con cada consulta y no
+    // hace falta una llamada aparte. `null` = todavía no se consultó nada en
+    // esta sesión, o el visitante sin cuenta (que no tiene ciclo).
+    const [cupo, setCupo] = useState<{ usadas: number; limite: number; renueva: string | null } | null>(null)
 
     const abortRef = useRef<AbortController | null>(null)
 
@@ -166,6 +179,16 @@ export function useAsistente(): UseAsistente {
                 }
             }
 
+            // El saldo viene en cabeceras (ver `asistente-termico`). Si el
+            // navegador no las expone —falta `Access-Control-Expose-Headers` en
+            // el CORS— esto devuelve null y el contador simplemente no se dibuja,
+            // sin romper el chat.
+            const usadas = Number(response.headers.get('X-Cupo-Usadas'))
+            const limite = Number(response.headers.get('X-Cupo-Limite'))
+            if (Number.isFinite(usadas) && Number.isFinite(limite) && limite > 0) {
+                setCupo({ usadas, limite, renueva: response.headers.get('X-Cupo-Renueva') })
+            }
+
             if (!response.body) {
                 throw new Error('No se recibió respuesta del servidor.')
             }
@@ -247,6 +270,7 @@ export function useAsistente(): UseAsistente {
         open,
         isOnline,
         error,
+        cupo,
         enSimulador,
         setInput,
         setOpen,

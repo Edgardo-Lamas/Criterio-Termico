@@ -24,7 +24,7 @@ const embedder = new Supabase.ai.Session('gte-small')
 type Tier = 'free' | 'pro' | 'premium'
 
 interface TierConfig {
-    maxRequestsPerDay: number
+    maxRequestsPerMonth: number
     maxTokens: number
 }
 
@@ -50,10 +50,23 @@ interface MensajeModelo {
 // acá las respuestas se cortaban a mitad de la solución sin dar ningún error
 // —la respuesta simplemente se terminaba— y eso ya pasaba sin pensamiento.
 // Estos números dejan aire de sobra: no se paga el tope, se paga lo generado.
+// 🔴 EL CUPO ES MENSUAL, NO DIARIO (2026-09-08).
+//
+// El límite diario hacía justo lo contrario de lo que hacía falta: frenaba al
+// instalador que estaba trabajando en serio un martes a la tarde —el uso real
+// es a ráfagas, siete consultas armando un presupuesto y después nada por una
+// semana— y a la vez dejaba pasar 300 consultas al mes en el plan gratuito,
+// que a USD 0,09 la consulta salen más caras que lo que paga un PRO entero.
+//
+// Los números salen del costo medido contra el precio: con PRO a $30.000 y
+// PREMIUM a $40.000, y descontando la comisión de MercadoPago, 80 y 120 dejan
+// un margen del 56% y 51%. El detalle de la cuenta está en el CLAUDE.md.
+// El uso real medido —23 usuarios, 69 consultas en dos meses, pico de 7 en un
+// día— entra holgado.
 const TIER_CONFIG: Record<Tier, TierConfig> = {
-    free:    { maxRequestsPerDay: 10,  maxTokens: 2048 },
-    pro:     { maxRequestsPerDay: 50,  maxTokens: 3072 },
-    premium: { maxRequestsPerDay: 200, maxTokens: 4096 },
+    free:    { maxRequestsPerMonth: 15,  maxTokens: 2048 },
+    pro:     { maxRequestsPerMonth: 80,  maxTokens: 3072 },
+    premium: { maxRequestsPerMonth: 120, maxTokens: 4096 },
 }
 
 // Visitante sin cuenta (sesión anónima de Supabase). El cupo es bajo a
@@ -62,7 +75,13 @@ const TIER_CONFIG: Record<Tier, TierConfig> = {
 // sin cuenta se lleva la primera impresión del oficio y una respuesta cortada
 // a mitad es peor que no contestar.
 // El alta anónima además tiene su propio límite en Supabase (30/hora por IP).
-const ANON_CONFIG: TierConfig = { maxRequestsPerDay: 3, maxTokens: 2048 }
+//
+// ⚠ Al visitante sin cuenta el cupo NO se le renueva: son 3 consultas y se
+// terminan. Una sesión anónima no tiene mes que cumplir —dura lo que dura la
+// visita— y renovársela sería regalar consultas a cualquiera que vuelva a
+// entrar. Si quiere más, crea una cuenta. Eso se le pide a la base pasando
+// `ancla = null`: sin ciclo, se cuenta todo el historial de esa identidad.
+const ANON_CONFIG: TierConfig = { maxRequestsPerMonth: 3, maxTokens: 2048 }
 
 // ── Modelo ────────────────────────────────────────────────────────────────────
 
@@ -575,9 +594,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         // ── 2. Perfil del usuario ────────────────────────────────────────────
+        // `created_at` es el ancla del ciclo mensual: el cupo se le renueva el
+        // mismo día del mes en que se registró, no el 1°. Si se reiniciara el 1°,
+        // el que se da de alta el 28 tendría el mes entero para gastar en tres
+        // días y otro mes entero el 1°.
         const { data: profile } = await supabase
             .from('profiles')
-            .select('tier, email')
+            .select('tier, email, created_at')
             .eq('id', user.id)
             .single()
 
@@ -592,38 +615,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             : (profile?.email ?? user.email ?? 'instalador').split('@')[0]
         const tierConfig = esAnonimo ? ANON_CONFIG : TIER_CONFIG[tier]
 
-        // ── 3. Rate limiting atómico ─────────────────────────────────────────
-        // increment_ai_usage hace INSERT ... ON CONFLICT DO UPDATE en una sola
-        // operación, eliminando la race condition del patrón read-then-write.
-        const { data: newCount, error: usageError } = await supabase
-            .rpc('increment_ai_usage', { p_user_id: user.id })
-
-        if (usageError) {
-            console.error('[asistente-termico] Error en rate limiting:', usageError.message)
-            return new Response(
-                JSON.stringify({ error: 'Error interno al verificar límite de uso' }),
-                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        if ((newCount as number) > tierConfig.maxRequestsPerDay) {
-            return new Response(
-                JSON.stringify({
-                    error: 'Límite diario alcanzado',
-                    limit: tierConfig.maxRequestsPerDay,
-                    tier,
-                    anonimo: esAnonimo,
-                    message: esAnonimo
-                        ? `Usaste las ${ANON_CONFIG.maxRequestsPerDay} consultas de prueba. Creá una cuenta gratis y tenés ${TIER_CONFIG.free.maxRequestsPerDay} por día.`
-                        : tier === 'free'
-                            ? `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias del plan gratuito. Actualizá a Pro para tener ${TIER_CONFIG.pro.maxRequestsPerDay} consultas/día.`
-                            : `Llegaste al límite de ${tierConfig.maxRequestsPerDay} consultas diarias de tu plan ${tier}.`
-                }),
-                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        // ── 5. Parsear y validar el body ─────────────────────────────────────
+        // ── 3. Parsear y validar el body ─────────────────────────────────────
         const MAX_MESSAGES = 50
         const MAX_CONTENT_LENGTH = 4000
         const MAX_CONTEXTO_SIMULADOR_LENGTH = 4000
@@ -666,7 +658,66 @@ Deno.serve(async (req: Request): Promise<Response> => {
             )
         }
 
-        // ── 6. Búsqueda semántica sobre los casos documentados ───────────────
+        // ── 4. Consumir una consulta del cupo ─────────────────────────────────
+        //
+        // 🔴 VA ACÁ, DESPUÉS DE VALIDAR, Y NO ANTES. Hasta el 2026-09-08 el
+        // descuento corría apenas se identificaba al usuario: un pedido mal
+        // formado se llevaba una consulta del cupo, devolvía 400 y nunca había
+        // llamado al modelo. Se le cobraba al instalador un error del programa.
+        //
+        // `consumir_consulta_ia` decide y descuenta en la misma operación, con
+        // un lock por usuario: el cupo vive repartido en una fila por día y hay
+        // que sumarlas, así que sin serializar dos consultas simultáneas leen la
+        // misma suma y las dos pasan. Si no hay cupo, no descuenta nada.
+        //
+        // El ancla del ciclo es la fecha de alta del perfil. El visitante sin
+        // cuenta va con `null`: sus 3 consultas no se renuevan (ver ANON_CONFIG).
+        const ancla = esAnonimo
+            ? null
+            : (profile?.created_at ?? user.created_at)?.slice(0, 10) ?? null
+
+        const { data: cupo, error: usageError } = await supabase
+            .rpc('consumir_consulta_ia', {
+                p_user_id: user.id,
+                p_limite: tierConfig.maxRequestsPerMonth,
+                p_ancla: ancla,
+            })
+            .single<{ usadas: number; limite: number; permitido: boolean; renueva: string | null }>()
+
+        if (usageError || !cupo) {
+            console.error('[asistente-termico] Error al consumir cupo:', usageError?.message)
+            return new Response(
+                JSON.stringify({ error: 'Error interno al verificar el cupo de consultas' }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+        }
+
+        if (!cupo.permitido) {
+            const renueva = cupo.renueva
+                ? new Date(cupo.renueva + 'T00:00:00').toLocaleDateString('es-AR', {
+                    day: 'numeric', month: 'long',
+                })
+                : null
+
+            return new Response(
+                JSON.stringify({
+                    error: 'Cupo mensual alcanzado',
+                    limit: cupo.limite,
+                    usadas: cupo.usadas,
+                    renueva: cupo.renueva,
+                    tier,
+                    anonimo: esAnonimo,
+                    message: esAnonimo
+                        ? `Usaste las ${ANON_CONFIG.maxRequestsPerMonth} consultas de prueba. Creá una cuenta gratis y tenés ${TIER_CONFIG.free.maxRequestsPerMonth} por mes.`
+                        : tier === 'free'
+                            ? `Usaste las ${cupo.limite} consultas del mes del plan gratuito${renueva ? `; se te renuevan el ${renueva}` : ''}. Con PRO tenés ${TIER_CONFIG.pro.maxRequestsPerMonth} por mes.`
+                            : `Usaste las ${cupo.limite} consultas del mes de tu plan ${tier}${renueva ? `; se te renuevan el ${renueva}` : ''}.`,
+                }),
+                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+        }
+
+        // ── 5. Búsqueda semántica sobre los casos documentados ───────────────
         // Se busca con el último mensaje del usuario; si falla devuelve ''.
         const ultimoMensajeUsuario = [...sanitizedMessages]
             .reverse()
@@ -674,7 +725,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const rag = await buscarConocimiento(ultimoMensajeUsuario)
         const ragContext = rag.texto
 
-        // ── 7. Llamar a Anthropic con streaming ──────────────────────────────
+        // ── 6. Llamar a Anthropic con streaming ──────────────────────────────
         const anthropic = new Anthropic({
             apiKey: Deno.env.get('ANTHROPIC_API_KEY')!,
         })
@@ -778,12 +829,19 @@ Deno.serve(async (req: Request): Promise<Response> => {
             }
         })
 
+        // El saldo viaja en cabeceras y no dentro del stream: así el front lo
+        // lee sin tener que interpretar un evento nuevo, y el formato SSE que ya
+        // parsea queda igual. Van expuestas en `cors.ts`, si no el navegador las
+        // esconde y `res.headers.get()` devuelve null sin dar ningún error.
         return new Response(readable, {
             headers: {
                 ...corsHeaders,
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache',
                 'Connection': 'keep-alive',
+                'X-Cupo-Usadas': String(cupo.usadas),
+                'X-Cupo-Limite': String(cupo.limite),
+                ...(cupo.renueva ? { 'X-Cupo-Renueva': cupo.renueva } : {}),
             }
         })
 
