@@ -11,6 +11,35 @@ import { FloorSelector } from '../FloorSelector/FloorSelector';
 import { HelpModal } from '../HelpModal/HelpModal';
 import { BudgetCounter } from '../BudgetCounter/BudgetCounter';
 import './Toolbar.css';
+import type { Radiator } from '../../models/Radiator';
+
+/**
+ * Avisa cuando quedaron radiadores sin potencia asignada.
+ *
+ * Sin esto el fallo es MUDO. Un radiador arrastrado al plano nace con potencia
+ * 0 hasta que se lo vincula a un ambiente; Conectar Auto traza la red igual, y
+ * los tramos que lo alimentan quedan sin dimensionar. En pantalla se ve una
+ * instalación terminada y no hay manera de notar la diferencia mirando.
+ *
+ * Se avisa DESPUÉS de trazar, no antes: el trazado sirve igual y frenarlo con
+ * una confirmación estorbaría a quien está armando el recorrido a propósito.
+ */
+function avisarRadiadoresSinPotencia(radiadores: Radiator[]): void {
+  const sinPotencia = radiadores.filter(r => !(r.power > 0));
+  if (sinPotencia.length === 0) return;
+
+  const cuantos = sinPotencia.length === radiadores.length
+    ? 'Ningún radiador tiene potencia asignada'
+    : `${sinPotencia.length} de ${radiadores.length} radiadores no tienen potencia asignada`;
+
+  alert(
+    `⚠ ${cuantos}.\n\n` +
+    `Las cañerías que los alimentan quedaron TRAZADAS PERO SIN DIMENSIONAR: ` +
+    `no muestran diámetro porque todavía no hay con qué calcularlo.\n\n` +
+    `Asignales potencia —vinculándolos a un ambiente, o cargando el valor en el ` +
+    `panel de propiedades— y volvé a apretar Conectar Auto.`
+  );
+}
 
 interface ToolbarProps {
   onOpenPriceConfig?: () => void;
@@ -133,6 +162,8 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         }
       }, 100);
     }
+
+    avisarRadiadoresSinPotencia(currentFloorRadiators);
   };
 
   // NUEVO: Conexión automática multi-planta
@@ -165,6 +196,8 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
         }
       }, 100);
     }
+
+    avisarRadiadoresSinPotencia(radiators);
   };
 
   // handleDimensionPipes eliminado - "Conectar Auto" ya dimensiona automáticamente

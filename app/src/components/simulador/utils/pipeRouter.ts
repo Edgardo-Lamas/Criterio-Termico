@@ -7,7 +7,18 @@ import type { FloorHeatingZone } from '../models/FloorHeatingZone';
 import { calculateFlowRate, calculatePipeDiameter } from './pipeDimensioning';
 
 // Diámetro por potencia acumulada (kcal/h) — atajo sobre la tabla común
+/**
+ * Diámetro del tramo según la potencia que transporta.
+ *
+ * Devuelve 0 —no 16— cuando no hay potencia. Un radiador arrastrado al plano
+ * nace con potencia 0 hasta que se lo asigna a un ambiente, y con 0 la tabla de
+ * caudales cae en su primer renglón: TODA la instalación salía rotulada Ø16,
+ * que es un número perfectamente creíble y completamente inventado. El canvas
+ * sólo dibuja la etiqueta a partir de 16, así que el 0 deja el tramo trazado
+ * pero sin diámetro a la vista, que es la verdad: todavía no se dimensionó.
+ */
 function diametroPorPotencia(powerKcalh: number): number {
+  if (!(powerKcalh > 0)) return 0;
   return calculatePipeDiameter(calculateFlowRate(powerKcalh));
 }
 

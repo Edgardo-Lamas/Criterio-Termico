@@ -104,3 +104,33 @@ describe('generateAutoPipes — troncal que reduce por potencia acumulada', () =
     expect(desdeCaldera[0].diameter).toBe(25);
   });
 });
+
+describe('generateAutoPipes — radiadores sin potencia asignada', () => {
+  it('no inventa un Ø16: sin potencia, el tramo queda trazado pero sin diámetro', () => {
+    // Un radiador arrastrado al plano nace con power 0 hasta que se lo vincula
+    // a un ambiente. Con 0, la tabla de caudales caía en su primer renglón y
+    // TODA la instalación salía rotulada Ø16 — un número creíble e inventado,
+    // indistinguible en pantalla de un dimensionado real.
+    const result = generateAutoPipes(
+      [radiador('r1', 400, 100, 0, 'ground'), radiador('r2', 600, 300, 0, 'ground')],
+      [caldera('b1', 100, 200, 'ground')]
+    );
+
+    expect(result.pipes.length).toBeGreaterThan(0);
+    for (const pipe of result.pipes) {
+      expect(pipe.diameter).toBe(0);
+    }
+  });
+
+  it('con potencia asignada dimensiona normal', () => {
+    const result = generateAutoPipes(
+      [radiador('r1', 400, 100, 5000, 'ground'), radiador('r2', 600, 300, 5000, 'ground')],
+      [caldera('b1', 100, 200, 'ground')]
+    );
+
+    const conDiametro = result.pipes.filter(p => p.diameter > 0);
+    expect(conDiametro.length).toBe(result.pipes.length);
+    // 10.000 kcal/h en el troncal → 1.000 L/h → no puede ser Ø16
+    expect(Math.max(...result.pipes.map(p => p.diameter))).toBeGreaterThanOrEqual(20);
+  });
+});
