@@ -30,7 +30,8 @@
  *   MercadoPago no manda JWT. Con la verificación puesta, el gateway de Supabase
  *   rechaza cada aviso con 401 antes de ejecutar este archivo y el tier nunca sube.
  *
- * TIERS VÁLIDOS en external_reference: "userId|pro" o "userId|premium"
+ * TIERS VÁLIDOS en external_reference: "userId|pro" o "userId|premium",
+ * donde userId es el UUID de auth.users. Cualquier otra cosa se descarta.
  */
 
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -41,6 +42,10 @@ const SUPABASE_URL          = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
 const VALID_TIERS = new Set(['pro', 'premium'])
+
+// El userId del external_reference viaja hasta una columna `uuid`. Si llega
+// cualquier otro texto, Postgres corta con 22P02 y el aviso se caía con 500.
+const RE_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // ── Verificación de firma HMAC-SHA256 ─────────────────────────────────────────
 // MercadoPago envía: x-signature: ts=<timestamp>,v1=<hmac>
@@ -140,12 +145,19 @@ async function recalcularTier(supabase: SupabaseClient, userId: string): Promise
     const tiers = new Set((data ?? []).map((fila: { tier: string }) => fila.tier))
     const tier = tiers.has('premium') ? 'premium' : tiers.has('pro') ? 'pro' : 'free'
 
-    const { error: errorPerfil } = await supabase
+    const { data: perfiles, error: errorPerfil } = await supabase
         .from('profiles')
         .update({ tier })
         .eq('id', userId)
+        .select('id')
 
     if (errorPerfil) throw new Error(`actualizando perfil: ${errorPerfil.message}`)
+
+    // Un update que no encuentra a nadie no es un error para PostgREST: sin
+    // esto, un id que no está en la base dejaría el log diciendo que el tier
+    // subió cuando no subió nada. Se levanta y MP reintenta, que es lo que
+    // corresponde si el perfil todavía lo está creando el trigger de alta.
+    if (!perfiles?.length) throw new Error(`no existe el perfil ${userId}`)
 
     return tier
 }
@@ -172,9 +184,20 @@ async function sincronizar(
     const externalRef = String(suscripcion.external_reference ?? '')
     const [userId, tier] = externalRef.split('|')
 
-    if (!userId || !tier || !VALID_TIERS.has(tier)) {
-        console.error('[webhook] external_reference inválido:', externalRef)
-        return new Response('Bad reference', { status: 400 })
+    // ⚠ 200 a propósito, aunque el aviso esté mal. MP reintenta todo lo que no
+    // conteste 200/201, y una referencia rota no se arregla reintentando: el
+    // aviso vuelve una y otra vez y el webhook figura como fallado en el panel.
+    // Se descarta dejando rastro. Lo que SÍ puede salir bien en el reintento
+    // —MP o la base caídas— sigue contestando 500.
+    //
+    // Visto en producción el 2026-09-08: llegó "diagnostico|pro" y el upsert
+    // reventó con `invalid input syntax for type uuid`.
+    if (!RE_UUID.test(userId ?? '') || !tier || !VALID_TIERS.has(tier)) {
+        console.error(
+            `[webhook] external_reference inválido, aviso descartado: "${externalRef}"` +
+            ` (preapproval ${preapprovalId})`,
+        )
+        return new Response('OK', { status: 200 })
     }
 
     const estado = String(suscripcion.status ?? 'unknown')
@@ -247,8 +270,10 @@ Deno.serve(async (req) => {
         const id = String(data?.id ?? dataIdDelQuery ?? '')
 
         if (!id) {
-            console.error('[webhook] Aviso sin id:', JSON.stringify(body))
-            return new Response('Bad request', { status: 400 })
+            // 200 por lo mismo que la referencia inválida: sin id no hay nada
+            // que consultar, y reintentar lo mismo no lo va a hacer aparecer.
+            console.error('[webhook] Aviso sin id, descartado:', JSON.stringify(body))
+            return new Response('OK', { status: 200 })
         }
 
         // Alta de la suscripción y cada cambio de estado.
@@ -264,8 +289,8 @@ Deno.serve(async (req) => {
 
             const preapprovalId = String(factura.preapproval_id ?? '')
             if (!preapprovalId) {
-                console.error('[webhook] Factura sin preapproval_id:', id)
-                return new Response('Bad reference', { status: 400 })
+                console.error('[webhook] Factura sin preapproval_id, descartada:', id)
+                return new Response('OK', { status: 200 })
             }
 
             const detallePago = (factura.payment ?? {}) as Record<string, unknown>
