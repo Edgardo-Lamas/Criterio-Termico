@@ -664,8 +664,24 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    queda en 56% y 51%, o 72% y 70% con el recorte. Premium rinde más que Pro
    **mientras la consulta cueste menos de USD 0,15**.
 
-   🔴 **ESA CUENTA ES UNA ESTIMACIÓN, NO UNA MEDICIÓN — y desde el 2026-09-09 se
-   está midiendo.** Hasta ese día `ai_usage.tokens_used` estuvo en 0 en las 36
+   ✅ **PRIMERA MEDICIÓN REAL — 2026-09-09, 2 consultas en producción:**
+   entrada 5.972 · salida 1.065 · caché leída 4.415 · caché escrita 4.415.
+   Con los precios de Opus 5 (entrada $5, salida $25, caché $0,50 lectura y
+   $6,25 escritura por millón, verificados en claude.com/pricing):
+
+   | | USD por consulta | Margen PRO | Margen PREMIUM |
+   |---|---|---|---|
+   | Estimado en papel | 0,090 | 56% | 51% |
+   | **Medido, caché fría** | **0,043** | **81%** | **79%** |
+   | **Medido, caché caliente** | **0,029** | **87%** | **86%** |
+
+   🔑 **La estimación estaba TRIPLICADA.** Y con la ventana de 8 el costo por
+   consulta ahora tiene TECHO — antes crecía sin límite con el largo de la
+   charla. ⚠ Son 2 consultas y `trimmed_count = 0`: ninguna llegó a tocar la
+   ventana, así que el promedio va a subir algo con conversaciones largas.
+   **Volver a mirar con una semana de uso antes de mover precios.**
+
+   🔴 **La cuenta vieja era una estimación, no una medición.** Hasta ese día `ai_usage.tokens_used` estuvo en 0 en las 36
    filas de la tabla: 69 consultas en dos meses sin un token registrado, con la
    API devolviendo el consumo real en cada respuesta. Ahora
    `registrar_consumo_ia` guarda entrada, salida y caché por separado (los tres
