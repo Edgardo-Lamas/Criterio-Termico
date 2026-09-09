@@ -731,11 +731,20 @@ Verificados contra el código al escribir el informe de stack (artifact
    llevado una consulta del cupo sin llamar al modelo. Se le cobraba al
    instalador un error del programa. En las dos funciones el descuento pasó a
    correr **después** de parsear y validar.
-2. 🔴 **«Proyectos guardados ilimitados» (Premium) no tiene implementación.**
-   `projectStorage.ts` guarda UN proyecto en localStorage bajo la clave
-   `currentProject`, sin la imagen del plano. No hay tabla, ni sincronización,
-   ni export del proyecto a archivo (sí a IFC y PDF). Es la brecha más visible
-   entre lo que vende `Cuenta.tsx` y lo que hay.
+2. 🟡 **«Proyectos guardados ilimitados» — la promesa se sacó del cartel el
+   2026-09-09, la función sigue sin existir.** `projectStorage.ts` guarda UN
+   proyecto en localStorage bajo la clave `currentProject`, sin la imagen del
+   plano. No hay tabla, ni sincronización, ni export del proyecto a archivo (sí
+   a IFC y PDF). Decisión de Edgardo: antes que sostener lo que no hay, se
+   eliminó el renglón de `Cuenta.tsx` y de la página de precios del sitio. 🔑 **Si
+   alguna vez se implementa el guardado, hay que volver a anunciarlo en los DOS
+   lados.**
+
+   En la misma pasada salió **«Herramientas de presentación»**, que no
+   correspondía a ninguna función —no existía nada con ese nombre en todo el
+   frontend— y repetía lo que ya dicen «Exportación PDF profesional» y
+   «Presupuestos detallados». En su lugar quedó **«Exportación a BIM (IFC)»**,
+   que es real y no estaba anunciada en la app.
 3. ✅ **Exportador IFC: arreglado el 2026-09-08** (rama `arreglo/exportador-ifc`).
    Eran los 3 bugs del plan **más dos que la auditoría no había visto**:
    - 🔴 **Los radiadores no se exportaban.** El botón los comprobaba para

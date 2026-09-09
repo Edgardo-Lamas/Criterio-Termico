@@ -58,10 +58,9 @@ const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string
         features: [
             'Todo lo incluido en PRO',
             'Simulador 2D completo (desktop)',
-            'Proyectos guardados ilimitados',
             'Exportación PDF profesional',
-            'Presupuestos detallados',
-            'Herramientas de presentación'
+            'Exportación a BIM (IFC)',
+            'Presupuestos detallados'
         ]
     }
 ]
