@@ -64,8 +64,8 @@ function radiador(id: string, power: number): Radiator {
 // Red mínima caldera → troncal Ø25 → ramal Ø16 → radiador
 function redRadiador(trunkLen: number): PipeSegment[] {
   return [
-    { id: 'trunk1', type: 'pipe', pipeType: 'supply', points: [], diameter: 25, material: 'Multicapa', floor: 'ground', fromElementId: 'boiler', toElementId: undefined, length: trunkLen },
-    { id: 'b1', type: 'pipe', pipeType: 'supply', points: [], diameter: 16, material: 'Multicapa', floor: 'ground', fromElementId: 'trunk1', toElementId: 'R1', length: 3 },
+    { id: 'trunk1', type: 'pipe', pipeType: 'supply', points: [], diameter: 25, material: 'PEX', floor: 'ground', fromElementId: 'boiler', toElementId: undefined, length: trunkLen },
+    { id: 'b1', type: 'pipe', pipeType: 'supply', points: [], diameter: 16, material: 'PEX', floor: 'ground', fromElementId: 'trunk1', toElementId: 'R1', length: 3 },
   ];
 }
 

@@ -251,19 +251,23 @@ export const PropertiesPanel = () => {
               value={editedValues.diameter ?? pipe.diameter ?? 16}
               onChange={e => handleChange('diameter', Number(e.target.value))}
             >
-              {[12, 16, 20, 25, 32, 40].map(d => <option key={d} value={d}>{d} mm</option>)}
+              {/* Los cuatro que existen en PE-X. El 12 y el 40 salieron el 9/9:
+                  no los fabrica el sistema. Ø exterior, que es como se compra. */}
+              {[16, 20, 25, 32].map(d => <option key={d} value={d}>{d} mm</option>)}
             </select>
           </div>
           <div className="property-group">
             <label className="property-label">Material</label>
+            {/* Hoy la instalación es toda PEX: es lo que se usa en Argentina y el
+                cobre quedó fuera. Cuando entre un segundo material (termofusión),
+                vuelve a ser un select con opciones. */}
             <select
               className="property-select"
               value={editedValues.material ?? 'PEX'}
               onChange={e => handleChange('material', e.target.value)}
+              disabled
             >
               <option value="PEX">PEX</option>
-              <option value="Cobre">Cobre</option>
-              <option value="Multicapa">Multicapa</option>
             </select>
           </div>
         </>

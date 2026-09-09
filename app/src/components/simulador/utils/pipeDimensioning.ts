@@ -13,11 +13,11 @@ export function calculateFlowRate(powerKcal: number): number {
 }
 
 /**
- * Determina el diámetro óptimo de tubería PEX/Multicapa según el caudal
+ * Determina el diámetro óptimo de tubería PE-X según el caudal
  * IMPORTANTE: Los valores son diámetro EXTERIOR en mm
  * Basado en velocidad óptima del agua: ~1.0 m/s
  * 
- * Tabla de referencia PEX (velocidad ≈1.0 m/s):
+ * Tabla de referencia PE-X (velocidad ≈1.0 m/s):
  * ┌─────────┬─────────────┬─────────────────┬──────────────────────┐
  * │ Ø Ext   │ Ø Int aprox │ Caudal máx      │ Potencia máx ΔT=10°C │
  * ├─────────┼─────────────┼─────────────────┼──────────────────────┤
@@ -36,7 +36,10 @@ export function calculatePipeDiameter(flowRate: number): number {
   if (flowRate <= 750) return 20;   // Hasta ~7500 Kcal/h (~8.7 kW)
   if (flowRate <= 1300) return 25;  // Hasta ~13000 Kcal/h (~15 kW)
   if (flowRate <= 2200) return 32;  // Hasta ~22000 Kcal/h (~25 kW)
-  return 40; // Más de 22000 Kcal/h - troncal principal grande
+  // 32 es el TECHO del catálogo PE-X: el 40 no se fabrica y se sacó el 9/9.
+  // Arriba de ~22000 Kcal/h el troncal se sale de la tabla y necesita criterio
+  // de obra, no un diámetro inventado.
+  return 32;
 }
 
 /**

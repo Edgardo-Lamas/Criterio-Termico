@@ -50,7 +50,9 @@ const FACTOR_PERDIDAS_LOCALES = 1.3;
 const DP_EMISOR_RADIADOR_MCA = 0.1; // cuerpo del radiador + llaves
 const DP_COLECTOR_PISO_MCA = 0.3;   // colector + caudalímetros + detentores
 
-// Ø interior aproximado (mm) según Ø exterior de PE-X/multicapa.
+// Ø interior aproximado (mm) según Ø exterior de PE-X.
+// El 40 ya no se puede elegir (salió del catálogo el 9/9) pero queda en la tabla:
+// los proyectos guardados antes lo tienen y tienen que seguir calculando bien.
 const DIAM_INTERIOR_MM: Record<number, number> = {
   16: 12.5,
   20: 16,

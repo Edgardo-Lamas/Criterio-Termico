@@ -353,7 +353,7 @@ export const useElementsStore = create<ElementsStore>((set) => ({
         type: 'pipe',
         pipeType: 'supply', // Por defecto suministro
         diameter: 0, // Se dimensionará después
-        material: 'copper', // Por defecto cobre
+        material: 'PEX',
         length: totalLength,
         fromElementId: fromId,
         toElementId: toId,
