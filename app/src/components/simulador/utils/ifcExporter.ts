@@ -64,6 +64,21 @@ const DEFAULT_BOILER_HEIGHT = 0; // En el suelo
 // Edgardo antes de inventar un número.
 const DEFAULT_RADIATOR_HEIGHT = 0.6;
 
+/**
+ * A qué altura del piso se apoya el radiador, en metros.
+ *
+ * No es un número de dibujo: es criterio de obra de Edgardo. El radiador
+ * necesita esa separación para que el aire frío entre por abajo — la convección
+ * natural es lo que lo hace funcionar—, y un radiador a menos de 5 cm del piso
+ * pierde entre 20% y 30% de su potencia efectiva. El rango que él usa es 15 a
+ * 20 cm; se toma el mínimo, que es el que cabe siempre.
+ *
+ * 🔴 Hasta el 2026-09-09 los radiadores salían en z = 0, apoyados en el piso.
+ * El archivo mostraba una instalación que en obra rendiría de menos, y el que
+ * lo recibiera para dibujar entendería que esa separación no importa.
+ */
+const RADIATOR_FLOOR_CLEARANCE = 0.15;
+
 // ============================================
 // CLASE PRINCIPAL DEL EXPORTADOR
 // ============================================
@@ -759,9 +774,10 @@ export class IFCExporter {
     const xAxis = this.createDirection(1, 0, 0);
 
     // Misma regla que la caldera: el sólido en el origen local, la posición
-    // una sola vez en el IFCLOCALPLACEMENT.
+    // una sola vez en el IFCLOCALPLACEMENT. La altura va acá y no en el sólido,
+    // así el radiador se levanta entero y conserva su alto real.
     const posicion = this.createAxis2Placement3D(
-      this.createCartesianPoint(x, y, 0), zAxis, xAxis
+      this.createCartesianPoint(x, y, RADIATOR_FLOOR_CLEARANCE), zAxis, xAxis
     );
     const enElOrigen = this.createAxis2Placement3D(
       this.createCartesianPoint(0, 0, 0), zAxis, xAxis

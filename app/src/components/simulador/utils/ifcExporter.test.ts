@@ -83,6 +83,16 @@ describe('exportador IFC', () => {
         expect(ifc).not.toContain('IFCCARTESIANPOINT((8.000000,12.000000,0.000000))');
     });
 
+    it('levanta el radiador del piso los 15 cm que pide la convección', () => {
+        const ifc = exportar();
+        // (100, 150) px ÷ 50 = (2, 3) m, y z = 0,15: el radiador necesita esa
+        // separación para que le entre el aire frío por abajo. Apoyado en el
+        // piso pierde entre 20% y 30% de su potencia efectiva, y el archivo
+        // estaría mostrando una instalación que en obra rinde de menos.
+        expect(ifc).toContain('IFCCARTESIANPOINT((2.000000,3.000000,0.150000))');
+        expect(ifc).not.toContain('IFCCARTESIANPOINT((2.000000,3.000000,0.000000))');
+    });
+
     it('le da cuerpo a los caños, además del eje', () => {
         const ifc = exportar();
         // Un caño de 20 mm exterior es un disco de 0,01 m de radio barrido a lo

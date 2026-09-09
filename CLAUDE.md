@@ -65,7 +65,7 @@ error 1010). El mismo endpoint sirve para consultar la base sin abrir el panel.
 
 ### Tests
 ```bash
-npm run test          # Tests unitarios (Vitest) — 195 en 15 archivos
+npm run test          # Tests unitarios (Vitest) — 196 en 15 archivos
 npm run test:ui       # Tests con interfaz visual
 npm run test:coverage # Coverage report
 ```

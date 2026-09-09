@@ -126,9 +126,12 @@ salía sin un solo radiador: en el IFC del 8/9 hay 1 caldera, 36 caños y cero r
 Kcal/h y en kW, la cantidad de elementos y la altura del elemento como propiedades. El alto
 del sólido sale de `alturaElementoMm`; si la batería no lo trae, 0,60 m.
 
-⬜ **Para preguntarle a Edgardo:** el radiador se dibuja apoyado en el piso (z = 0). Si
-conviene levantarlo los centímetros reales a los que va montado, es criterio de obra y la
-fuente es él.
+✅ **Resuelto el 2026-09-09 — el radiador va a 15 cm del piso** (`RADIATOR_FLOOR_CLEARANCE`).
+Lo decidió Edgardo: su criterio de obra es 15 a 20 cm y se toma el mínimo, que es el que
+cabe siempre. No es un número de dibujo — el radiador necesita esa separación para que le
+entre el aire frío por abajo, y apoyado en el piso pierde entre 20% y 30% de su potencia
+efectiva. La altura se aplica en el `IFCLOCALPLACEMENT`, no en el sólido, así el radiador se
+levanta entero y conserva su alto real. Cubierto por test.
 
 ## ✅ Bug 5 — El archivo declaraba un esquema que no era el suyo
 
