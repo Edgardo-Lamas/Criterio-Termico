@@ -211,6 +211,28 @@ sin historial, mientras que una consulta al asistente arrastra la conversación
 entera en cada turno—. Si midiendo los tokens resultara más caro, no hay que
 inventar otro contador: `consumir_consulta_ia` acepta `p_cantidad`.
 
+### Cuánta conversación viaja al modelo (desde 2026-09-09)
+
+🔴 **EL COSTO DE UNA CONVERSACIÓN CRECE CON EL CUADRADO DE SU LARGO.** Cada turno
+reenvía todos los anteriores: la pregunta 10 vuelve a pagar las nueve de antes,
+así que una charla de 10 idas y vueltas no cuesta 10 veces la primera sino unas
+50. Hasta ese día se mandaba la conversación entera.
+
+`ventanaDeConversacion` (en `asistente-termico/index.ts`) manda las **últimas 4
+idas y vueltas** — `MENSAJES_AL_MODELO = 8`, elegido por Edgardo. El instalador
+sigue viendo la charla completa en pantalla: lo que se recorta es lo que se paga.
+
+🔑 **La ventana tiene que arrancar con un turno del instalador.** Si el corte cae
+sobre una respuesta de Martín, la conversación empieza con él contestando algo
+que nadie preguntó y el modelo responde en el aire. Por eso se descarta ese
+mensaje suelto.
+
+⚠ **El recorte se hace en la Edge Function, no en el frontend.** Una sola regla y
+en el lado que manda: el navegador se puede modificar, la función no.
+
+⚠ **Cuando exista la memoria de Martín, este número se puede bajar sin que se
+note**: la memoria es lo que sostiene el hilo cuando la ventana ya no llega.
+
 El visitante sin cuenta usa una **sesión anónima de Supabase** (desde 2026-08-13):
 es una sesión real, así que el rate limiting y el RLS funcionan igual. ⚠ Una
 sesión anónima **no es un login** — el store la ignora a propósito y el header
@@ -463,7 +485,12 @@ chore:    tareas de mantenimiento (deps, config)
 - [x] **[A-4] Input sin validación de tamaño en la Edge Function**
   - Archivo: `supabase/functions/asistente-termico/index.ts:191`
   - Sin límite en `messages.length` ni `content.length`. Expuesto a abuso de tokens.
-  - Agregar: máximo 50 mensajes en el array, máximo 4000 chars por `content`.
+  - Agregado: 4000 chars por `content` y tope duro de mensajes en el array.
+  - ⚠ **Actualizado el 2026-09-09**: el tope de 50 devolvía `400` y le rompía el
+    chat al instalador que venía trabajando hace rato. Ahora el tope duro es 200
+    —sólo contra un body absurdo— y el recorte real lo hace
+    `ventanaDeConversacion`, que manda al modelo las últimas 4 idas y vueltas
+    (`MENSAJES_AL_MODELO = 8`). Ver la sección del asistente.
 
 - [x] **[A-1] Sin lazy loading en páginas (viola regla del CLAUDE.md)**
   - Archivo: `src/App.tsx:1-14`
@@ -622,10 +649,25 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    devuelve `null` **sin dar ningún error** y el contador no aparece nunca.
 
    📐 **De dónde salen esos números** (monotributo, dólar a $1.530, comisión de
-   MP del 7,25% con acreditación inmediata): el costo medido de una consulta es
-   de USD 0,09 —USD 0,05 si se acota el historial—, y con 80 y 120 el margen
-   queda en 56% y 51% hoy, 72% y 70% con el historial acotado. Premium rinde
-   más que Pro **mientras la consulta cueste menos de USD 0,15**.
+   MP del 7,25% con acreditación inmediata): el costo estimado de una consulta
+   es de USD 0,09 —USD 0,05 con el historial acotado—, y con 80 y 120 el margen
+   queda en 56% y 51%, o 72% y 70% con el recorte. Premium rinde más que Pro
+   **mientras la consulta cueste menos de USD 0,15**.
+
+   🔴 **ESA CUENTA ES UNA ESTIMACIÓN, NO UNA MEDICIÓN — y desde el 2026-09-09 se
+   está midiendo.** Hasta ese día `ai_usage.tokens_used` estuvo en 0 en las 36
+   filas de la tabla: 69 consultas en dos meses sin un token registrado, con la
+   API devolviendo el consumo real en cada respuesta. Ahora
+   `registrar_consumo_ia` guarda entrada, salida y caché por separado (los tres
+   precios son distintos) más `trimmed_count`, que dice cuántas consultas
+   llegaron con más charla de la que entra en la ventana. **Antes de volver a
+   tocar precios o cupos, mirar los números reales**, no éstos:
+
+   ```sql
+   select sum(input_tokens), sum(output_tokens), sum(cache_read_tokens),
+          sum(request_count), sum(trimmed_count)
+     from ai_usage where date >= current_date - 30;
+   ```
 
    ✅ **2026-09-05 — lo que se arregló en el camino**: la suscripción se pedía
    con `preapproval_plan_id`, y ese camino exige `card_token_id` (tarjeta

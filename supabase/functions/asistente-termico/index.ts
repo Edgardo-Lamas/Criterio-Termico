@@ -83,6 +83,53 @@ const TIER_CONFIG: Record<Tier, TierConfig> = {
 // `ancla = null`: sin ciclo, se cuenta todo el historial de esa identidad.
 const ANON_CONFIG: TierConfig = { maxRequestsPerMonth: 3, maxTokens: 2048 }
 
+// ── Cuánta conversación viaja al modelo ───────────────────────────────────────
+
+/**
+ * Cuántos mensajes de la charla se le mandan al modelo en cada consulta.
+ *
+ * 🔴 EL COSTO DE UNA CONVERSACIÓN CRECE CON EL CUADRADO DE SU LARGO. Cada turno
+ * reenvía todos los anteriores, así que la pregunta 10 vuelve a pagar las nueve
+ * de antes: una charla de 10 idas y vueltas no cuesta 10 veces la primera, sino
+ * unas 50. Hasta el 2026-09-09 se mandaba la conversación entera y lo único que
+ * la frenaba era un tope de 50 mensajes que además devolvía error en vez de
+ * recortar — al instalador se le rompía el chat en medio del trabajo.
+ *
+ * 8 son cuatro idas y vueltas completas: alcanza para que el instalador
+ * repregunte sobre lo que se venía hablando («¿y si en vez de 70 grados trabajo
+ * a 80?» tres preguntas después) y corta la cola larga, que es la que cuesta.
+ * El uso medido —1,92 consultas por día activo— dice que casi nadie la va a
+ * tocar. Lo eligió Edgardo.
+ *
+ * ⚠ Cuando exista la memoria de Martín, ESTE número se puede bajar sin que se
+ * note: la memoria es lo que sostiene el hilo cuando la ventana ya no llega.
+ */
+const MENSAJES_AL_MODELO = 8
+
+/**
+ * Se queda con los últimos `MENSAJES_AL_MODELO` mensajes.
+ *
+ * 🔑 La ventana tiene que arrancar con un turno del instalador. Si el corte cae
+ * justo sobre una respuesta de Martín, la conversación empezaría con él
+ * contestando algo que nadie preguntó: el modelo lee eso como si él mismo lo
+ * hubiera dicho recién y responde en el aire. Se descarta ese mensaje suelto.
+ *
+ * Devuelve además si hubo recorte, para poder medir después cuántas consultas
+ * están tocando el límite y decidir con datos si la ventana quedó chica.
+ */
+function ventanaDeConversacion<T extends { role: string }>(
+    mensajes: T[],
+): { ventana: T[]; recortada: boolean } {
+    if (mensajes.length <= MENSAJES_AL_MODELO) {
+        return { ventana: mensajes, recortada: false }
+    }
+
+    let ventana = mensajes.slice(-MENSAJES_AL_MODELO)
+    if (ventana[0]?.role !== 'user') ventana = ventana.slice(1)
+
+    return { ventana, recortada: true }
+}
+
 // ── Modelo ────────────────────────────────────────────────────────────────────
 
 const MODELO = 'claude-opus-5'
@@ -552,6 +599,53 @@ async function registrarConsultaAbierta(datos: {
     }
 }
 
+// ── Lo que costó la consulta, medido ─────────────────────────────────────────
+//
+// 🔴 HASTA EL 2026-09-09 NO SE MEDÍA NADA. `ai_usage.tokens_used` estaba en 0 en
+// las 36 filas de la tabla: 69 consultas en dos meses y ni un token registrado.
+// El costo de USD 0,09 con el que se fijaron los precios era una estimación en
+// papel, y la API venía devolviendo el número real en cada respuesta.
+//
+// Los tres precios son distintos —la salida vale cinco veces la entrada, y lo
+// leído de caché una décima parte— así que se guardan separados. Sumarlos en un
+// solo número no permitiría calcular el costo.
+//
+// Nunca rompe la consulta: el instalador ya recibió su respuesta y lo único que
+// se pierde si esto falla es una medición.
+
+interface ConsumoMedido {
+    input: number
+    output: number
+    cacheRead: number
+    cacheWrite: number
+}
+
+async function registrarConsumo(
+    userId: string,
+    consumo: ConsumoMedido,
+    recortada: boolean,
+): Promise<void> {
+    try {
+        const { error } = await clienteAdmin().rpc('registrar_consumo_ia', {
+            p_user_id: userId,
+            p_input: consumo.input,
+            p_output: consumo.output,
+            p_cache_read: consumo.cacheRead,
+            p_cache_write: consumo.cacheWrite,
+            p_recortada: recortada,
+        })
+        if (error) throw new Error(error.message)
+        console.log(
+            `[consumo] entrada=${consumo.input} salida=${consumo.output} ` +
+            `cache_lectura=${consumo.cacheRead} cache_escritura=${consumo.cacheWrite}` +
+            (recortada ? ' | historial recortado' : ''),
+        )
+    } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error)
+        console.error('[consumo] no se pudo registrar:', detail)
+    }
+}
+
 // ── Handler principal ─────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request): Promise<Response> => {
@@ -616,7 +710,13 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const tierConfig = esAnonimo ? ANON_CONFIG : TIER_CONFIG[tier]
 
         // ── 3. Parsear y validar el body ─────────────────────────────────────
-        const MAX_MESSAGES = 50
+        //
+        // ⚠ Este tope NO es el que recorta la conversación: de eso se encarga
+        // `ventanaDeConversacion`. Es un freno contra un body absurdo, y por eso
+        // está alto. Hasta el 2026-09-09 valía 50 y devolvía 400: al instalador
+        // que venía trabajando hace rato se le rompía el chat justo cuando más
+        // lo estaba usando, y la única salida era borrar la conversación.
+        const MAX_MESSAGES = 200
         const MAX_CONTENT_LENGTH = 4000
         const MAX_CONTEXTO_SIMULADOR_LENGTH = 4000
 
@@ -644,12 +744,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         // Sanitizar: truncar contenido largo y asegurar roles válidos
-        const sanitizedMessages = messages
+        const limpios = messages
             .filter(m => m.role === 'user' || m.role === 'assistant')
             .map(m => ({
                 role: m.role,
                 content: String(m.content).slice(0, MAX_CONTENT_LENGTH),
             }))
+
+        // Sólo viajan las últimas idas y vueltas. El instalador sigue viendo la
+        // conversación entera en pantalla: lo que se recorta es lo que se paga.
+        const { ventana: sanitizedMessages, recortada } = ventanaDeConversacion(limpios)
 
         if (sanitizedMessages.length === 0) {
             return new Response(
@@ -779,6 +883,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
                 let acumulado = ''   // todo lo que escribió el modelo
                 let emitido = 0      // cuánto de eso ya salió al chat
 
+                // Lo que la API va informando del consumo real. La entrada llega
+                // al abrir el mensaje y la salida recién al cerrarlo, porque
+                // hasta que no termina de escribir no se sabe cuánto escribió.
+                const consumo: ConsumoMedido = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 }
+
                 const emitir = (texto: string) => {
                     if (!texto) return
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: texto })}\n\n`))
@@ -786,6 +895,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
                 try {
                     for await (const chunk of stream) {
+                        if (chunk.type === 'message_start') {
+                            const uso = chunk.message.usage
+                            consumo.input      = uso?.input_tokens ?? 0
+                            consumo.cacheRead  = uso?.cache_read_input_tokens ?? 0
+                            consumo.cacheWrite = uso?.cache_creation_input_tokens ?? 0
+                        }
+
+                        if (chunk.type === 'message_delta') {
+                            consumo.output = chunk.usage?.output_tokens ?? consumo.output
+                        }
+
                         if (
                             chunk.type === 'content_block_delta' &&
                             chunk.delta.type === 'text_delta'
@@ -825,6 +945,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
                     controller.enqueue(encoder.encode(`data: ${errData}\n\n`))
                 } finally {
                     controller.close()
+
+                    // 🔑 VA EN EL `finally`, no en el camino feliz. Un stream que
+                    // se corta a mitad ya consumió lo que consumió y la API lo
+                    // cobra igual: dejarlo afuera haría que las respuestas
+                    // cortadas —las que más interesa mirar— sean justo las que no
+                    // se miden. Si ni siquiera llegó a abrirse el mensaje no hay
+                    // nada que anotar y no se escribe una fila de ceros.
+                    if (consumo.input > 0 || consumo.output > 0) {
+                        await registrarConsumo(user.id, consumo, recortada)
+                    }
                 }
             }
         })
