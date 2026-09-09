@@ -792,6 +792,28 @@
     }
 }
 
+/* ── Cuánto le queda del mes ───────────────────────────────────────────────── */
+
+.cupo {
+    margin: 0;
+    padding: var(--spacing-xs) var(--spacing-md);
+    font-size: var(--font-size-xs);
+    color: var(--color-text-secondary);
+    text-align: center;
+    line-height: 1.4;
+}
+
+.cupo strong {
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+/* Con 3 o menos deja de ser un dato y pasa a ser un aviso. */
+.cupoPoco,
+.cupoPoco strong {
+    color: var(--color-warning, #b26a00);
+}
+
 /* ── Área de input ────────────────────────────────────────────────────────── */
 
 .inputArea {

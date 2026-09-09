@@ -120,9 +120,9 @@ MP_WEBHOOK_SECRET=...                # clave secreta del webhook, panel MP > Web
 MP_PRO_PLAN_ID=2c93808...            # id del plan PRO creado en MP
 MP_PREMIUM_PLAN_ID=2c93808...        # id del plan PREMIUM
 APP_URL=https://app.crtermico.com     # a dónde vuelve el comprador desde el checkout de MP
-MAX_REQUESTS_PER_USER_FREE=10
-MAX_REQUESTS_PER_USER_PRO=50
-MAX_REQUESTS_PER_USER_PREMIUM=200
+# ⚠ Los cupos NO salen de variables de entorno: están en `TIER_CONFIG`, dentro
+# de `asistente-termico/index.ts`, y son MENSUALES (15 / 80 / 120). Estas tres
+# variables quedaron de la época del límite diario y no las lee nadie.
 ALLOWED_ORIGIN=https://app.crtermico.com,https://criterio-termico.vercel.app
 #   ↑ admite VARIOS separados por coma (ver supabase/functions/_shared/cors.ts).
 #   La función contesta el origen que pidió, si está en la lista. Con un solo
@@ -177,12 +177,39 @@ PORT=8000
 
 ## Tiers de suscripción
 
-| Tier | Herramientas | IA/día |
-|---|---|---|
-| *(sin cuenta)* | prueba el asistente y nada más | 3 consultas |
-| `free` | Calculadora Potencia, 5 errores, índice manual | 10 consultas |
-| `pro` | + Diámetros, Caudal, Piso Radiante, Bombas | 50 consultas |
-| `premium` | + Simulador 2D, BIM, todo el manual | 200 consultas |
+| Tier | Precio | Herramientas | Consultas de IA |
+|---|---|---|---|
+| *(sin cuenta)* | — | prueba el asistente y nada más | 3 **y se terminan** |
+| `free` | $0 | Calculadora Potencia, 5 errores, índice manual | 15 **al mes** |
+| `pro` | $30.000 | + Diámetros, Caudal, Piso Radiante, Bombas | 80 **al mes** |
+| `premium` | $40.000 | + Simulador 2D, BIM, todo el manual | 120 **al mes** |
+
+🔴 **EL CUPO ES MENSUAL DESDE EL 2026-09-08, y el mes arranca el día que el
+instalador se registró, no el 1°** (ancla: `profiles.created_at`). Si se
+reiniciara el 1°, el que se da de alta el 28 tendría el mes entero para gastar
+en tres días y otro mes entero el 1°. Vive en
+`supabase/migrations/20260908_cupo_mensual.sql`:
+
+| Función | Qué hace |
+|---|---|
+| `consumir_consulta_ia(user, limite, ancla, cantidad)` | decide y descuenta en una sola operación; si no hay cupo **no descuenta nada**. Sólo service_role |
+| `cupo_ia(user, ancla)` | sólo lee, para dibujar el contador. La llama el frontend |
+| `inicio_del_ciclo(ancla, hoy)` | primer día del ciclo vigente |
+
+**El visitante sin cuenta va con `ancla = null`: sus 3 consultas NO se le
+renuevan.** Una sesión anónima no tiene mes que cumplir y renovársela sería
+regalar consultas a cualquiera que vuelva a entrar.
+
+⚠ **El lock de `consumir_consulta_ia` no es decorativo.** El cupo vive repartido
+en una fila por día y hay que sumarlas: sin `pg_advisory_xact_lock` por usuario,
+dos consultas simultáneas leen la misma suma y las dos pasan. Es la misma race
+condition que ya había mordido en el rate limiting diario.
+
+⚠ **El análisis de plano descuenta del MISMO cupo y pesa 1.** Tenía un tope
+propio de 20/día «por ser más costoso»: medido, no lo es —es una sola pasada,
+sin historial, mientras que una consulta al asistente arrastra la conversación
+entera en cada turno—. Si midiendo los tokens resultara más caro, no hay que
+inventar otro contador: `consumir_consulta_ia` acepta `p_cantidad`.
 
 El visitante sin cuenta usa una **sesión anónima de Supabase** (desde 2026-08-13):
 es una sesión real, así que el rate limiting y el RLS funcionan igual. ⚠ Una
@@ -202,7 +229,7 @@ La restricción real la hace la BD.
 | Función | Ruta | Descripción |
 |---|---|---|
 | `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber. **El asistente se llama Martín** (6/9): el nombre está en el prompt del sistema y el personaje en `app/src/components/AsistenteTermico/Martin.tsx`. ⚠ **Sin desplegar, se sigue presentando como «Criterio»** |
-| `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium, cupo 20/día) |
+| `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium; descuenta del cupo mensual del tier) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago. **Única función sin `verify_jwt`** (ver `supabase/config.toml`): MP no manda JWT, manda firma HMAC |
 | `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |
@@ -524,8 +551,8 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    MP cargados · las 4 Edge Functions desplegadas · el webhook contesta **401
    por firma** (antes 500) · los dos planes creados en MP
    (`MP_PRO_PLAN_ID=3233f403c5bb4671b228bd6ebd1821c6`,
-   `MP_PREMIUM_PLAN_ID=912cf6425db543218fcb09ee42210618`, $12.000 y $21.000 ARS
-   provisorios) · **el checkout ABRE y muestra «Criterio Térmico PRO $12.000»**.
+   `MP_PREMIUM_PLAN_ID=912cf6425db543218fcb09ee42210618`, **$30.000 y $40.000
+   ARS desde el 2026-09-08**) · **el checkout ABRE con el importe correcto**.
 
    🔑 **Se está usando la aplicación NUEVA de MP: «Criterio Termico Plataforma»,
    AppID `4528717241708762`, con CREDENCIALES DE PRUEBA.** La del sitio,
@@ -564,9 +591,41 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    nuevos con el token productivo, `--secrets` de nuevo y el webhook en «Modo
    productivo» (la clave secreta es otra).
 
-   ⚠ **Los montos van en ARS y la pantalla anuncia USD** (USD 10 / USD 18) más
-   un plan anual que no tiene implementación. Decisión de Edgardo, la dejó para
-   después de que cobre: «primero que cobre, después los valores».
+   ✅ **2026-09-08 — LOS PRECIOS: $30.000 PRO y $40.000 PREMIUM, en pesos.**
+   Antes la pantalla anunciaba USD 10 / USD 18 mientras MP cobraba $12.000 y
+   $21.000: con el dólar a $1.530 se cobraba un 22% menos de lo anunciado, y el
+   desfasaje crecía solo cada vez que se movía el dólar. Se cobra en Argentina
+   por MercadoPago, así que el cobro es en pesos y el cartel dice lo mismo.
+
+   🔑 **El precio vive en DOS lugares y los dos se mueven juntos:**
+   1. **Lo que se COBRA**: el plan de MP (`PUT /preapproval_plan/{id}` con
+      `auto_recurring`). `create-subscription` lo lee antes de cada alta, así
+      que cambiarlo NO obliga a redesplegar.
+   2. **Lo que se MUESTRA**: `app/src/app/routes/Cuenta.tsx` **y**
+      `src/pages/plataforma.astro` del repo del SITIO, que es la puerta de
+      entrada al SaaS. Los tres desalineados es como estaba antes.
+
+   ⚠ **El plan anual salió del cartel.** Anunciaba «USD 100/año (2 meses
+   gratis)» y no existía: el botón manda `{ tier }` y cada tier mapea a UN plan
+   de MP, el mensual, así que el que leía el precio anual y apretaba terminaba
+   en el mensual. Para traerlo: dos planes anuales en MP y un selector.
+
+   ✅ **Los topes mensuales, IMPLEMENTADOS el 2026-09-08**: 15 gratuito, 80 PRO
+   y 120 PREMIUM, con el ciclo anclado al día de alta. Ver «Tiers de
+   suscripción» más arriba para el detalle de las funciones y las trampas.
+   El instalador ve cuánto le queda en el pie del chat, **a partir de la mitad
+   del cupo**: el saldo viaja en las cabeceras `X-Cupo-*` de la respuesta del
+   asistente, así que no hay una llamada aparte para dibujarlo.
+
+   ⚠ Esas cabeceras van declaradas en `Access-Control-Expose-Headers`
+   (`_shared/cors.ts`). Sin eso el navegador las esconde, `headers.get()`
+   devuelve `null` **sin dar ningún error** y el contador no aparece nunca.
+
+   📐 **De dónde salen esos números** (monotributo, dólar a $1.530, comisión de
+   MP del 7,25% con acreditación inmediata): el costo medido de una consulta es
+   de USD 0,09 —USD 0,05 si se acota el historial—, y con 80 y 120 el margen
+   queda en 56% y 51% hoy, 72% y 70% con el historial acotado. Premium rinde
+   más que Pro **mientras la consulta cueste menos de USD 0,15**.
 
    ✅ **2026-09-05 — lo que se arregló en el camino**: la suscripción se pedía
    con `preapproval_plan_id`, y ese camino exige `card_token_id` (tarjeta
@@ -666,10 +725,12 @@ pero eso mezcla las visitas del sitio con las de la plataforma.
 Verificados contra el código al escribir el informe de stack (artifact
 `5347d113-807f-4535-a5b4-7f91009e49fe`). Ninguno estaba anotado acá:
 
-1. 🔴 **La cuota se descuenta ANTES de validar el body.** `asistente-termico`
-   corre `increment_ai_usage` (paso 3) y recién después parsea y valida
-   `messages` (paso 5): un pedido mal formado devuelve 400 y ya se llevó una
-   consulta del cupo, sin haber llamado al modelo. Es orden, no diseño.
+1. ✅ **La cuota se descontaba ANTES de validar el body — resuelto el
+   2026-09-08.** Pasaba en `asistente-termico` y también en `analizar-plano`: un
+   pedido mal formado (o un plano demasiado grande) devolvía 400 y ya se había
+   llevado una consulta del cupo sin llamar al modelo. Se le cobraba al
+   instalador un error del programa. En las dos funciones el descuento pasó a
+   correr **después** de parsear y validar.
 2. 🔴 **«Proyectos guardados ilimitados» (Premium) no tiene implementación.**
    `projectStorage.ts` guarda UN proyecto en localStorage bajo la clave
    `currentProject`, sin la imagen del plano. No hay tabla, ni sincronización,

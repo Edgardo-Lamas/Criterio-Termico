@@ -65,6 +65,13 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
     )
 }
 
+/** «2026-10-08» → «8 de octubre». Sin año: siempre es el mes que viene. */
+function formatearFecha(iso: string): string {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('es-AR', {
+        day: 'numeric', month: 'long',
+    })
+}
+
 // ── Panel de chat — recibe el estado del hook desde arriba ────────────────────
 
 interface ChatPanelProps {
@@ -74,7 +81,7 @@ interface ChatPanelProps {
 
 function ChatPanel({ asistente, onClose }: ChatPanelProps) {
     const {
-        messages, input, streaming, isOnline, enSimulador,
+        messages, input, streaming, isOnline, enSimulador, cupo,
         setInput, sendMessage, clearMessages,
     } = asistente
 
@@ -202,6 +209,24 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
                 )}
                 <div ref={messagesEndRef} aria-hidden="true" />
             </div>
+
+            {/* Cuánto le queda del mes.
+                Aparece recién cuando el instalador hizo una consulta —el saldo
+                llega en las cabeceras de la respuesta, no hay llamada aparte— y
+                sólo cuando queda menos de la mitad: arriba de eso es ruido, y
+                un contador siempre a la vista mete presión donde no hace falta.
+                Se pone en alerta con 3 o menos. */}
+            {cupo && cupo.usadas >= cupo.limite / 2 && (
+                <p
+                    className={`${styles.cupo} ${cupo.limite - cupo.usadas <= 3 ? styles.cupoPoco : ''}`}
+                    role="status"
+                >
+                    {cupo.limite - cupo.usadas > 0
+                        ? <>Te quedan <strong>{cupo.limite - cupo.usadas}</strong> de {cupo.limite} consultas</>
+                        : <>Usaste las {cupo.limite} consultas del mes</>}
+                    {cupo.renueva && <> · se renuevan el {formatearFecha(cupo.renueva)}</>}
+                </p>
+            )}
 
             {/* Input */}
             <div className={styles.inputArea}>

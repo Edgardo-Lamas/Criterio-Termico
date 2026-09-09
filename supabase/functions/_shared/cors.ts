@@ -29,6 +29,10 @@ export function corsPara(req: Request): Record<string, string> {
         'Access-Control-Allow-Origin': permitido,
         'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
         'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        // Sin esto el navegador esconde las cabeceras propias y
+        // `res.headers.get('X-Cupo-Usadas')` devuelve null sin dar error: el
+        // contador de consultas del asistente quedaría siempre vacío.
+        'Access-Control-Expose-Headers': 'X-Cupo-Usadas, X-Cupo-Limite, X-Cupo-Renueva',
         // La respuesta cambia según quién pregunte: sin esto, un proxy o el
         // propio navegador puede servirle a un dominio el permiso del otro.
         'Vary': 'Origin',

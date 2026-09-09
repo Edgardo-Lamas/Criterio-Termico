@@ -5,12 +5,31 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import type { SubscriptionTier } from '../../stores/useAuthStore'
 import styles from './Cuenta.module.css'
 
-const tiers: { id: SubscriptionTier; name: string; price: string; priceAnual: string; badge?: string; features: string[] }[] = [
+// 🔴 LOS PRECIOS VAN EN PESOS Y SE COBRAN EN PESOS.
+//
+// Hasta el 2026-09-08 esta pantalla anunciaba USD 10 y USD 18 mientras
+// MercadoPago cobraba $12.000 y $21.000: con el dólar a $1.530 se estaba
+// cobrando un 22% menos de lo anunciado, y el desfasaje crecía solo cada vez
+// que se movía el dólar. Se cobra por MercadoPago en Argentina, así que el
+// cobro siempre es en pesos y el cartel tiene que decir lo mismo.
+//
+// ⚠ El importe que se COBRA no vive acá: vive en el plan de MercadoPago, y
+// `create-subscription` lo lee antes de cada alta. Cambiar este texto NO cambia
+// lo que se cobra. Los dos lados se mueven juntos o la pantalla vuelve a mentir.
+//
+// ⚠ El mismo precio está en `src/pages/plataforma.astro` del repo del SITIO
+// (`~/Desktop/Trabajos/Criterio Termico`), que es la puerta de entrada al SaaS.
+//
+// El plan anual salió de acá el 2026-09-08: anunciaba «USD 100/año (2 meses
+// gratis)» y no existía. El botón manda `{ tier }` a `create-subscription`, que
+// mapea cada tier a UN plan de MP, el mensual: el que leía el precio anual y
+// apretaba, terminaba suscripto al mensual. Para traerlo hay que crear los dos
+// planes anuales en MP y un selector; hasta entonces no se anuncia.
+const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string; features: string[] }[] = [
     {
         id: 'free',
         name: 'Gratuito',
-        price: 'USD 0',
-        priceAnual: '',
+        price: '$0',
         features: [
             'Manual técnico básico',
             '1 calculadora',
@@ -21,8 +40,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; priceAnual: st
     {
         id: 'pro',
         name: 'PRO',
-        price: 'USD 10/mes',
-        priceAnual: 'USD 100/año (2 meses gratis)',
+        price: '$30.000/mes',
         badge: 'Más vendido',
         features: [
             'Manual técnico completo',
@@ -35,8 +53,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; priceAnual: st
     {
         id: 'premium',
         name: 'PREMIUM',
-        price: 'USD 18/mes',
-        priceAnual: 'USD 180/año (2 meses gratis)',
+        price: '$40.000/mes',
         badge: 'Cierre de obra',
         features: [
             'Todo lo incluido en PRO',
@@ -475,9 +492,6 @@ export function Cuenta() {
                                 )}
                                 <h3 className={styles.tierName}>{tier.name}</h3>
                                 <p className={styles.tierPrice}>{tier.price}</p>
-                                {tier.priceAnual && (
-                                    <p className={styles.tierPriceAnual}>{tier.priceAnual}</p>
-                                )}
                                 <ul className={styles.tierFeatures}>
                                     {tier.features.map((feature, i) => (
                                         <li key={i}>{feature}</li>

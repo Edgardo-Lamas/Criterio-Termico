@@ -28,9 +28,22 @@ interface AmbienteAnalizado {
 // Los dominios permitidos viven en _shared/cors.ts. Las cabeceras se arman POR
 // PEDIDO, dentro del handler: dependen de quién pregunta.
 
-// Límite de análisis de plano por día — es una operación con imagen (más
-// costosa que una consulta de texto), así que tiene su propio cupo, más chico.
-const MAX_ANALISIS_POR_DIA = 20
+// El análisis de plano descuenta del MISMO cupo mensual que el asistente, y
+// pesa lo mismo que una consulta.
+//
+// Antes tenía un tope propio de 20 por día «por ser una operación con imagen,
+// más costosa que una consulta de texto». Medido, no lo es: el plano es una
+// sola pasada —imagen y respuesta, sin historial— mientras que una consulta al
+// asistente arrastra toda la conversación anterior en cada turno. Están en el
+// mismo orden de costo.
+//
+// Si midiendo los tokens resultara más caro, no hay que inventar otro contador:
+// `consumir_consulta_ia` acepta `p_cantidad` y el plano pasa a pesar 2 o 3.
+const CUPO_MENSUAL: Record<Tier, number> = {
+    free:    15,
+    pro:     80,
+    premium: 120,
+}
 
 // ── Prompt de análisis ─────────────────────────────────────────────────────────
 
@@ -122,9 +135,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         }
 
         // ── 2. Perfil y control de tier (solo Premium) ───────────────────────
+        // `created_at` es el ancla del ciclo mensual del cupo (ver la migración
+        // 20260908_cupo_mensual.sql).
         const { data: profile } = await supabase
             .from('profiles')
-            .select('tier')
+            .select('tier, created_at')
             .eq('id', user.id)
             .single()
 
@@ -139,29 +154,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             )
         }
 
-        // ── 3. Rate limiting atómico (mismo contador que el asistente) ───────
-        const { data: newCount, error: usageError } = await supabase
-            .rpc('increment_ai_usage', { p_user_id: user.id })
-
-        if (usageError) {
-            console.error('[analizar-plano] Error en rate limiting:', usageError.message)
-            return new Response(
-                JSON.stringify({ error: 'Error interno al verificar límite de uso' }),
-                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        if ((newCount as number) > MAX_ANALISIS_POR_DIA) {
-            return new Response(
-                JSON.stringify({
-                    error: 'Límite diario alcanzado',
-                    message: `Llegaste al límite de ${MAX_ANALISIS_POR_DIA} análisis de plano por día.`,
-                }),
-                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            )
-        }
-
-        // ── 4. Parsear y validar el body ─────────────────────────────────────
+        // ── 3. Parsear y validar el body ─────────────────────────────────────
         const body = await req.json() as {
             imageBase64?: string
             mediaType?: string
@@ -199,6 +192,47 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const nombres = Array.isArray(nombresConocidos)
             ? nombresConocidos.filter(n => typeof n === 'string').slice(0, 40)
             : []
+
+        // ── 4. Consumir una consulta del cupo ─────────────────────────────────
+        //
+        // 🔴 DESPUÉS DE VALIDAR, no antes. El descuento corría apenas se sabía
+        // quién era el usuario, así que un plano demasiado grande devolvía 400
+        // y ya se había llevado una consulta del cupo sin analizar nada.
+        const ancla = (profile?.created_at ?? user.created_at)?.slice(0, 10) ?? null
+
+        const { data: cupo, error: usageError } = await supabase
+            .rpc('consumir_consulta_ia', {
+                p_user_id: user.id,
+                p_limite: CUPO_MENSUAL[tier],
+                p_ancla: ancla,
+            })
+            .single<{ usadas: number; limite: number; permitido: boolean; renueva: string | null }>()
+
+        if (usageError || !cupo) {
+            console.error('[analizar-plano] Error al consumir cupo:', usageError?.message)
+            return new Response(
+                JSON.stringify({ error: 'Error interno al verificar el cupo de consultas' }),
+                { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+        }
+
+        if (!cupo.permitido) {
+            const renueva = cupo.renueva
+                ? new Date(cupo.renueva + 'T00:00:00').toLocaleDateString('es-AR', {
+                    day: 'numeric', month: 'long',
+                })
+                : null
+            return new Response(
+                JSON.stringify({
+                    error: 'Cupo mensual alcanzado',
+                    limit: cupo.limite,
+                    usadas: cupo.usadas,
+                    renueva: cupo.renueva,
+                    message: `Usaste las ${cupo.limite} consultas del mes de tu plan${renueva ? `; se te renuevan el ${renueva}` : ''}. El análisis de plano descuenta del mismo cupo que el asistente.`,
+                }),
+                { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+        }
 
         // ── 5. Llamar a Anthropic con visión ─────────────────────────────────
         const anthropic = new Anthropic({
