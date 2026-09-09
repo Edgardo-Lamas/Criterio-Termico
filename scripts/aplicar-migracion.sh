@@ -12,9 +12,14 @@
 # Un `db push` intentaría correrlas todas de nuevo. Este script aplica una sola,
 # la que se le pasa, y nada más.
 #
-# ⚠ LO CORRE EDGARDO, no el asistente: el token sale del llavero de macOS y eso
-# pide huella o contraseña. Desde Claude Code el comando se queda esperando un
-# diálogo que nadie contesta.
+# ⚠ 2026-09-09: YA NO HACE FALTA ESTE SCRIPT en la mayoría de los casos. El CLI
+# (2.111.0) funciona desde una shell no interactiva y resuelve el token solo:
+#
+#     supabase db query --linked -f supabase/migrations/<archivo>.sql
+#
+# Este script queda como respaldo para cuando haga falta ir por curl. Lo que sí
+# sigue siendo cierto: leer el llavero A MANO pide huella, así que ese camino lo
+# corre Edgardo.
 
 set -euo pipefail
 

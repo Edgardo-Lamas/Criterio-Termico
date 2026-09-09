@@ -40,18 +40,28 @@ supabase functions deploy --all             # Deploy de todas las Edge Functions
 supabase gen types typescript --local       # Regenerar tipos TypeScript desde la BD
 ```
 
-⚠️ **El CLI se cuelga MUDO en shell no interactiva.** No puede leer el llavero,
-se queda esperando un login que nunca llega y no imprime nada: CPU en 0, sin
-conexiones de red, y parece que estuviera trabajando. Pasarle el token a mano:
+✅ **El CLI FUNCIONA desde una shell no interactiva** (verificado el 2026-09-09
+con la versión 2.111.0): `projects list`, `db query` y `functions deploy` corren
+y terminan solos. Esta nota decía lo contrario —que se colgaba mudo esperando un
+login— y se arrastró meses; era cierto con una versión vieja. **No hace falta
+sacar el token del llavero a mano.**
+
+🔑 **Para aplicar una migración a producción, el comando es:**
 
 ```bash
-export SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w \
-  | sed 's/^go-keyring-base64://' | base64 -d)
+supabase db query --linked -f supabase/migrations/<archivo>.sql
 ```
 
-⚠️ **Aplicar migraciones a producción NO es `supabase db push`**: ese comando no
-acepta `--project-ref` y pide la contraseña de la base, así que también cuelga.
-Va por la Management API, con el mismo token:
+Va por la Management API con el token que el CLI ya tiene. **No devuelve nada
+cuando sale bien**, así que el resultado se verifica consultando la base, no
+leyendo la salida.
+
+⚠️ **NO usar `supabase db push`**: el registro de migraciones de la base está
+desfasado del disco (cuatro se aplicaron a mano y no figuran), así que falla con
+`LegacyDbPushMissingLocalError` y sugiere reparaciones que tocarían el historial.
+
+La Management API con `curl` sigue sirviendo para consultar la base sin abrir el
+panel, con el token a mano:
 
 ```bash
 python3 -c "import json;print(json.dumps({'query':open('supabase/migrations/X.sql').read()}))" > /tmp/mig.json
