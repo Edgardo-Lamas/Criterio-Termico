@@ -780,7 +780,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
             ? null
             : (profile?.created_at ?? user.created_at)?.slice(0, 10) ?? null
 
-        const { data: cupo, error: usageError } = await supabase
+        // 🔴 CON `clienteAdmin()`, NO con el cliente del usuario. La migración
+        // del cupo mensual le revocó el permiso a `anon` y `authenticated` a
+        // propósito —si el cliente pudiera llamarla, se descontaría cupo sin
+        // consultar nada— pero acá se siguió llamando con la sesión del
+        // instalador. Resultado: `permission denied for function
+        // consumir_consulta_ia`, 500, y el asistente MUDO para todos desde el
+        // 2026-09-08 a la noche. No era el crédito de Anthropic: no llegaba
+        // siquiera a llamar al modelo.
+        const { data: cupo, error: usageError } = await clienteAdmin()
             .rpc('consumir_consulta_ia', {
                 p_user_id: user.id,
                 p_limite: tierConfig.maxRequestsPerMonth,

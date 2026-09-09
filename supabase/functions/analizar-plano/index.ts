@@ -200,7 +200,17 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // y ya se había llevado una consulta del cupo sin analizar nada.
         const ancla = (profile?.created_at ?? user.created_at)?.slice(0, 10) ?? null
 
-        const { data: cupo, error: usageError } = await supabase
+        // 🔴 CON service_role, NO con el cliente del usuario. La migración del
+        // cupo mensual le revocó el permiso a `anon` y `authenticated` —si el
+        // cliente pudiera llamarla, se descontaría cupo sin analizar nada— pero
+        // acá se siguió llamando con la sesión del instalador: `permission
+        // denied`, 500, y el análisis de plano caído desde el 2026-09-08.
+        const admin = createClient(
+            Deno.env.get('SUPABASE_URL')!,
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+        )
+
+        const { data: cupo, error: usageError } = await admin
             .rpc('consumir_consulta_ia', {
                 p_user_id: user.id,
                 p_limite: CUPO_MENSUAL[tier],
