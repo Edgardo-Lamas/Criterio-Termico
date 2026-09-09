@@ -65,7 +65,7 @@ error 1010). El mismo endpoint sirve para consultar la base sin abrir el panel.
 
 ### Tests
 ```bash
-npm run test          # Tests unitarios (Vitest) — 186 en 14 archivos
+npm run test          # Tests unitarios (Vitest) — 195 en 15 archivos
 npm run test:ui       # Tests con interfaz visual
 npm run test:coverage # Coverage report
 ```
@@ -228,7 +228,7 @@ La restricción real la hace la BD.
 
 | Función | Ruta | Descripción |
 |---|---|---|
-| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber. **El asistente se llama Martín** (6/9): el nombre está en el prompt del sistema y el personaje en `app/src/components/AsistenteTermico/Martin.tsx`. ⚠ **Sin desplegar, se sigue presentando como «Criterio»** |
+| `asistente-termico` | `/functions/v1/asistente-termico` | Chat con streaming SSE + RAG. Registra en `consultas_abiertas` lo que declara no saber. **El asistente se llama Martín** (6/9): el nombre está en el prompt del sistema y el personaje en `app/src/components/AsistenteTermico/Martin.tsx`. Desplegado el 8/9 (v29): en producción ya se presenta como Martín |
 | `analizar-plano` | `/functions/v1/analizar-plano` | Visión: lee el plano y devuelve por ambiente pared exterior, ventanas y puerta (solo Premium; descuenta del cupo mensual del tier) |
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago. **Única función sin `verify_jwt`** (ver `supabase/config.toml`): MP no manda JWT, manda firma HMAC |
