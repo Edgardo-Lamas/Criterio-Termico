@@ -520,7 +520,7 @@ hablan de **«el que lo recibe»**: la función concreta en vez de la categoría
 que es el corolario de `docs/norma-lenguaje.md` del sitio. Un rubro se nombra
 sólo cuando el tema es de ese rubro.
 
-Invariantes que fija `dxfExporter.test.ts` (27 casos) y que **no hay que
+Invariantes que fija `dxfExporter.test.ts` (32 casos) y que **no hay que
 romper**:
 
 1. 🔴 **El dibujo va en METROS, con `$INSUNITS = 6`.** No se escala a mano en
@@ -595,6 +595,36 @@ romper**:
     a 16 cm se leía `MO0NTANTEEENTREEPLANTASS`. Va **«MONTANTE Ø25»**, una vez
     por par: lo que se pierde lo explica la leyenda, que traduce la capa
     entera («montante entre plantas · PE-X Ø25 · ida»).
+
+14. 🔴🔴 **Ninguna columna declarada puede quedar vacía en todas las filas.**
+    La planilla anunciaba `AMBIENTE` y `ELEMENTOS` y las dejaba en `-`, que es
+    lo que ve el que tiene que comprar. Las dos salen ahora de
+    `planillaRadiadores()`, que es **la única fuente** —la usan la planilla
+    dibujada, los atributos del bloque, el despiece, el PDF y la vista del
+    simulador; si el bloque se llenara por su cuenta, `ATTEXT` diría una cosa
+    y la planilla otra—:
+    - **AMBIENTE**: primero la asignación explícita (`Room.radiatorIds`) y si
+      no la hay, **por dónde está dibujado el radiador** (su centro dentro de
+      `Room.bounds`, y sólo en su misma planta). El radiador colocado a mano no
+      queda en `radiatorIds`, y ahí se perdía el dato teniéndolo. Si no cae en
+      ninguno dice `sin asignar`, no un guion.
+    - **ELEMENTOS**: si el usuario cargó la composición, es la suya. Si no, se
+      **calcula por potencia** —`ceil(power / kcal por elemento)`, con
+      `ALTURA_ASUMIDA_MM = 500` → 200 kcal/h, criterio de Edgardo y default de
+      la auto-colocación—, y la fila se marca `calculado: true`. Es la misma
+      cuenta con la que se presupuesta.
+    - 🔴 **Lo calculado se distingue de lo cargado**: `(calc.)` en el DXF, `*`
+      en el PDF y en la vista, con la nota al pie que dice el criterio. Un
+      número deducido no se presenta como un dato que eligió el usuario.
+    - Sin potencia (`power = 0`) no se inventa nada: queda en `-`.
+    - El despiece dejó de listar «Radiadores (sin composición cargada)», que no
+      se puede comprar: ahora suma los elementos por altura y agrega aparte las
+      unidades a montar.
+
+⚠ **Para chequear tipos usá `npx tsc -b`, no `npx tsc --noEmit`.** El
+`tsconfig.json` de `app/` es sólo referencias (`tsconfig.app.json` +
+`tsconfig.node.json`), así que `--noEmit` sale en verde sin mirar un solo
+archivo. `npm run build` sí corre `tsc -b`.
 
 ⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
 de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de

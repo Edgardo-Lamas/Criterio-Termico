@@ -50,7 +50,8 @@ import {
   MONTANTE_DIAMETRO_MM,
 } from './floorHeating';
 import type { CanvasPoint, FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
-import { etiquetasRadiadores, planillaRadiadores } from './planilla';
+import { etiquetasRadiadores, planillaRadiadores, ALTURA_ASUMIDA_MM, KCALH_ELEMENTO_ASUMIDO } from './planilla';
+import type { FilaPlanilla } from './planilla';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
 import { calculateRoomPower } from './thermalCalculator';
 
@@ -240,7 +241,7 @@ interface DefBloque {
 const BLOQUES: Record<'CT_RADIADOR' | 'CT_CALDERA' | 'CT_COLECTOR', DefBloque> = {
   CT_RADIADOR: {
     record: '30', block: '31', endblk: '32',
-    atributos: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'POTENCIA_KCALH'],
+    atributos: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'COMPOSICION', 'POTENCIA_KCALH'],
     dibujo: (linea, poli) =>
       poli([[0, 0], [1, 0], [1, 1], [0, 1]])
       + linea([0.25, 0], [0.25, 1]) + linea([0.5, 0], [0.5, 1]) + linea([0.75, 0], [0.75, 1]),
@@ -926,6 +927,7 @@ function dibujarPlanta(
   circ: CircuitosPlanta,
   marco: Marco,
   etiquetasRad: Map<string, string>,
+  filas: Map<string, FilaPlanilla>,
   ocupados: Ocupado[]
 ): void {
   const cap = (sufijo: keyof typeof CAPAS): string => {
@@ -1090,16 +1092,20 @@ function dibujarPlanta(
   });
 
   // --- Radiadores: sobre el plano va sólo la identificación (R1, R2...) ---
+  // 🔴 El ambiente y la composición salen de `planillaRadiadores`, la MISMA
+  // fuente que la planilla dibujada y el PDF: si el bloque se llenara por su
+  // cuenta, `ATTEXT` daría una cosa y la planilla otra.
   for (const radiator of data.radiators.filter(x => plantaDe(x) === floor)) {
     const capRad = cap('RADIADORES');
     const [rx, ry] = esquina(radiator);
-    const ambiente = (data.rooms ?? []).find(r => r.radiatorIds.includes(radiator.id));
+    const f = filas.get(radiator.id);
     anotarCaja(ocupados, rx, ry, aMetros(radiator.width), aMetros(radiator.height));
     b.insertar(capRad, 'CT_RADIADOR', rx, ry, aMetros(radiator.width), aMetros(radiator.height), {
       ID: etiquetasRad.get(radiator.id) ?? '',
-      AMBIENTE: ambiente?.name ?? '-',
-      ELEMENTOS: radiator.elementos ? String(radiator.elementos) : '-',
-      ALTURA_MM: radiator.alturaElementoMm ? String(radiator.alturaElementoMm) : '-',
+      AMBIENTE: f?.ambiente ?? '-',
+      ELEMENTOS: f?.elementos ? String(f.elementos) : '-',
+      ALTURA_MM: f?.alturaMm ? String(f.alturaMm) : '-',
+      COMPOSICION: f?.calculado ? 'CALCULADA' : 'CARGADA',
       POTENCIA_KCALH: radiator.power > 0 ? String(Math.round(radiator.power)) : '-',
     });
     const [cx, cy] = centro(radiator);
@@ -1167,14 +1173,24 @@ function dibujarPlanillas(
     b.texto(nombre, 'PLANILLA DE RADIADORES', x0, y, H_PLANILLA * 1.3);
     y -= salto * 1.3;
     fila([[0, 'ID'], [1.2, 'AMBIENTE'], [6, 'ELEMENTOS'], [10, 'POTENCIA'], [13.5, 'PLANTA']]);
-    for (const f of planillaRadiadores(data.radiators, data.rooms ?? [])) {
+    const planilla = planillaRadiadores(data.radiators, data.rooms ?? []);
+    for (const f of planilla) {
       fila([
         [0, f.etiqueta],
         [1.2, f.ambiente],
-        [6, f.elementos && f.alturaMm ? `${f.elementos} el. x ${f.alturaMm} mm` : '-'],
+        [6, f.elementos && f.alturaMm
+          ? `${f.elementos} el. x ${f.alturaMm} mm${f.calculado ? ' (calc.)' : ''}`
+          : '-'],
         [10, `${numES(Math.round(f.potenciaKcalh))} kcal/h`],
         [13.5, NOMBRE_PLANTA[plantaDe(f)]],
       ]);
+    }
+    // 🔴 De dónde sale un número marcado «(calc.)»: el que compra tiene que
+    // poder distinguir lo que se cargó de lo que se dedujo de la potencia.
+    if (planilla.some(f => f.calculado)) {
+      y -= salto * 0.3;
+      fila([[0, `(calc.) = cantidad calculada sobre la potencia del radiador, con elemento de ${ALTURA_ASUMIDA_MM} mm (${KCALH_ELEMENTO_ASUMIDO} kcal/h).`]]);
+      fila([[0, 'Verificar la altura contra el radiador que se vaya a comprar.']]);
     }
     y -= salto;
   }
@@ -1233,19 +1249,23 @@ function dibujarDespiece(b: DXFBuilder, data: DXFExportData): void {
       '1', 'u',
     ]);
   }
+  // Los elementos salen de la planilla: los cargados y los calculados por
+  // potencia. Antes, el radiador sin composición se listaba como «(sin
+  // composición cargada)», que no se puede comprar.
   const porAltura = new Map<number, number>();
-  let sinDetalle = 0;
-  for (const r of data.radiators) {
-    if (r.elementos && r.alturaElementoMm) {
-      porAltura.set(r.alturaElementoMm, (porAltura.get(r.alturaElementoMm) ?? 0) + r.elementos);
-    } else {
-      sinDetalle++;
-    }
+  let hayCalculados = false;
+  for (const f of planillaRadiadores(data.radiators, data.rooms ?? [])) {
+    if (!(f.elementos && f.alturaMm)) continue;
+    porAltura.set(f.alturaMm, (porAltura.get(f.alturaMm) ?? 0) + f.elementos);
+    if (f.calculado) hayCalculados = true;
   }
   for (const [altura, elementos] of [...porAltura].sort((a, c) => a[0] - c[0])) {
-    filas.push([`Elementos de radiador ${altura} mm`, numES(elementos), 'u']);
+    filas.push([
+      `Elementos de radiador ${altura} mm${hayCalculados ? ' (ver planilla)' : ''}`,
+      numES(elementos), 'u',
+    ]);
   }
-  if (sinDetalle > 0) filas.push(['Radiadores (sin composición cargada)', numES(sinDetalle), 'u']);
+  filas.push(['Radiadores (unidades a montar)', numES(data.radiators.length), 'u']);
 
   // Cañería de radiadores, por material y diámetro — el mismo corte que las capas
   const porTubo = new Map<string, number>();
@@ -1415,6 +1435,11 @@ export function generarDXF(data: DXFExportData): string {
   const circuitos = circuitosPorPlanta(data);
   const caja = cajaEnPixeles(data, circuitos);
   const etiquetasRad = etiquetasRadiadores(data.radiators);
+  // Una sola pasada de la planilla para todo el archivo: bloques, planilla
+  // dibujada y despiece tienen que decir exactamente lo mismo.
+  const filas = new Map(
+    planillaRadiadores(data.radiators, data.rooms ?? []).map(f => [f.radiatorId, f])
+  );
 
   const hayPB = tieneContenido(data, 'ground', circuitos.ground);
   // La planta alta va AL LADO de la baja, no encima: en el canvas las dos
@@ -1436,7 +1461,7 @@ export function generarDXF(data: DXFExportData): string {
   // que esquivar lo que ya está escrito ahí.
   const ocupados: Ocupado[] = [];
   for (const floor of plantasDibujadas) {
-    dibujarPlanta(b, data, floor, circuitos[floor], marcos[floor], etiquetasRad, ocupados);
+    dibujarPlanta(b, data, floor, circuitos[floor], marcos[floor], etiquetasRad, filas, ocupados);
   }
   dibujarVerticales(b, data, marcos.ground, ocupados);
 

@@ -492,3 +492,56 @@ describe('dxfExporter — montantes entre plantas', () => {
     expect(capas(dxf)).toContain('CT-PEX25-VERTICAL-RET');
   });
 });
+
+describe('dxfExporter — la planilla no declara columnas vacías', () => {
+  it('el radiador sin composición cargada sale con la cantidad calculada', () => {
+    // El proyecto de prueba tiene un radiador de 1.600 kcal/h con 8 elementos
+    // cargados, y otro sin composición: 1.000 kcal/h → 5 elementos de 500.
+    const suelto: Radiator = {
+      id: 'rad2', type: 'radiator', x: m(3), y: m(4.6), width: m(1), height: m(0.2),
+      power: 1000, floor: 'ground',
+    };
+    const dxf = generarDXF({ ...proyecto, radiators: [radiador, suelto] });
+    const planilla = textos(dxf).filter(t => t.capa === 'CT-PLANILLA').map(t => t.texto);
+    expect(planilla).toContain('5 el. x 500 mm (calc.)');
+    // Y el archivo explica de dónde sale ese número
+    expect(planilla.some(t => t.includes('calculada sobre la potencia'))).toBe(true);
+    expect(planilla.some(t => t.includes('500 mm'))).toBe(true);
+  });
+
+  it('lo que cargó el usuario NO se marca como calculado', () => {
+    const dxf = generarDXF(proyecto);
+    const planilla = textos(dxf).filter(t => t.capa === 'CT-PLANILLA').map(t => t.texto);
+    expect(planilla).toContain('8 el. x 500 mm');
+    expect(planilla.some(t => t.includes('(calc.)'))).toBe(false);
+  });
+
+  it('el despiece lista elementos comprables, no «sin composición cargada»', () => {
+    const suelto: Radiator = {
+      id: 'rad2', type: 'radiator', x: m(3), y: m(4.6), width: m(1), height: m(0.2),
+      power: 1000, floor: 'ground',
+    };
+    const dxf = generarDXF({ ...proyecto, radiators: [radiador, suelto] });
+    // El despiece comparte capa con las planillas
+    const despiece = textos(dxf).filter(t => t.capa === 'CT-PLANILLA').map(t => t.texto);
+    expect(despiece.some(t => t.includes('sin composición cargada'))).toBe(false);
+    // 8 cargados + 5 calculados, los dos de 500 mm
+    const linea = despiece.findIndex(t => t.includes('Elementos de radiador 500 mm'));
+    expect(linea).toBeGreaterThanOrEqual(0);
+    expect(despiece).toContain('13');
+  });
+
+  it('el bloque del radiador dice si la composición es cargada o calculada', () => {
+    const dxf = generarDXF(proyecto);
+    expect(dxf).toContain('COMPOSICION');
+    expect(dxf).toContain('CARGADA');
+  });
+
+  it('el radiador toma el ambiente donde está dibujado, aunque no esté asignado', () => {
+    // `living` no lo declara en radiatorIds, pero el radiador cae adentro
+    const sinAsignar = { ...living, radiatorIds: [] };
+    const dxf = generarDXF({ ...proyecto, rooms: [sinAsignar] });
+    const planilla = textos(dxf).filter(t => t.capa === 'CT-PLANILLA').map(t => t.texto);
+    expect(planilla).toContain('Living');
+  });
+});
