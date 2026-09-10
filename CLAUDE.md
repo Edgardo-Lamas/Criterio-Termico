@@ -475,6 +475,21 @@ Lo que sale, que es todo lo que el simulador calcula:
 - Primaria caldera↔colector Ø32 y montantes entre plantas
 - Planilla de radiadores, planilla de circuitos y **despiece de materiales**,
   al costado del dibujo
+- Una leyenda **«CÓMO USAR ESTE ARCHIVO»** que traduce cada capa de cañería a
+  lenguaje de obra (`CT-PB-PEX20-IDA` → «planta baja · PE-X Ø20 · ida ·
+  radiadores») y dice qué lleva el plano
+
+🔴 **El exportador sirve para las DOS instalaciones, y los textos tienen que
+nombrar a las dos.** La capa sin sufijo de sistema es la de radiadores y se
+nombra igual que la de piso radiante: si sólo se nombra el piso, el que abre el
+archivo no tiene cómo saber que el resto es la instalación de radiadores. Vale
+para el DXF, para la Guía de uso y para el sitio.
+
+🔴 **No es un entregable «para el arquitecto» y nada más.** Corrección de
+Edgardo del 2026-09-10: el DXF lo abren también ingenieros y maestros mayores
+de obra, y el dueño de la propiedad puede manejar AutoCAD. Los textos hablan de
+**«el que lo recibe»** —la función, no la categoría, que es el corolario de
+`docs/norma-lenguaje.md` del sitio—, no de un rubro solo.
 
 Invariantes que fija `dxfExporter.test.ts` (14 casos) y que **no hay que
 romper**:
@@ -520,6 +535,12 @@ romper**:
 10. **El colector se dibuja a ESCALA REAL**: ancho = vías × 5 cm (la derivación
     del catálogo REHAU), no al tamaño que se arrastró en pantalla. El plano
     tiene que servir para ver si entra en el nicho.
+11. 🔴 **El archivo se explica solo.** La leyenda «CÓMO USAR ESTE ARCHIVO» va
+    dibujada al costado porque el que lo abre no tiene a nadie que se lo
+    explique: sin ella ve líneas de colores y no se entera de que las cañerías
+    están cortadas por diámetro ni de que el despiece ya está adentro. Las
+    capas se listan **traducidas** con `explicarCapa()`, que parsea el nombre.
+    Si cambia el formato del nombre de capa, hay que cambiar ese parser.
 
 ⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
 de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de

@@ -45,7 +45,7 @@ const CAPACIDADES = [
     {
         icon: 'monitor' as const,
         titulo: 'Simulador 2D',
-        texto: 'Subís el plano, dibujás ambientes, radiadores o piso radiante y caldera. Sale la planilla de radiadores, el metraje de tuberías y el presupuesto en PDF listo para el cliente. Y el plano sale en DXF, para abrirlo en AutoCAD.',
+        texto: 'Subís el plano, dibujás ambientes, radiadores o piso radiante y caldera. Sale la planilla de radiadores, el metraje de tuberías y el presupuesto en PDF listo para el cliente. Y el plano se exporta a DXF —radiadores, piso radiante o los dos en el mismo archivo—: lo abre cualquier AutoCAD, también LT, con las cañerías separadas en una capa por material y diámetro, la caldera, los radiadores y los colectores como bloques, y el despiece de materiales dibujado adentro. El que lo recibe saca los metros de cada tubo seleccionando la capa, y puede modificarlo.',
     },
     {
         icon: 'flame' as const,
