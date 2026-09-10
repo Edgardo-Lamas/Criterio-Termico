@@ -233,29 +233,41 @@ interface DefBloque {
   record: string;
   block: string;
   endblk: string;
-  atributos: string[];
+  atributos: readonly string[];
   /** Geometría unitaria: líneas y polilíneas en coordenadas 0..1 */
   dibujo: (linea: (a: [number, number], b: [number, number]) => string, poli: (pts: [number, number][]) => string) => string;
 }
 
+/**
+ * Los tags de cada bloque EN EL ORDEN en que se escriben. Lo consume el
+ * exportador DWG: la librería que convierte a DWG no lee el código 2 de los
+ * ATTDEF/ATTRIB y hay que reponerlos por posición, así que este orden es
+ * contrato. Sale de `BLOQUES`, no se duplica.
+ */
+export const ATRIBUTOS_DE_BLOQUE: Record<NombreBloque, readonly string[]> = {
+  CT_RADIADOR: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'COMPOSICION', 'POTENCIA_KCALH'],
+  CT_CALDERA: ['ID', 'POTENCIA_KCALH'],
+  CT_COLECTOR: ['ID', 'CIRCUITOS', 'VIAS'],
+};
+
 const BLOQUES: Record<'CT_RADIADOR' | 'CT_CALDERA' | 'CT_COLECTOR', DefBloque> = {
   CT_RADIADOR: {
     record: '30', block: '31', endblk: '32',
-    atributos: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'COMPOSICION', 'POTENCIA_KCALH'],
+    atributos: ATRIBUTOS_DE_BLOQUE.CT_RADIADOR,
     dibujo: (linea, poli) =>
       poli([[0, 0], [1, 0], [1, 1], [0, 1]])
       + linea([0.25, 0], [0.25, 1]) + linea([0.5, 0], [0.5, 1]) + linea([0.75, 0], [0.75, 1]),
   },
   CT_CALDERA: {
     record: '33', block: '34', endblk: '35',
-    atributos: ['ID', 'POTENCIA_KCALH'],
+    atributos: ATRIBUTOS_DE_BLOQUE.CT_CALDERA,
     dibujo: (linea, poli) =>
       poli([[0, 0], [1, 0], [1, 1], [0, 1]])
       + linea([0, 0], [1, 1]) + linea([0, 1], [1, 0]),
   },
   CT_COLECTOR: {
     record: '36', block: '37', endblk: '38',
-    atributos: ['ID', 'CIRCUITOS', 'VIAS'],
+    atributos: ATRIBUTOS_DE_BLOQUE.CT_COLECTOR,
     dibujo: (linea, poli) =>
       poli([[0, 0], [1, 0], [1, 1], [0, 1]]) + linea([0, 0.5], [1, 0.5]),
   },
@@ -521,7 +533,16 @@ class DXFBuilder {
       + par(100, 'AcDbSymbolTableRecord') + par(100, 'AcDbRegAppTableRecord')
       + par(2, 'ACAD') + par(70, 0)
       + par(0, 'ENDTAB')
-      + tablaVacia('DIMSTYLE', H.DIMSTYLE_TABLE)
+      // 🔴 DIMSTYLE con «Standard», no vacía. El dibujo no lleva cotas, pero es
+      // la tabla que AutoCAD da por sentada y sin ella no se puede convertir el
+      // archivo a DWG: el escritor busca el estilo actual y no lo encuentra.
+      + par(0, 'TABLE') + par(2, 'DIMSTYLE') + par(5, H.DIMSTYLE_TABLE)
+      + par(100, 'AcDbSymbolTable') + par(70, 1)
+      + par(100, 'AcDbDimStyleTable') + par(71, 0)
+      + par(0, 'DIMSTYLE') + par(105, '1B') + par(330, H.DIMSTYLE_TABLE)
+      + par(100, 'AcDbSymbolTableRecord') + par(100, 'AcDbDimStyleTableRecord')
+      + par(2, 'Standard') + par(70, 0)
+      + par(0, 'ENDTAB')
       + par(0, 'TABLE') + par(2, 'BLOCK_RECORD') + par(5, H.BLOCK_RECORD_TABLE)
       + par(100, 'AcDbSymbolTable') + par(70, 2 + this.bloquesUsados.size)
       + par(0, 'BLOCK_RECORD') + par(5, H.MODEL_SPACE_RECORD) + par(330, H.BLOCK_RECORD_TABLE)
