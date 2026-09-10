@@ -50,7 +50,8 @@ import {
   MONTANTE_DIAMETRO_MM,
 } from './floorHeating';
 import type { CanvasPoint, FloorHeatingCircuit, Montante, TempImpulsion } from './floorHeating';
-import { etiquetasRadiadores, planillaRadiadores } from './planilla';
+import { etiquetasRadiadores, planillaRadiadores, ALTURA_ASUMIDA_MM, KCALH_ELEMENTO_ASUMIDO } from './planilla';
+import type { FilaPlanilla } from './planilla';
 import { calcularPresupuestoPisoRadiante } from './floorHeatingBudget';
 import { calculateRoomPower } from './thermalCalculator';
 
@@ -240,7 +241,7 @@ interface DefBloque {
 const BLOQUES: Record<'CT_RADIADOR' | 'CT_CALDERA' | 'CT_COLECTOR', DefBloque> = {
   CT_RADIADOR: {
     record: '30', block: '31', endblk: '32',
-    atributos: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'POTENCIA_KCALH'],
+    atributos: ['ID', 'AMBIENTE', 'ELEMENTOS', 'ALTURA_MM', 'COMPOSICION', 'POTENCIA_KCALH'],
     dibujo: (linea, poli) =>
       poli([[0, 0], [1, 0], [1, 1], [0, 1]])
       + linea([0.25, 0], [0.25, 1]) + linea([0.5, 0], [0.5, 1]) + linea([0.75, 0], [0.75, 1]),
@@ -326,14 +327,19 @@ class DXFBuilder {
     ], true);
   }
 
-  /** Texto de una línea. `centrado` lo ancla al medio, para rótulos. */
+  /**
+   * Texto de una línea. `centrado` lo ancla al medio, para rótulos.
+   * `rotacion` va en grados y gira alrededor del punto de anclaje: es lo que
+   * permite escribir el diámetro siguiendo la dirección del caño.
+   */
   texto(
     capaNombre: string,
     contenido: string,
     x: number,
     y: number,
     altura: number,
-    centrado = false
+    centrado = false,
+    rotacion = 0
   ): void {
     if (!contenido) return;
     this.extender(x, y);
@@ -343,6 +349,7 @@ class DXFBuilder {
       + par(40, coord(altura))
       + par(1, textoDXF(contenido))
       + par(7, 'STANDARD');
+    if (rotacion) cuerpo += par(50, coord(rotacion));
     if (centrado) {
       // 72 = 1 (centrado horizontal): el punto de anclaje pasa a ser el 11/21
       cuerpo += par(72, 1)
@@ -648,6 +655,187 @@ function plantaDe(e: { floor?: Planta | 'vertical' }): Planta {
   return e.floor === 'first' ? 'first' : 'ground';
 }
 
+// ============================================================
+// ETIQUETAS DE DIÁMETRO SOBRE EL DIBUJO
+// ============================================================
+
+/**
+ * 🔴 UNA etiqueta por par ida/retorno, girada como el caño. NO una por tramo.
+ * Ida y retorno corren paralelos a 16-22 cm, y un «Ø16» de 0,22 de alto ocupa
+ * 66 cm de ancho: con una etiqueta por caño se pisan entre sí. Probado en un
+ * CAD sobre un proyecto real: 65 de 68 montadas y cuatro pares exactamente
+ * encimados, o sea el plano ilegible. Es geometría, no cosa del visor: pasa
+ * igual en AutoCAD.
+ */
+
+/** Hasta dónde se separan dos caños para tomarlos como el mismo par (m). */
+const PAR_DISTANCIA_M = 0.9;
+/** Cuánto se desalinean dos caños del mismo par (grados). */
+const PAR_ANGULO_GRADOS = 12;
+
+/** Un tramo de cañería esperando su rótulo. */
+interface Rotulo {
+  texto: string;
+  medio: [number, number];
+  /** Dirección del tramo en grados, ya normalizada a [-90, 90). */
+  angulo: number;
+}
+
+/** Un texto colocado, con lo necesario para calcular el lugar que ocupa. */
+interface TextoColocado {
+  texto: string;
+  x: number;
+  y: number;
+  angulo: number;
+  altura: number;
+  /** Anclado en el medio del texto (rótulos) o en su borde izquierdo. */
+  centrado: boolean;
+}
+
+/**
+ * Lugar del dibujo que ya está ocupado: `[x0, y0, x1, y1]`. Son los rótulos
+ * que no se mueven Y TAMBIÉN los aparatos —radiador, caldera, colector—:
+ * escribir un «Ø25» encima del símbolo de un radiador ensucia el plano igual
+ * que escribirlo encima de otro texto.
+ */
+type Ocupado = [number, number, number, number];
+
+/** Los textos no se leen cabeza abajo: el ángulo vive en [-90, 90). */
+function anguloDeLectura(grados: number): number {
+  let a = grados % 180;
+  if (a >= 90) a -= 180;
+  if (a < -90) a += 180;
+  return a;
+}
+
+/**
+ * Punto medio y dirección del segmento MÁS LARGO de la ruta. No del vértice
+ * del medio: en un tramo con quiebres ese vértice cae justo en una esquina,
+ * que es donde converge todo lo demás.
+ */
+function tramoPrincipal(ruta: [number, number][]): Omit<Rotulo, 'texto'> | null {
+  let mayor = 0;
+  let medio: [number, number] = [0, 0];
+  let angulo = 0;
+  for (let i = 1; i < ruta.length; i++) {
+    const [x0, y0] = ruta[i - 1];
+    const [x1, y1] = ruta[i];
+    const largo = Math.hypot(x1 - x0, y1 - y0);
+    if (largo <= mayor) continue;
+    mayor = largo;
+    medio = [(x0 + x1) / 2, (y0 + y1) / 2];
+    angulo = anguloDeLectura((Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI);
+  }
+  return mayor > 0 ? { medio, angulo } : null;
+}
+
+/** Junta los tramos que dicen lo mismo, van paralelos y corren pegados. */
+function agruparPares(rotulos: Rotulo[]): Rotulo[][] {
+  const grupos: Rotulo[][] = [];
+  for (const r of rotulos) {
+    const grupo = grupos.find(g =>
+      g[0].texto === r.texto
+      && Math.abs(anguloDeLectura(g[0].angulo - r.angulo)) <= PAR_ANGULO_GRADOS
+      && g.some(o => Math.hypot(o.medio[0] - r.medio[0], o.medio[1] - r.medio[1]) <= PAR_DISTANCIA_M)
+    );
+    if (grupo) grupo.push(r);
+    else grupos.push([r]);
+  }
+  return grupos;
+}
+
+/** Caja que envuelve al texto girado, para saber si dos etiquetas se pisan. */
+function cajaDeTexto(e: TextoColocado): Ocupado {
+  const rad = (e.angulo * Math.PI) / 180;
+  const ancho = e.texto.length * e.altura * 0.6;
+  const alto = e.altura;
+  // El anclaje está sobre la línea de base; a lo ancho, en el medio o a la
+  // izquierda según cómo se escribió el texto.
+  const avance = e.centrado ? 0 : ancho / 2;
+  const cx = e.x + Math.cos(rad) * avance - Math.sin(rad) * (alto / 2);
+  const cy = e.y + Math.sin(rad) * avance + Math.cos(rad) * (alto / 2);
+  const mx = (ancho * Math.abs(Math.cos(rad)) + alto * Math.abs(Math.sin(rad))) / 2;
+  const my = (ancho * Math.abs(Math.sin(rad)) + alto * Math.abs(Math.cos(rad))) / 2;
+  return [cx - mx, cy - my, cx + mx, cy + my];
+}
+
+/**
+ * Deja anotado un rótulo que ya está sobre el dibujo y no se mueve —el número
+ * del radiador, la caldera, el colector, el circuito, el nombre del ambiente—
+ * para que las etiquetas de diámetro, que sí se pueden correr, lo esquiven.
+ */
+function anotarEtiqueta(
+  ocupados: Ocupado[],
+  texto: string,
+  x: number,
+  y: number,
+  altura: number,
+  centrado: boolean
+): void {
+  if (texto) ocupados.push(cajaDeTexto({ texto, x, y, angulo: 0, altura, centrado }));
+}
+
+/** Deja anotado el rectángulo de un aparato, por su esquina de abajo. */
+function anotarCaja(
+  ocupados: Ocupado[],
+  x: number,
+  y: number,
+  ancho: number,
+  alto: number
+): void {
+  ocupados.push([x, y, x + ancho, y + alto]);
+}
+
+function sePisan(a: Ocupado, b: Ocupado, aire = 0): boolean {
+  return a[0] - aire < b[2] && b[0] - aire < a[2]
+    && a[1] - aire < b[3] && b[1] - aire < a[3];
+}
+
+/**
+ * Dibuja una etiqueta por grupo, corrida al costado del haz de caños —no en el
+ * medio, que ahí está el caño— y girada siguiendo su dirección. Si ninguna de
+ * las cuatro posiciones queda libre, la etiqueta NO se dibuja: el diámetro se
+ * lee igual por el nombre de la capa y en el despiece, y una etiqueta pisada
+ * ensucia el plano sin agregar nada.
+ */
+function dibujarEtiquetasDeDiametro(
+  b: DXFBuilder,
+  capaNombre: string,
+  rotulos: Rotulo[],
+  ocupados: Ocupado[],
+  altura = H_ETIQUETA
+): void {
+  for (const grupo of agruparPares(rotulos)) {
+    const angulo = grupo[0].angulo;
+    const rad = (angulo * Math.PI) / 180;
+    const nor: [number, number] = [-Math.sin(rad), Math.cos(rad)];
+    const cx = grupo.reduce((a, r) => a + r.medio[0], 0) / grupo.length;
+    const cy = grupo.reduce((a, r) => a + r.medio[1], 0) / grupo.length;
+    // Cuánto se abre el haz hacia el costado: el texto arranca más allá del
+    // caño más lejano del grupo, no en el eje del par.
+    const abertura = Math.max(
+      ...grupo.map(r => Math.abs((r.medio[0] - cx) * nor[0] + (r.medio[1] - cy) * nor[1]))
+    );
+    const base = abertura + altura * 0.5;
+    const intentos = [base, -(base + altura), base + altura * 1.6, -(base + altura * 2.6)];
+    for (const off of intentos) {
+      const candidata: TextoColocado = {
+        texto: grupo[0].texto,
+        x: cx + nor[0] * off,
+        y: cy + nor[1] * off,
+        angulo,
+        altura,
+        centrado: true,
+      };
+      const caja = cajaDeTexto(candidata);
+      if (ocupados.some(o => sePisan(o, caja, altura * 0.15))) continue;
+      ocupados.push(caja);
+      b.texto(capaNombre, candidata.texto, candidata.x, candidata.y, altura, true, angulo);
+      break;
+    }
+  }
+}
+
 /** Números como se leen en un plano argentino: 1.600 / 78,4 */
 function numES(n: number, decimales = 0): string {
   return n.toLocaleString('es-AR', {
@@ -738,7 +926,9 @@ function dibujarPlanta(
   floor: Planta,
   circ: CircuitosPlanta,
   marco: Marco,
-  etiquetasRad: Map<string, string>
+  etiquetasRad: Map<string, string>,
+  filas: Map<string, FilaPlanilla>,
+  ocupados: Ocupado[]
 ): void {
   const cap = (sufijo: keyof typeof CAPAS): string => {
     const nombre = capa(floor, sufijo);
@@ -791,11 +981,10 @@ function dibujarPlanta(
     // circuitos, y el nombre del ambiente queda ilegible debajo.
     const [x0, y0] = punto({ x: bounds.x, y: bounds.y + bounds.height }, marco);
     b.texto(capTxt, room.name.toUpperCase(), x0 + 0.15, y0 + 0.15 + H_ETIQUETA * 1.4, H_AMBIENTE);
-    b.texto(
-      capTxt,
-      `${numES(room.area, 1)} m² - ${numES(Math.round(calculateRoomPower(room)))} kcal/h`,
-      x0 + 0.15, y0 + 0.15, H_ETIQUETA
-    );
+    anotarEtiqueta(ocupados, room.name.toUpperCase(), x0 + 0.15, y0 + 0.15 + H_ETIQUETA * 1.4, H_AMBIENTE, false);
+    const carga = `${numES(room.area, 1)} m² - ${numES(Math.round(calculateRoomPower(room)))} kcal/h`;
+    b.texto(capTxt, carga, x0 + 0.15, y0 + 0.15, H_ETIQUETA);
+    anotarEtiqueta(ocupados, carga, x0 + 0.15, y0 + 0.15, H_ETIQUETA, false);
   }
 
   // --- Zonas de piso radiante ---
@@ -818,6 +1007,7 @@ function dibujarPlanta(
     // datos encima, las etiquetas de dos circuitos vecinos se pisan.
     const [lx, ly] = p(c.labelPos);
     b.texto(cap('ETIQUETAS'), c.etiqueta, lx, ly, H_ETIQUETA);
+    anotarEtiqueta(ocupados, c.etiqueta, lx, ly, H_ETIQUETA, false);
   }
 
   // --- Primaria caldera <-> colector (Ø32) ---
@@ -848,19 +1038,21 @@ function dibujarPlanta(
       CIRCUITOS: String(vias),
       VIAS: String(salidas),
     });
+    anotarCaja(ocupados, x0, y0, ancho, alto);
     // Una derivación por circuito (dependen de la cantidad: van sueltas)
     for (let v = 0; v < salidas; v++) {
       const xv = x0 + (v + 0.5) * DERIVACION_COLECTOR_M;
       b.linea(capCol, [xv, y0], [xv, y0 - DERIVACION_COLECTOR_M * 0.6]);
     }
-    b.texto(
-      cap('ETIQUETAS'),
-      `COLECTOR ${i + 1}${vias > 0 ? ` (${vias} circuitos)` : ''}`,
-      cx, y0 + alto + H_ETIQUETA * 0.6, H_ETIQUETA, true
-    );
+    const rotuloCol = `COLECTOR ${i + 1}${vias > 0 ? ` (${vias} circuitos)` : ''}`;
+    b.texto(cap('ETIQUETAS'), rotuloCol, cx, y0 + alto + H_ETIQUETA * 0.6, H_ETIQUETA, true);
+    anotarEtiqueta(ocupados, rotuloCol, cx, y0 + alto + H_ETIQUETA * 0.6, H_ETIQUETA, true);
   });
 
   // --- Cañerías de radiadores ---
+  // Los diámetros NO se rotulan acá: se juntan y se dibujan agrupados por par
+  // ida/retorno más abajo. Con una etiqueta por caño se pisan entre sí.
+  const rotulosDiametro: Rotulo[] = [];
   for (const pipe of data.pipes) {
     if (pipe.floor === 'vertical') continue;
     if (plantaDe(pipe as { floor?: Planta }) !== floor) continue;
@@ -870,14 +1062,13 @@ function dibujarPlanta(
       pipe.diameter || 20,
       pipe.pipeType === 'return' ? 'RET' : 'IDA'
     );
-    b.polilinea(capPipe, rutaM(pipe.points));
+    const ruta = rutaM(pipe.points);
+    b.polilinea(capPipe, ruta);
     if (pipe.diameter > 0) {
-      const medio = pipe.points[Math.floor(pipe.points.length / 2)];
-      const [tx, ty] = p(medio);
-      b.texto(cap('ETIQUETAS'), `Ø${pipe.diameter}`, tx + 0.1, ty + 0.1, H_ETIQUETA);
+      const tramo = tramoPrincipal(ruta);
+      if (tramo) rotulosDiametro.push({ texto: `Ø${pipe.diameter}`, ...tramo });
     }
   }
-
   // --- Caldera ---
   const calderas = data.boilers.filter(x => plantaDe(x) === floor);
   calderas.forEach((boiler, i) => {
@@ -892,48 +1083,73 @@ function dibujarPlanta(
       ID: calderas.length > 1 ? `CALDERA ${i + 1}` : 'CALDERA',
       POTENCIA_KCALH: boiler.power > 0 ? String(Math.round(boiler.power)) : '-',
     });
+    anotarCaja(ocupados, x0, y0, ancho, alto);
     // La potencia va en el rótulo, no acá: pegada a la caldera se monta con la
     // etiqueta de la primaria, que nace justo al lado.
-    b.texto(
-      cap('ETIQUETAS'),
-      calderas.length > 1 ? `CALDERA ${i + 1}` : 'CALDERA',
-      cx, cy + alto / 2 + H_ETIQUETA * 0.6, H_ETIQUETA, true
-    );
+    const rotuloCal = calderas.length > 1 ? `CALDERA ${i + 1}` : 'CALDERA';
+    b.texto(cap('ETIQUETAS'), rotuloCal, cx, cy + alto / 2 + H_ETIQUETA * 0.6, H_ETIQUETA, true);
+    anotarEtiqueta(ocupados, rotuloCal, cx, cy + alto / 2 + H_ETIQUETA * 0.6, H_ETIQUETA, true);
   });
 
   // --- Radiadores: sobre el plano va sólo la identificación (R1, R2...) ---
+  // 🔴 El ambiente y la composición salen de `planillaRadiadores`, la MISMA
+  // fuente que la planilla dibujada y el PDF: si el bloque se llenara por su
+  // cuenta, `ATTEXT` daría una cosa y la planilla otra.
   for (const radiator of data.radiators.filter(x => plantaDe(x) === floor)) {
     const capRad = cap('RADIADORES');
     const [rx, ry] = esquina(radiator);
-    const ambiente = (data.rooms ?? []).find(r => r.radiatorIds.includes(radiator.id));
+    const f = filas.get(radiator.id);
+    anotarCaja(ocupados, rx, ry, aMetros(radiator.width), aMetros(radiator.height));
     b.insertar(capRad, 'CT_RADIADOR', rx, ry, aMetros(radiator.width), aMetros(radiator.height), {
       ID: etiquetasRad.get(radiator.id) ?? '',
-      AMBIENTE: ambiente?.name ?? '-',
-      ELEMENTOS: radiator.elementos ? String(radiator.elementos) : '-',
-      ALTURA_MM: radiator.alturaElementoMm ? String(radiator.alturaElementoMm) : '-',
+      AMBIENTE: f?.ambiente ?? '-',
+      ELEMENTOS: f?.elementos ? String(f.elementos) : '-',
+      ALTURA_MM: f?.alturaMm ? String(f.alturaMm) : '-',
+      COMPOSICION: f?.calculado ? 'CALCULADA' : 'CARGADA',
       POTENCIA_KCALH: radiator.power > 0 ? String(Math.round(radiator.power)) : '-',
     });
     const [cx, cy] = centro(radiator);
-    b.texto(
-      cap('ETIQUETAS'),
-      etiquetasRad.get(radiator.id) ?? '',
-      cx, cy - H_ETIQUETA / 2, H_ETIQUETA, true
-    );
+    const rotuloRad = etiquetasRad.get(radiator.id) ?? '';
+    b.texto(cap('ETIQUETAS'), rotuloRad, cx, cy - H_ETIQUETA / 2, H_ETIQUETA, true);
+    anotarEtiqueta(ocupados, rotuloRad, cx, cy - H_ETIQUETA / 2, H_ETIQUETA, true);
+  }
+
+  // --- Diámetros: AL FINAL, cuando ya está anotado todo lo que no se mueve ---
+  // Las etiquetas de diámetro son las únicas que se pueden correr, así que se
+  // dibujan últimas: así esquivan los números de radiador, la caldera, los
+  // colectores y los nombres de ambiente en vez de escribirse encima.
+  if (rotulosDiametro.length > 0) {
+    dibujarEtiquetasDeDiametro(b, cap('ETIQUETAS'), rotulosDiametro, ocupados);
   }
 }
 
 /** Montantes entre plantas: se cuelgan del marco de la planta baja. */
-function dibujarVerticales(b: DXFBuilder, data: DXFExportData, marco: Marco): void {
+function dibujarVerticales(
+  b: DXFBuilder,
+  data: DXFExportData,
+  marco: Marco,
+  ocupados: Ocupado[]
+): void {
   const verticales = data.pipes.filter(p => p.floor === 'vertical' && p.points.length >= 2);
   if (verticales.length === 0) return;
+  const rotulos: Rotulo[] = [];
   for (const pipe of verticales) {
     const nombre = `CT-${materialCorto(pipe.material)}${pipe.diameter || 20}-VERTICAL-${pipe.pipeType === 'return' ? 'RET' : 'IDA'}`;
     b.usarCapa(nombre, { color: CAPAS_GENERALES['CT-VERTICALES'].color, lineweight: 35 });
-    b.polilinea(nombre, pipe.points.map(pt => punto(pt, marco)));
-    const medio = pipe.points[Math.floor(pipe.points.length / 2)];
-    const [tx, ty] = punto(medio, marco);
-    b.texto(nombre, `MONTANTE ENTRE PLANTAS Ø${pipe.diameter || ''}`.trim(), tx + 0.1, ty + 0.1, H_ETIQUETA);
+    const ruta = pipe.points.map(pt => punto(pt, marco));
+    b.polilinea(nombre, ruta);
+    // 🔴 «MONTANTE ENTRE PLANTAS Ø25» son casi 6 m de texto sobre un montante
+    // de pocos centímetros: ida y retorno quedaban a 16 cm y se leía
+    // «MO0NTANTEEENTREEPLANTASS». Acá va corto —«MONTANTE Ø25»— y una sola vez
+    // por par; la leyenda del archivo traduce la capa entera.
+    const tramo = tramoPrincipal(ruta);
+    if (tramo) rotulos.push({ texto: `MONTANTE Ø${pipe.diameter || ''}`.trim(), ...tramo });
   }
+  // En la capa de etiquetas de la planta baja, que es la hoja de la que
+  // cuelgan: así se apagan todas juntas.
+  const capaTxt = capa('ground', 'ETIQUETAS');
+  b.usarCapa(capaTxt, CAPAS['ETIQUETAS']);
+  dibujarEtiquetasDeDiametro(b, capaTxt, rotulos, ocupados);
 }
 
 /** Planilla de radiadores y planilla de circuitos, debajo del dibujo. */
@@ -957,14 +1173,24 @@ function dibujarPlanillas(
     b.texto(nombre, 'PLANILLA DE RADIADORES', x0, y, H_PLANILLA * 1.3);
     y -= salto * 1.3;
     fila([[0, 'ID'], [1.2, 'AMBIENTE'], [6, 'ELEMENTOS'], [10, 'POTENCIA'], [13.5, 'PLANTA']]);
-    for (const f of planillaRadiadores(data.radiators, data.rooms ?? [])) {
+    const planilla = planillaRadiadores(data.radiators, data.rooms ?? []);
+    for (const f of planilla) {
       fila([
         [0, f.etiqueta],
         [1.2, f.ambiente],
-        [6, f.elementos && f.alturaMm ? `${f.elementos} el. x ${f.alturaMm} mm` : '-'],
+        [6, f.elementos && f.alturaMm
+          ? `${f.elementos} el. x ${f.alturaMm} mm${f.calculado ? ' (calc.)' : ''}`
+          : '-'],
         [10, `${numES(Math.round(f.potenciaKcalh))} kcal/h`],
         [13.5, NOMBRE_PLANTA[plantaDe(f)]],
       ]);
+    }
+    // 🔴 De dónde sale un número marcado «(calc.)»: el que compra tiene que
+    // poder distinguir lo que se cargó de lo que se dedujo de la potencia.
+    if (planilla.some(f => f.calculado)) {
+      y -= salto * 0.3;
+      fila([[0, `(calc.) = cantidad calculada sobre la potencia del radiador, con elemento de ${ALTURA_ASUMIDA_MM} mm (${KCALH_ELEMENTO_ASUMIDO} kcal/h).`]]);
+      fila([[0, 'Verificar la altura contra el radiador que se vaya a comprar.']]);
     }
     y -= salto;
   }
@@ -1023,19 +1249,23 @@ function dibujarDespiece(b: DXFBuilder, data: DXFExportData): void {
       '1', 'u',
     ]);
   }
+  // Los elementos salen de la planilla: los cargados y los calculados por
+  // potencia. Antes, el radiador sin composición se listaba como «(sin
+  // composición cargada)», que no se puede comprar.
   const porAltura = new Map<number, number>();
-  let sinDetalle = 0;
-  for (const r of data.radiators) {
-    if (r.elementos && r.alturaElementoMm) {
-      porAltura.set(r.alturaElementoMm, (porAltura.get(r.alturaElementoMm) ?? 0) + r.elementos);
-    } else {
-      sinDetalle++;
-    }
+  let hayCalculados = false;
+  for (const f of planillaRadiadores(data.radiators, data.rooms ?? [])) {
+    if (!(f.elementos && f.alturaMm)) continue;
+    porAltura.set(f.alturaMm, (porAltura.get(f.alturaMm) ?? 0) + f.elementos);
+    if (f.calculado) hayCalculados = true;
   }
   for (const [altura, elementos] of [...porAltura].sort((a, c) => a[0] - c[0])) {
-    filas.push([`Elementos de radiador ${altura} mm`, numES(elementos), 'u']);
+    filas.push([
+      `Elementos de radiador ${altura} mm${hayCalculados ? ' (ver planilla)' : ''}`,
+      numES(elementos), 'u',
+    ]);
   }
-  if (sinDetalle > 0) filas.push(['Radiadores (sin composición cargada)', numES(sinDetalle), 'u']);
+  filas.push(['Radiadores (unidades a montar)', numES(data.radiators.length), 'u']);
 
   // Cañería de radiadores, por material y diámetro — el mismo corte que las capas
   const porTubo = new Map<string, number>();
@@ -1205,6 +1435,11 @@ export function generarDXF(data: DXFExportData): string {
   const circuitos = circuitosPorPlanta(data);
   const caja = cajaEnPixeles(data, circuitos);
   const etiquetasRad = etiquetasRadiadores(data.radiators);
+  // Una sola pasada de la planilla para todo el archivo: bloques, planilla
+  // dibujada y despiece tienen que decir exactamente lo mismo.
+  const filas = new Map(
+    planillaRadiadores(data.radiators, data.rooms ?? []).map(f => [f.radiatorId, f])
+  );
 
   const hayPB = tieneContenido(data, 'ground', circuitos.ground);
   // La planta alta va AL LADO de la baja, no encima: en el canvas las dos
@@ -1221,10 +1456,14 @@ export function generarDXF(data: DXFExportData): string {
   };
 
   const plantasDibujadas = PLANTAS.filter(f => tieneContenido(data, f, circuitos[f]));
+  // Las etiquetas de diámetro de las dos plantas y de los montantes comparten
+  // una sola lista: los montantes cuelgan de la hoja de planta baja y tienen
+  // que esquivar lo que ya está escrito ahí.
+  const ocupados: Ocupado[] = [];
   for (const floor of plantasDibujadas) {
-    dibujarPlanta(b, data, floor, circuitos[floor], marcos[floor], etiquetasRad);
+    dibujarPlanta(b, data, floor, circuitos[floor], marcos[floor], etiquetasRad, filas, ocupados);
   }
-  dibujarVerticales(b, data, marcos.ground);
+  dibujarVerticales(b, data, marcos.ground, ocupados);
 
   // Título de cada planta, sólo si hay más de una (si no, sobra)
   if (plantasDibujadas.length > 1) {

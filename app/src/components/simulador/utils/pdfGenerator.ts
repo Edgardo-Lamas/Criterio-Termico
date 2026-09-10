@@ -10,7 +10,7 @@ import type { FloorHeatingCircuit, Montante } from './floorHeating';
 import type { FloorHeatingBudget } from './floorHeatingBudget';
 import { calculateBoilerPower, ambientesCalefaccionados, kcalToKw, CALDERA_MIN_KW, CALDERA_MIN_KCALH } from './thermalCalculator';
 import { PASO_CM } from './floorHeating';
-import { planillaRadiadores } from './planilla';
+import { planillaRadiadores, ALTURA_ASUMIDA_MM, KCALH_ELEMENTO_ASUMIDO } from './planilla';
 import { generarConsideraciones } from './consideraciones';
 import { validarCircuitosPiso } from './hydraulicValidation';
 import type { Consideracion } from './consideraciones';
@@ -962,7 +962,10 @@ const dibujarHojaDePlano = (
       doc.setFont('helvetica', 'normal');
       const amb = f.ambiente.length > 18 ? f.ambiente.substring(0, 18) + '…' : f.ambiente;
       doc.text(amb, plX + 9, py);
-      doc.text(f.elementos !== null ? `${f.elementos}` : '—', plX + 42, py, { align: 'right' });
+      doc.text(
+        f.elementos !== null ? `${f.elementos}${f.calculado ? ' *' : ''}` : '—',
+        plX + 42, py, { align: 'right' }
+      );
       doc.text(f.potenciaKcalh.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
       py += filaH;
     });
@@ -976,6 +979,18 @@ const dibujarHojaDePlano = (
     doc.line(plX + 1, py - 2.6, plX + plW - 1, py - 2.6);
     doc.text('Total', plX + 2, py);
     doc.text(totalPlanilla.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
+    // De dónde sale un número marcado con *: el mismo criterio que el DXF
+    if (visibles.some(f => f.calculado)) {
+      py += filaH;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5);
+      doc.setTextColor(110, 110, 110);
+      doc.text(
+        `* calculado sobre la potencia, con elemento de ${ALTURA_ASUMIDA_MM} mm (${KCALH_ELEMENTO_ASUMIDO} kcal/h)`,
+        plX + 2, py
+      );
+      doc.setTextColor(40, 40, 40);
+    }
   }
 
   // --- 7. Title block ---

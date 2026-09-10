@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useElementsStore } from '../../store/useElementsStore';
-import { planillaRadiadores } from '../../utils/planilla';
+import { planillaRadiadores, ALTURA_ASUMIDA_MM, KCALH_ELEMENTO_ASUMIDO } from '../../utils/planilla';
 import { validarRamalesRadiadores } from '../../utils/hydraulicValidation';
 
 // Planilla de radiadores — como en los planos de obra: el plano muestra solo
@@ -118,8 +118,17 @@ export const RadiatorSchedule: React.FC = () => {
               >
                 <td style={{ ...td, fontWeight: 700, color: '#B71C1C' }}>{f.etiqueta}</td>
                 <td style={td}>{f.ambiente}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{f.elementos ?? '—'}</td>
-                <td style={{ ...td, textAlign: 'right' }}>{f.alturaMm ? `${f.alturaMm}` : '—'}</td>
+                <td
+                  style={{ ...td, textAlign: 'right', color: f.calculado ? '#666' : undefined }}
+                  title={f.calculado
+                    ? `Calculado sobre la potencia, con elemento de ${ALTURA_ASUMIDA_MM} mm (${KCALH_ELEMENTO_ASUMIDO} kcal/h). Cargá la composición para fijarla.`
+                    : undefined}
+                >
+                  {f.elementos ?? '—'}{f.calculado ? ' *' : ''}
+                </td>
+                <td style={{ ...td, textAlign: 'right', color: f.calculado ? '#666' : undefined }}>
+                  {f.alturaMm ? `${f.alturaMm}` : '—'}
+                </td>
                 <td style={{ ...td, textAlign: 'right' }}>{f.potenciaKcalh.toLocaleString('es-AR')}</td>
                 {(() => {
                   const h = hidraulicaPorRadiador.get(f.radiatorId);
