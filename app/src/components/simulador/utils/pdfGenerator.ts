@@ -40,7 +40,9 @@ export const generateQuotePDF = (
   preloadedLogo?: string | null,
   floorHeating?: FloorHeatingBudget | null,
   pipes: PipeSegment[] = [],
-  bombaMca?: number
+  bombaMca?: number,
+  plantas: PlantaParaPlanoPDF[] = [],
+  boilers: Boiler[] = []
 ): void => {
   const doc = new jsPDF();
 
@@ -185,16 +187,35 @@ export const generateQuotePDF = (
   yPosition += altoCliente + 6;
 
   // === IMAGEN DEL PLANO ===
-  const canvasImage = canvasElement.toDataURL('image/png');
-  const imgWidth = pageWidth - 2 * M;
-  const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
+  // 🔴 Con plano de fondo cargado, el plano va al FINAL y dibujado, una hoja
+  // por planta. Acá iba una captura del canvas, o sea de la planta que estabas
+  // mirando: el presupuesto de una obra de dos plantas salía con la mitad del
+  // plano y sin ningún aviso.
+  if (plantas.length > 0) {
+    ensureSpace(10);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(...GRIS_TEXTO);
+    doc.text(
+      plantas.length > 1
+        ? `El plano de la instalación va al final: una hoja por planta (${plantas.length}).`
+        : 'El plano de la instalación va al final.',
+      M, yPosition
+    );
+    doc.setTextColor(0, 0, 0);
+    yPosition += 8;
+  } else {
+    const canvasImage = canvasElement.toDataURL('image/png');
+    const imgWidth = pageWidth - 2 * M;
+    const imgHeight = (canvasElement.height * imgWidth) / canvasElement.width;
 
-  ensureSpace(imgHeight + 4);
-  doc.setDrawColor(210, 212, 218);
-  doc.setLineWidth(0.3);
-  doc.rect(M - 0.5, yPosition - 0.5, imgWidth + 1, imgHeight + 1);
-  doc.addImage(canvasImage, 'PNG', M, yPosition, imgWidth, imgHeight);
-  yPosition += imgHeight + 10;
+    ensureSpace(imgHeight + 4);
+    doc.setDrawColor(210, 212, 218);
+    doc.setLineWidth(0.3);
+    doc.rect(M - 0.5, yPosition - 0.5, imgWidth + 1, imgHeight + 1);
+    doc.addImage(canvasImage, 'PNG', M, yPosition, imgWidth, imgHeight);
+    yPosition += imgHeight + 10;
+  }
 
   // La verificación de cobertura (requerido vs instalado por ambiente) se quitó
   // a propósito: mostrar dos números de potencia distintos para la misma pieza
@@ -591,6 +612,18 @@ export const generateQuotePDF = (
   }
 
 
+  // === EL PLANO, UNA HOJA POR PLANTA ===
+  // Van después del pie —que numera las páginas del presupuesto— porque cada
+  // hoja trae su propio rótulo, y en apaisado el pie del presupuesto caería
+  // fuera de la página.
+  plantas.forEach((planta, indice) => {
+    doc.addPage([297, 210], 'landscape');
+    dibujarHojaDePlano(
+      doc, planta, radiators, pipes, boilers, rooms, companyDetails, clientDetails,
+      indice + 1, plantas.length
+    );
+  });
+
   // === DESCARGA (100% SINCRÓNICA — probada en diagnóstico) ===
   const safeProjectName = clientDetails.projectName ? clientDetails.projectName.replace(/\s+/g, '_') : 'Proyecto';
   const fileName = `Presupuesto_${safeProjectName}_${new Date().toLocaleDateString('es-AR').replace(/\//g, '-')}.pdf`;
@@ -611,23 +644,49 @@ export const generateQuotePDF = (
 // ============================================================
 // PLANO TÉCNICO A4 APAISADO
 // ============================================================
-export const generateFloorPlanPDF = (
-  backgroundImage: string,
-  backgroundImageDimensions: { width: number; height: number },
-  backgroundImageOffset: { x: number; y: number },
+/** Una planta lista para dibujar: su plano de fondo y lo que va encima. */
+export interface PlantaParaPlanoPDF {
+  floor: 'ground' | 'first';
+  image: string;
+  dimensions: { width: number; height: number };
+  offset: { x: number; y: number };
+  zones?: FloorHeatingZone[];
+  circuits?: FloorHeatingCircuit[];
+  manifolds?: Manifold[];
+  montantes?: Montante[];
+}
+
+/**
+ * Dibuja UNA hoja de plano —el fondo, la instalación encima y el rótulo— en la
+ * página actual del documento, que tiene que ser A4 apaisada.
+ *
+ * Vive aparte para que la use tanto el plano técnico como el presupuesto: el
+ * presupuesto mostraba una captura del canvas, o sea la planta que estabas
+ * mirando, y así el documento de una obra de dos plantas salía con la mitad
+ * del plano.
+ */
+const dibujarHojaDePlano = (
+  doc: jsPDF,
+  planta: PlantaParaPlanoPDF,
   radiators: Radiator[],
   pipes: PipeSegment[],
   boilers: Boiler[],
   rooms: Room[],
   companyDetails: CompanyInfo,
   clientDetails: ClientInfo,
-  currentFloor: 'ground' | 'first',
-  floorHeatingZones: FloorHeatingZone[] = [],
-  floorHeatingCircuits: FloorHeatingCircuit[] = [],
-  manifolds: Manifold[] = [],
-  montantes: Montante[] = []
+  hoja: number,
+  totalHojas: number
 ): void => {
-  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  const backgroundImage = planta.image;
+  const backgroundImageDimensions = planta.dimensions;
+  const backgroundImageOffset = planta.offset;
+  const currentFloor = planta.floor;
+  const floorHeatingZones = planta.zones ?? [];
+  const floorHeatingCircuits = planta.circuits ?? [];
+  const manifolds = planta.manifolds ?? [];
+  const montantes = planta.montantes ?? [];
+
+
 
   const pageW = 297;
   const pageH = 210;
@@ -944,7 +1003,10 @@ export const generateFloorPlanPDF = (
   const floorLabel = currentFloor === 'ground' ? 'PLANTA BAJA' : 'PRIMER PISO';
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text(`PLANO TÉCNICO — ${floorLabel}`, pageW / 2, tbY + 8, { align: 'center' });
+  doc.text(
+    `PLANO TÉCNICO — ${floorLabel}${totalHojas > 1 ? `  ·  hoja ${hoja} de ${totalHojas}` : ''}`,
+    pageW / 2, tbY + 8, { align: 'center' }
+  );
 
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
@@ -968,6 +1030,36 @@ export const generateFloorPlanPDF = (
   doc.setTextColor(150, 150, 150);
   doc.text('Generado con Criterio Térmico', pageW - mH, tbY + 7, { align: 'right' });
   doc.text('criteriotermico.com.ar', pageW - mH, tbY + 12, { align: 'right' });
+
+};
+
+/**
+ * Plano técnico del proyecto: UNA HOJA POR PLANTA, en un solo archivo.
+ *
+ * 🔴 Antes salía una sola hoja, la de la planta que estabas mirando en el
+ * canvas. Un proyecto de dos plantas se entregaba por la mitad y no había
+ * ningún aviso: el PDF se veía completo y prolijo. Las plantas son UNA obra,
+ * no dos proyectos.
+ */
+export const generateFloorPlanPDF = (
+  plantas: PlantaParaPlanoPDF[],
+  radiators: Radiator[],
+  pipes: PipeSegment[],
+  boilers: Boiler[],
+  rooms: Room[],
+  companyDetails: CompanyInfo,
+  clientDetails: ClientInfo
+): void => {
+  if (plantas.length === 0) return;
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  plantas.forEach((planta, indice) => {
+    if (indice > 0) doc.addPage();
+    dibujarHojaDePlano(
+      doc, planta, radiators, pipes, boilers, rooms, companyDetails, clientDetails,
+      indice + 1, plantas.length
+    );
+  });
 
   // --- 8. Download ---
   const safeName = (clientDetails.projectName || 'Proyecto').replace(/\s+/g, '_');

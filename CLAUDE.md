@@ -452,6 +452,31 @@ chore:    tareas de mantenimiento (deps, config)
 
 ---
 
+### 🔴 Las dos plantas son UNA obra (2026-09-10)
+
+Lo encontró Edgardo probando el simulador con planta baja y planta alta:
+
+1. **El plano técnico bajaba una sola hoja**, la de la planta que estaba
+   mirando en el canvas. Filtraba por `currentFloor` en seis lugares.
+2. **El presupuesto llevaba una captura del canvas**, o sea también una sola
+   planta. (Los materiales sí sumaban las dos: eso estaba bien.)
+
+**El fallo era MUDO en los dos casos** —el PDF salía completo y prolijo, con su
+rótulo y su planilla—, así que no había manera de notar que faltaba media obra
+hasta abrirlo con el plano al lado.
+
+Ahora `dibujarHojaDePlano()` dibuja **una hoja por planta** y la usan los dos:
+el plano técnico y el presupuesto, que agrega esas hojas apaisadas al final. La
+captura del canvas quedó sólo como respaldo para el proyecto que no tiene plano
+de fondo cargado. Y si una planta tiene elementos pero no tiene imagen, el
+simulador **avisa cuál queda afuera**.
+
+🔑 **Regla para todo lo que se exporte de acá en más: nada se filtra por
+`currentFloor`.** Lo que se entrega es el proyecto, no la pantalla. Vale para el
+PDF, para el presupuesto y para el DXF (que ya sacaba las dos).
+
+---
+
 ### Exportador DXF — el entregable para el arquitecto (desde 2026-09-10)
 
 `app/src/components/simulador/utils/dxfExporter.ts`. Botón **Exportar DXF** en

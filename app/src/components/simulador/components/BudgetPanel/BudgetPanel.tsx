@@ -14,13 +14,16 @@ import { useLeadStore } from '../../store/useLeadStore';
 import { loadLogoAsBase64 } from '../../utils/logoHelper';
 import './BudgetPanel.css';
 
+/** Las dos plantas del proyecto, en el orden en que se entregan. */
+const PLANTAS = ['ground', 'first'] as const;
+
 interface BudgetPanelProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
 export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => {
-    const { radiators, boilers, rooms, pipes, floorPlans, currentFloor, floorHeatingZones, manifolds, floorHeatingTempC } = useElementsStore();
+    const { radiators, boilers, rooms, pipes, floorPlans, floorHeatingZones, manifolds, floorHeatingTempC } = useElementsStore();
     const { prices } = usePriceStore();
     const { companyDetails, clientDetails, getActivePromotions } = useCompanyStore();
     const { saveLead } = useLeadStore();
@@ -161,32 +164,64 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         );
     }, [selectedBoilerId, selectedRadiatorId, totalPowerKcal, radiators.length, options, prices, pipeQuantities]);
 
+    // 🔴 Las plantas con plano cargado, listas para dibujar. Las usan el plano
+    // técnico Y el presupuesto: los dos salían con una sola planta, la que
+    // estabas mirando, y un proyecto de dos plantas se entregaba por la mitad
+    // sin ningún aviso.
+    const plantasParaPDF = useMemo(() => PLANTAS
+        .filter(f => floorPlans[f].image && floorPlans[f].dimensions)
+        .map(f => {
+            const zonas = floorHeatingZones.filter(z => z.floor === f);
+            const idsZona = new Set(zonas.map(z => z.id));
+            return {
+                floor: f,
+                image: floorPlans[f].image!,
+                dimensions: floorPlans[f].dimensions!,
+                offset: floorPlans[f].offset,
+                zones: zonas,
+                circuits: (floorHeatingBudget?.circuits ?? []).filter(c => idsZona.has(c.zoneId)),
+                manifolds: manifolds.filter(m => m.floor === f),
+                montantes: (floorHeatingBudget?.montantes ?? []).filter(m =>
+                    manifolds.some(mf => mf.id === m.manifoldId && mf.floor === f)
+                ),
+            };
+        }), [floorPlans, floorHeatingZones, floorHeatingBudget, manifolds]);
+
     const handleDownloadFloorPlan = () => {
-        const plan = floorPlans[currentFloor];
-        if (!plan.image || !plan.dimensions) {
-            alert('No hay plano cargado para esta planta. Subí una imagen del plano primero.');
+        const plantasConPlano = PLANTAS.filter(f => floorPlans[f].image && floorPlans[f].dimensions);
+        if (plantasConPlano.length === 0) {
+            alert('No hay plano cargado. Subí una imagen del plano primero.');
             return;
         }
+
+        // Una planta con elementos dibujados pero sin imagen de fondo no puede
+        // salir en el PDF, y callarlo sería entregar el proyecto incompleto sin
+        // que se note.
+        const sinPlanoConElementos = PLANTAS.filter(f =>
+            !plantasConPlano.includes(f)
+            && (radiators.some(r => (r.floor ?? 'ground') === f)
+                || boilers.some(b => (b.floor ?? 'ground') === f)
+                || floorHeatingZones.some(z => (z.floor ?? 'ground') === f))
+        );
+        if (sinPlanoConElementos.length > 0) {
+            const nombres = sinPlanoConElementos
+                .map(f => (f === 'ground' ? 'planta baja' : 'planta alta'))
+                .join(' y ');
+            alert(
+                `El PDF sale sin la ${nombres}: tiene elementos dibujados pero no tiene ` +
+                `plano de fondo cargado. Subí la imagen de esa planta y volvé a descargarlo.`
+            );
+        }
+
         try {
-            const currentFloorZones = floorHeatingZones.filter(z => z.floor === currentFloor);
-            const currentZoneIds = new Set(currentFloorZones.map(z => z.id));
             generateFloorPlanPDF(
-                plan.image,
-                plan.dimensions,
-                plan.offset,
+                plantasParaPDF,
                 radiators,
                 pipes,
                 boilers,
                 rooms,
                 companyDetails,
-                clientDetails,
-                currentFloor,
-                currentFloorZones,
-                (floorHeatingBudget?.circuits ?? []).filter(c => currentZoneIds.has(c.zoneId)),
-                manifolds.filter(m => m.floor === currentFloor),
-                (floorHeatingBudget?.montantes ?? []).filter(m =>
-                    manifolds.some(mf => mf.id === m.manifoldId && mf.floor === currentFloor)
-                )
+                clientDetails
             );
         } catch {
             alert('Hubo un error al generar el plano. Por favor intenta nuevamente.');
@@ -221,7 +256,9 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 preloadedLogo,
                 floorHeatingBudget,
                 pipes,
-                selectedBombaMca
+                selectedBombaMca,
+                plantasParaPDF,
+                boilers
             );
         } catch {
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');
