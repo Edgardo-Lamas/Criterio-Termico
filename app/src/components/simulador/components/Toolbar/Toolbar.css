@@ -113,8 +113,13 @@
   }
 }
 
-/* Laptops: solo íconos — el nombre de cada botón queda en el tooltip (title) */
-@media (max-width: 1600px) {
+/* Laptops: solo íconos — el nombre de cada botón queda en el tooltip (title).
+   🔴 El corte estaba en 1600 y dejaba afuera las pantallas de 1680 de ancho,
+   que son de las comunes: ahí la barra iba con texto completo, no entraba, y
+   el ÚLTIMO botón —«Limpiar»— quedaba fuera de la vista. El scroll horizontal
+   de la barra no se ve, así que el botón simplemente no existía para el que
+   miraba. Si se agrega un botón más, revisar este número. */
+@media (max-width: 1700px) {
   .toolbar-btn .toolbar-btn-label {
     display: none;
   }

@@ -457,10 +457,9 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           }}
           title="Exportar el plano a DWG, el formato nativo de AutoCAD. En prueba: si no abre, usá el DXF, que lleva el mismo dibujo."
         >
-          <span>🧪</span>{' '}
-          <span className="toolbar-btn-label">
-            {exportandoDWG ? 'Generando…' : 'DWG · beta'}
-          </span>
+          {/* Sin etiqueta de texto NUNCA: la barra ya venía justa y este
+              botón es secundario. El nombre y el aviso viven en el `title`. */}
+          <span>{exportandoDWG ? '⏳' : '🧪'}</span>
         </button>
 
         <button
