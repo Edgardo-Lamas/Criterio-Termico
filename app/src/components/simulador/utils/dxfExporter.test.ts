@@ -249,8 +249,11 @@ describe('dxfExporter — lo que tiene que salir sí o sí', () => {
     // Cada capa de cañería, traducida a lenguaje de obra
     expect(textos).toContain('CT-PB-PEX20-IDA');
     // El Ø va como %%C, igual que en el resto del archivo
-    expect(textos.some(t => t === 'planta baja · PE-X %%C20 · ida')).toBe(true);
-    expect(textos.some(t => t.includes('piso radiante'))).toBe(true);
+    expect(textos.some(t => t === 'planta baja · PE-X %%C20 · ida · radiadores')).toBe(true);
+    // Los DOS sistemas nombrados: si sólo se nombra el piso radiante, el que
+    // abre el archivo no sabe que las otras capas son la de radiadores
+    expect(textos.some(t => t.includes('· piso radiante'))).toBe(true);
+    expect(textos.some(t => t === 'Este plano lleva la instalación de radiadores y piso radiante.')).toBe(true);
   });
 
   it('no crea capas vacías', () => {

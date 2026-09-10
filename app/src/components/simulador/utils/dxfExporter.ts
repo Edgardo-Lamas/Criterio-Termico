@@ -1090,8 +1090,13 @@ function explicarCapa(nombre: string): string | null {
       `${material(mat)} Ø${diam}`,
       rama === 'IDA' ? 'ida' : 'retorno',
     ];
+    // Sin sistema es la cañería de los radiadores. Se nombra igual que las
+    // otras: si sólo el piso radiante queda nombrado, el que abre el archivo
+    // no tiene cómo saber que las demás capas son la instalación de
+    // radiadores.
     if (sistema === 'PISO') partes.push('piso radiante');
-    if (sistema === 'PRIMARIA') partes.push('primaria caldera-colector');
+    else if (sistema === 'PRIMARIA') partes.push('primaria caldera-colector');
+    else partes.push('radiadores');
     return partes.join(' · ');
   }
   if (vertical) {
@@ -1109,10 +1114,10 @@ function explicarCapa(nombre: string): string | null {
  * hace distinto a este plano: que las cañerías están cortadas por diámetro
  * —seleccionás la capa y tenés el metraje— y que el despiece ya está adentro.
  */
-function dibujarComoUsarlo(b: DXFBuilder): void {
+function dibujarComoUsarlo(b: DXFBuilder, queLleva: string): void {
   const nombre = 'CT-ROTULO';
   b.usarCapa(nombre, CAPAS_GENERALES[nombre]);
-  const { max, min } = b.limites;
+  const { max } = b.limites;
   const x0 = max.x + 2;
   let y = max.y;
   const salto = H_PLANILLA * 1.8;
@@ -1125,6 +1130,10 @@ function dibujarComoUsarlo(b: DXFBuilder): void {
   y -= salto * 0.4;
   linea('Medidas en METROS. AutoCAD escala solo al insertarlo en un dibujo en cm o mm.');
   y -= salto * 0.6;
+  if (queLleva) {
+    linea(`Este plano lleva la instalación de ${queLleva}.`);
+    y -= salto * 0.6;
+  }
 
   // Cañerías: la capa dice material y diámetro, y ese es el punto
   const capasTubo = b.capas
@@ -1149,7 +1158,6 @@ function dibujarComoUsarlo(b: DXFBuilder): void {
   linea('dibujados debajo del plano, en la capa CT-PLANILLA.');
   y -= salto * 0.6;
   linea('El resto de las capas empieza con CT- y se puede apagar entera.');
-  void min;
 }
 
 /** Rótulo arriba del dibujo: qué es, de cuándo y en qué unidad está. */
@@ -1228,7 +1236,15 @@ export function generarDXF(data: DXFExportData): string {
   // El rótulo antes que la leyenda: se ubica contra el borde de arriba y la
   // leyenda lo correría al agrandar la caja.
   dibujarRotulo(b, data, circuitos);
-  dibujarComoUsarlo(b);
+  const hayRadiadores = data.radiators.length > 0;
+  const hayPiso = PLANTAS.some(f => circuitos[f].circuits.length > 0);
+  dibujarComoUsarlo(
+    b,
+    hayRadiadores && hayPiso ? 'radiadores y piso radiante'
+      : hayRadiadores ? 'radiadores'
+      : hayPiso ? 'piso radiante'
+      : ''
+  );
   return b.generar();
 }
 
