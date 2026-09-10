@@ -628,10 +628,40 @@ archivo. `npm run build` sí corre `tsc -b`.
 
 ---
 
-### Exportador DWG — el mismo plano, en el formato nativo de AutoCAD (2026-09-10)
+### Exportador DWG — escrito, probado y APAGADO (2026-09-10)
 
-`app/src/components/simulador/utils/dwgExporter.ts`. Botón **Exportar DWG** al
-lado del de DXF.
+`app/src/components/simulador/utils/dwgExporter.ts`. **No hay botón de DWG en la
+barra, y no es un olvido.**
+
+🔴🔴 **DECISIÓN DE EDGARDO, EL MISMO DÍA QUE SE CONSTRUYÓ: SE ENTREGA UN SOLO
+FORMATO.** Estuvieron los dos botones un rato y él los sacó: *"dos botones no se
+ve bien… deberíamos jugarnos por uno. Pero no pueden quedar iguales"*. Bajan el
+mismo plano, así que el que exporta no tiene cómo saber cuál apretar, y el
+segundo botón no agrega ninguna capacidad — sólo la comodidad de la extensión.
+
+**Se quedó el DXF, y estas son las razones, que valen para cualquier formato que
+se agregue en el futuro:**
+- El DXF lo abre **cualquier** CAD —AutoCAD y LT, BricsCAD, DraftSight,
+  LibreCAD, QCAD—; el DWG lo abren AutoCAD y compatibles, y varios CAD libres lo
+  abren mal.
+- El DXF se escribe contra **la especificación que Autodesk publica**; el DWG,
+  contra un formato cerrado por ingeniería inversa de terceros.
+- El DXF está auditado con `ezdxf` **y abierto en un CAD de verdad**. El DWG lo
+  leyeron tres librerías y **ningún CAD lo abrió todavía**.
+- La librería del DWG es de abril de 2026 y **le aparecieron dos bugs el primer
+  día** (abajo). Uno entregaba archivos inválidos sin que se notara mirando el
+  plano.
+
+🔑 **Para encenderlo** cuando la prueba en AutoCAD confirme que abre: importar
+`downloadDWGFile` en `Toolbar.tsx` y volver a poner el botón (está en el
+historial, PR #21). **Y anunciarlo en los TRES carteles a la vez** —`Cuenta.tsx`,
+`GuiaDeUso.tsx` y `plataforma.astro` del repo del sitio—, no antes: mientras el
+botón no exista, ninguno de los tres nombra el DWG.
+
+⚠ Sin el botón, `acad-ts` **no entra al bundle** (verificado en `dist/`): el
+`import()` dinámico es la única referencia y nadie la alcanza. La dependencia
+queda en `package.json` y los tests siguen corriendo, para que el exportador no
+se pudra mientras espera.
 
 🔑 **ACÁ NO SE DIBUJA NADA.** El plano lo arma `dxfExporter.ts` y este archivo
 sólo lo convierte: el mismo texto que baja como `.dxf` entra por el lector de
@@ -683,8 +713,8 @@ conversor—, que además es lo que AutoCAD da por sentado.
 
 **La librería se carga con `import()` dinámico**, no arriba del archivo: pesa
 795 KB (165 KB comprimidos) y queda en un chunk propio que **no figura en el
-`index.html`**. El que no exporta a DWG no la descarga nunca; el primero de la
-sesión tarda unos segundos y el botón lo dice.
+`index.html`**. Con el botón apagado no se descarga nunca; cuando se encienda,
+el primer DWG de la sesión tarda unos segundos y el botón tiene que decirlo.
 
 **Verificado con TRES herramientas independientes**, sobre el proyecto real:
 
@@ -696,10 +726,10 @@ sesión tarda unos segundos y el botón lo dice.
 
 ⬜ **Falta abrirlo en un AutoCAD de verdad**, igual que el DXF.
 
-⚠ **El DXF sigue siendo el botón probado.** Lo abre cualquier CAD, está
-auditado con `ezdxf` y no depende de una librería joven (el puerto a TypeScript
-es de abril de 2026). El DWG es la comodidad de recibir el formato de todos los
-días.
+🔑 **La regla que queda, y vale más que el DWG:** un formato de entrega nuevo
+no se suma al lado del que ya está. O reemplaza al anterior, o no va. Dos
+botones que bajan lo mismo son una decisión que se le pasa al usuario sin
+darle con qué decidir.
 
 ---
 

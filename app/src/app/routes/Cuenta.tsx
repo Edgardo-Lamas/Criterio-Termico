@@ -59,7 +59,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string
             'Todo lo incluido en PRO',
             'Simulador 2D completo (desktop)',
             'Exportación PDF profesional',
-            'Exportación del plano a DWG y DXF (AutoCAD)',
+            'Exportación a DXF (AutoCAD)',
             'Presupuestos detallados'
         ]
     }

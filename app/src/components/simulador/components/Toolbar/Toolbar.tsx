@@ -7,7 +7,6 @@ import { generateAutoPipes, generateMultiFloorPipes } from '../../utils/pipeRout
 import { dimensionPipes } from '../../utils/pipeDimensioning';
 import { calculateBoilerPower, ambientesCalefaccionados } from '../../utils/thermalCalculator';
 import { downloadDXFFile } from '../../utils/dxfExporter';
-import { downloadDWGFile } from '../../utils/dwgExporter';
 import { FloorSelector } from '../FloorSelector/FloorSelector';
 import { HelpModal } from '../HelpModal/HelpModal';
 import { BudgetCounter } from '../BudgetCounter/BudgetCounter';
@@ -69,7 +68,6 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
-  const [exportandoDWG, setExportandoDWG] = useState(false);
 
   /**
    * Lo que se entrega, para los dos formatos. Sale TODO lo dibujado, también
@@ -427,35 +425,14 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           <span>📐</span> <span className="toolbar-btn-label">Exportar DXF</span>
         </button>
 
-        <button
-          type="button"
-          className="toolbar-btn primary"
-          disabled={exportandoDWG}
-          onClick={async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const datos = datosParaExportar();
-            if (!datos) return;
-            // El DWG sale del MISMO dibujo que el DXF, convertido. La librería
-            // que convierte pesa más de 1 MB y se descarga recién acá, así que
-            // el primer DWG de la sesión tarda unos segundos.
-            setExportandoDWG(true);
-            try {
-              await downloadDWGFile(datos);
-            } catch (error) {
-              console.error('[DWG]', error);
-              alert('No se pudo generar el DWG. El plano se puede bajar en DXF, que lo abre el mismo AutoCAD.');
-            } finally {
-              setExportandoDWG(false);
-            }
-          }}
-          title="Exportar el plano a DWG, el formato nativo de AutoCAD"
-        >
-          <span>📐</span>{' '}
-          <span className="toolbar-btn-label">
-            {exportandoDWG ? 'Generando DWG…' : 'Exportar DWG'}
-          </span>
-        </button>
+        {/* 🔴 El botón de DWG está APAGADO a propósito, no falta. Decisión de
+            Edgardo del 2026-09-10: dos botones que bajan el mismo plano no
+            comunican nada y el que exporta no sabe cuál apretar. Se entrega un
+            solo formato, y es el DXF —el probado, el que abre cualquier CAD y
+            el que se escribe contra una especificación publicada—. Para
+            encenderlo: importar `downloadDWGFile` de `../../utils/dwgExporter`
+            y volver a poner acá el botón (está en el historial, PR #21). El
+            exportador y sus tests siguen vivos: ver `dwgExporter.ts`. */}
 
         <button
           type="button"
