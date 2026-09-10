@@ -1,11 +1,16 @@
 /**
- * Exportador DXF del Simulador 2D — el plano que se le pasa al arquitecto.
+ * Exportador DXF del Simulador 2D — el plano que se entrega, para abrir en
+ * AutoCAD.
  *
  * Es el ÚNICO formato de exportación del plano. Hubo un exportador IFC y se
  * eliminó el 2026-09-10: el IFC es un modelo BIM, necesita Revit o ArchiCAD
- * para abrirse y AutoCAD LT no lo importa. El arquitecto que recibe la
- * instalación trabaja en AutoCAD y lo que necesita es la planta con las
- * cañerías dibujadas encima de la suya. Eso es un DXF.
+ * para abrirse y AutoCAD LT no lo importa.
+ *
+ * 🔑 **No es «el archivo para el arquitecto».** Lo abren también el ingeniero y
+ * el maestro mayor de obras, y el dueño de la propiedad puede manejar AutoCAD:
+ * una herramienta que sirve a muchos no se reduce a un nicho. Lo que necesita
+ * cualquiera de ellos es la planta con las cañerías dibujadas encima de la
+ * suya, medida y con el despiece. Eso es un DXF.
  *
  * Qué sale (todo lo que hoy se calcula y se dibuja en pantalla):
  * - Ambientes con su nombre y su pérdida
@@ -18,7 +23,7 @@
  *
  * 🔴 EL DIBUJO VA EN METROS, con `$INSUNITS = 6`. No se escala a mano en
  * ningún lado: AutoCAD sabe que la unidad es el metro y hace la conversión él
- * cuando el arquitecto lo inserta en un plano en centímetros o en milímetros.
+ * cuando el archivo se inserta en un plano en centímetros o en milímetros.
  * Todo lo que se agregue acá se mide en píxeles del canvas y se convierte con
  * `aMetros()` / `punto()`. Nunca escribir una escala a mano.
  *
@@ -112,10 +117,10 @@ const CAPAS: Record<string, DefCapa> = {
 };
 
 // 🔴 Las cañerías NO van en una capa fija: van en UNA CAPA POR MATERIAL Y
-// DIÁMETRO —`CT-PB-PEX20-IDA`—, que es lo que le permite al arquitecto sacar
-// los metros de cada tubo seleccionando la capa. Con una sola capa de cañería
-// tendría que medir tramo por tramo, y en AutoCAD LT no existe
-// DATAEXTRACTION para hacerlo de otro modo.
+// DIÁMETRO —`CT-PB-PEX20-IDA`—, que es lo que permite sacar los metros de cada
+// tubo seleccionando la capa. Con una sola capa de cañería habría que medir
+// tramo por tramo, y en AutoCAD LT no existe DATAEXTRACTION para hacerlo de
+// otro modo.
 const COLOR_IDA = 1;      // rojo
 const COLOR_RETORNO = 5;  // azul
 
@@ -214,9 +219,9 @@ const H = {
 /**
  * Bloques con atributos para caldera, radiadores y colectores.
  *
- * 🔴 Son bloques, y no rectángulos sueltos, para que el arquitecto pueda sacar
- * la planilla con `ATTEXT` —lo único que tiene AutoCAD LT, que no trae
- * `DATAEXTRACTION`— y para que cada aparato se seleccione como un objeto.
+ * 🔴 Son bloques, y no rectángulos sueltos, para poder sacar la planilla con
+ * `ATTEXT` —lo único que tiene AutoCAD LT, que no trae `DATAEXTRACTION`— y
+ * para que cada aparato se seleccione como un objeto.
  * Los atributos van INVISIBLES: los datos ya están escritos en las planillas
  * dibujadas, y encima del plano sólo va la identificación.
  *
@@ -800,7 +805,7 @@ function dibujarPlanta(
 
   // --- Circuitos de piso radiante: serpentín, acometidas y etiqueta ---
   // Las capas se registran sólo si hay circuitos: si no, el archivo llega con
-  // capas vacías que el arquitecto tiene que ir apagando a mano.
+  // capas vacías que hay que ir apagando a mano.
   const capIda = circ.circuits.length > 0 ? capTubo('PE-X', DIAMETRO_PISO_MM, 'IDA', 'PISO') : '';
   const capRet = circ.circuits.length > 0 ? capTubo('PE-X', DIAMETRO_PISO_MM, 'RET', 'PISO') : '';
   for (const c of circ.circuits) {
@@ -827,7 +832,7 @@ function dibujarPlanta(
   // --- Colectores ---
   // 🔴 Se dibuja a ESCALA REAL —ancho = vías × 5 cm, que es la derivación del
   // catálogo—, no al tamaño que se arrastró en pantalla: el plano tiene que
-  // servir para ver si el colector entra en el nicho que el arquitecto dejó.
+  // servir para ver si el colector entra en el nicho previsto en la obra.
   const manifolds = (data.manifolds ?? []).filter(m => plantaDe(m) === floor);
   manifolds.forEach((manifold, i) => {
     const vias = circ.circuits.filter(c => c.manifoldId === manifold.id).length;
@@ -1003,7 +1008,7 @@ function longitudPipeM(pipe: PipeSegment): number {
  *
  * 🔴 Va dibujado a propósito: `DATAEXTRACTION` no existe en AutoCAD LT —ahí
  * sólo hay `ATTEXT`, y sólo para atributos de bloque—, así que si el despiece
- * dependiera de que el arquitecto lo extraiga, la mitad no podría.
+ * dependiera de que lo extraiga quien lo recibe, la mitad no podría.
  *
  * 🔴 SIN MARCAS: cada instalador adapta al material que usa. Y sin precios: es
  * una lista para comprar, no un presupuesto.

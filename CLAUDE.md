@@ -459,8 +459,8 @@ la barra del Simulador. Es el **único** formato de exportación del plano: el
 2026-09-10 se eliminó el exportador IFC —`ifcExporter.ts`, su test y el botón—
 por decisión de Edgardo.
 
-🔴 **Por qué DXF y no IFC**: el arquitecto que recibe la instalación trabaja en
-AutoCAD, muchas veces **LT — que no abre IFC**. Lo que necesita es la planta con
+🔴 **Por qué DXF y no IFC**: quien recibe la instalación trabaja en AutoCAD,
+muchas veces **LT — que no abre IFC**. Lo que necesita es la planta con
 las cañerías dibujadas encima de la suya, y eso es un DXF. Sostener dos
 exportadores era sostener uno que nadie iba a poder abrir.
 
@@ -469,7 +469,7 @@ Lo que sale, que es todo lo que el simulador calcula:
 - Ambientes con nombre, superficie y pérdida
 - Caldera y radiadores, con la identificación de la planilla (`R1`, `R2`…)
 - Cañerías **en una capa por material y diámetro**, ida y retorno separadas
-  (`CT-PB-PEX20-IDA`)
+  (`CT-PB-PEX20-IDA`) — para radiadores y para piso radiante
 - **Colectores y circuitos de piso radiante** —serpentín, acometidas y etiqueta
   `C1.2`—, que se calculaban desde siempre y **nunca salían a ningún archivo**
 - Primaria caldera↔colector Ø32 y montantes entre plantas
@@ -485,11 +485,15 @@ nombra igual que la de piso radiante: si sólo se nombra el piso, el que abre el
 archivo no tiene cómo saber que el resto es la instalación de radiadores. Vale
 para el DXF, para la Guía de uso y para el sitio.
 
-🔴 **No es un entregable «para el arquitecto» y nada más.** Corrección de
-Edgardo del 2026-09-10: el DXF lo abren también ingenieros y maestros mayores
-de obra, y el dueño de la propiedad puede manejar AutoCAD. Los textos hablan de
-**«el que lo recibe»** —la función, no la categoría, que es el corolario de
-`docs/norma-lenguaje.md` del sitio—, no de un rubro solo.
+🔴🔴 **UNA HERRAMIENTA QUE SIRVE A MUCHOS NO SE REDUCE A UN NICHO.** Criterio
+de Edgardo del 2026-09-10, y vale para todo el producto, no sólo para el DXF:
+*"si el tema es excluyente del arquitecto o electricista o sanitarista, ahí sí
+los mencionamos específicamente"*. El DXF lo abren el arquitecto —que es el
+principal—, el ingeniero, el maestro mayor de obras y el dueño de la propiedad,
+que también puede manejar AutoCAD. Los textos, **y los comentarios del código**,
+hablan de **«el que lo recibe»**: la función concreta en vez de la categoría,
+que es el corolario de `docs/norma-lenguaje.md` del sitio. Un rubro se nombra
+sólo cuando el tema es de ese rubro.
 
 Invariantes que fija `dxfExporter.test.ts` (14 casos) y que **no hay que
 romper**:
