@@ -520,7 +520,7 @@ hablan de **«el que lo recibe»**: la función concreta en vez de la categoría
 que es el corolario de `docs/norma-lenguaje.md` del sitio. Un rubro se nombra
 sólo cuando el tema es de ese rubro.
 
-Invariantes que fija `dxfExporter.test.ts` (14 casos) y que **no hay que
+Invariantes que fija `dxfExporter.test.ts` (27 casos) y que **no hay que
 romper**:
 
 1. 🔴 **El dibujo va en METROS, con `$INSUNITS = 6`.** No se escala a mano en
@@ -570,6 +570,31 @@ romper**:
     están cortadas por diámetro ni de que el despiece ya está adentro. Las
     capas se listan **traducidas** con `explicarCapa()`, que parsea el nombre.
     Si cambia el formato del nombre de capa, hay que cambiar ese parser.
+12. 🔴🔴 **UNA etiqueta de diámetro por PAR ida/retorno, girada como el caño —
+    nunca una por tramo.** Ida y retorno corren paralelos a 16-22 cm y un
+    «Ø16» de 0,22 m de alto ocupa 66 cm de ancho: con una etiqueta por caño se
+    montan entre sí. Medido en un CAD sobre un proyecto real: **68 pares de
+    rótulos pisados, cuatro exactamente encimados**, o sea el plano ilegible.
+    Es geometría, así que pasa igual en AutoCAD. Cómo funciona:
+    `tramoPrincipal()` toma el segmento **más largo** de cada caño (no el
+    vértice del medio, que cae en una esquina), `agruparPares()` junta los que
+    dicen lo mismo y corren pegados y paralelos, y la etiqueta sale al costado
+    del haz, girada, con el ángulo siempre entre -90° y 90° para que no se lea
+    cabeza abajo. **Los diámetros se dibujan ÚLTIMOS**, después de anotar con
+    `anotarEtiqueta()` todo lo que no se mueve —`R1`, `CALDERA`, `COLECTOR 1`,
+    `C1.2`, nombres de ambiente—, porque son los únicos rótulos que se pueden
+    correr. Lo que ocupa lugar no son sólo los textos: **los aparatos también
+    cuentan** —radiador, caldera y colector se anotan con `anotarCaja()`—,
+    porque un «Ø25» escrito encima del símbolo de un radiador ensucia el plano
+    igual que uno escrito encima de otro texto. Si ninguna de las cuatro
+    posiciones queda libre, **la etiqueta no se dibuja**: el diámetro se lee
+    igual por la capa y en el despiece, y una etiqueta pisada ensucia sin
+    agregar nada.
+13. **Los rótulos sobre el dibujo van cortos.** «MONTANTE ENTRE PLANTAS Ø25»
+    son 3,70 m de texto sobre un montante de centímetros, y con ida y retorno
+    a 16 cm se leía `MO0NTANTEEENTREEPLANTASS`. Va **«MONTANTE Ø25»**, una vez
+    por par: lo que se pierde lo explica la leyenda, que traduce la capa
+    entera («montante entre plantas · PE-X Ø25 · ida»).
 
 ⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
 de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de
@@ -578,6 +603,13 @@ dar lo mismo.
 
 ⬜ Falta: verificarlo abriéndolo en un AutoCAD de verdad (acá se validó con
 `ezdxf`: 0 errores de auditoría).
+
+🔑 **Cómo se verifica una etiqueta desde acá, sin AutoCAD:** se regenera el
+plano de un proyecto real y se miden las cajas de texto con `ezdxf`. Cuidado
+con un detalle que da falsos positivos: **`%%C16` ocupa 3 letras en pantalla,
+no 5** —el código de control se dibuja como un solo `Ø`—, así que el ancho hay
+que medirlo sobre el texto ya traducido. Sobre el proyecto del 10/9: **68
+pares pisados antes, 0 después**, con 50,9 cm de separación mínima.
 
 ---
 

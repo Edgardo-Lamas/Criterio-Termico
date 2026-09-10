@@ -300,3 +300,195 @@ describe('dxfExporter — texto que llega entero al AutoCAD del arquitecto', () 
     expect(bytes[0]).toBe('0'.charCodeAt(0));
   });
 });
+
+// ---------- Etiquetas de diámetro: que NO se pisen ----------
+
+/**
+ * Textos con su punto de anclaje real, altura y rotación. El lector de arriba
+ * alcanza para el contenido; acá hace falta la geometría, que es justo lo que
+ * falló: el plano abrió bien y las etiquetas se montaban unas sobre otras.
+ */
+interface TextoLeido {
+  capa: string;
+  texto: string;
+  x: number;
+  y: number;
+  altura: number;
+  rot: number;
+}
+
+function textos(dxf: string): TextoLeido[] {
+  const lineas = dxf.split('\n');
+  const inicio = lineas.findIndex((l, i) => l.trim() === 'ENTITIES' && lineas[i - 1]?.trim() === '2');
+  const salida: TextoLeido[] = [];
+  let actual: TextoLeido | null = null;
+  let esTexto = false;
+  for (let i = inicio + 1; i < lineas.length; i += 2) {
+    const codigo = lineas[i].trim();
+    const valor = (lineas[i + 1] ?? '').trim();
+    if (codigo === '0') {
+      if (actual && esTexto) salida.push(actual);
+      if (valor === 'ENDSEC') break;
+      esTexto = valor === 'TEXT';
+      actual = { capa: '', texto: '', x: 0, y: 0, altura: 0, rot: 0 };
+    } else if (actual && esTexto) {
+      if (codigo === '8') actual.capa = valor;
+      else if (codigo === '1') actual.texto = valor;
+      else if (codigo === '10' || codigo === '11') actual.x = parseFloat(valor);
+      else if (codigo === '20' || codigo === '21') actual.y = parseFloat(valor);
+      else if (codigo === '40') actual.altura = parseFloat(valor);
+      else if (codigo === '50') actual.rot = parseFloat(valor);
+    }
+  }
+  return salida;
+}
+
+/** Caja que ocupa el texto girado, en metros del dibujo. */
+function caja(t: TextoLeido): { x0: number; y0: number; x1: number; y1: number } {
+  const rad = (t.rot * Math.PI) / 180;
+  const ancho = t.texto.length * t.altura * 0.6;
+  const alto = t.altura;
+  const cx = t.x - Math.sin(rad) * (alto / 2);
+  const cy = t.y + Math.cos(rad) * (alto / 2);
+  const mx = (ancho * Math.abs(Math.cos(rad)) + alto * Math.abs(Math.sin(rad))) / 2;
+  const my = (ancho * Math.abs(Math.sin(rad)) + alto * Math.abs(Math.cos(rad))) / 2;
+  return { x0: cx - mx, y0: cy - my, x1: cx + mx, y1: cy + my };
+}
+
+/** Sólo lo escrito SOBRE el dibujo: el despiece también dice «%%C20». */
+function rotulosDelPlano(dxf: string): TextoLeido[] {
+  return textos(dxf).filter(t => t.capa.endsWith('-ETIQUETAS'));
+}
+
+function seSuperponen(a: TextoLeido, b: TextoLeido): boolean {
+  const ca = caja(a);
+  const cb = caja(b);
+  return ca.x0 < cb.x1 && cb.x0 < ca.x1 && ca.y0 < cb.y1 && cb.y0 < ca.y1;
+}
+
+describe('dxfExporter — las etiquetas de diámetro no se pisan', () => {
+  it('ida y retorno comparten UNA etiqueta, no una cada uno', () => {
+    // El proyecto de prueba tiene el retorno calcado sobre la ida: es el caso
+    // que se vio en el CAD, dos «Ø20» a 0,0 cm de distancia.
+    const dxf = generarDXF(proyecto);
+    const diametros = rotulosDelPlano(dxf).filter(t => t.texto === '%%C20');
+    expect(diametros).toHaveLength(1);
+  });
+
+  it('ninguna etiqueta de diámetro se superpone con otra', () => {
+    // Ocho tramos: cuatro pares ida/retorno paralelos y cercanos, como los
+    // genera el ruteo real.
+    const pares: PipeSegment[] = [];
+    for (let i = 0; i < 4; i++) {
+      const y = m(2 + i * 1.5);
+      pares.push(
+        {
+          id: `s${i}`, type: 'pipe', pipeType: 'supply',
+          points: [{ x: m(1), y }, { x: m(8), y }],
+          diameter: 20, material: 'PE-X', floor: 'ground',
+        },
+        {
+          id: `r${i}`, type: 'pipe', pipeType: 'return',
+          points: [{ x: m(1), y: y + m(0.18) }, { x: m(8), y: y + m(0.18) }],
+          diameter: 20, material: 'PE-X', floor: 'ground',
+        }
+      );
+    }
+    const dxf = generarDXF({ ...proyecto, pipes: pares });
+    const diametros = rotulosDelPlano(dxf).filter(t => t.texto.startsWith('%%C'));
+    expect(diametros.length).toBeGreaterThan(0);
+    for (let i = 0; i < diametros.length; i++) {
+      for (let j = i + 1; j < diametros.length; j++) {
+        expect(
+          seSuperponen(diametros[i], diametros[j]),
+          `«${diametros[i].texto}» y «${diametros[j].texto}» se pisan`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('la etiqueta se gira siguiendo la dirección del caño', () => {
+    const vertical: PipeSegment = {
+      id: 'v1', type: 'pipe', pipeType: 'supply',
+      points: [{ x: m(4), y: m(2) }, { x: m(4), y: m(9) }],
+      diameter: 16, material: 'PE-X', floor: 'ground',
+    };
+    const dxf = generarDXF({ ...proyecto, pipes: [vertical] });
+    const etiqueta = rotulosDelPlano(dxf).find(t => t.texto === '%%C16');
+    expect(etiqueta).toBeDefined();
+    expect(Math.abs(etiqueta!.rot)).toBeCloseTo(90, 1);
+  });
+
+  it('el texto no queda cabeza abajo: la rotación vive entre -90 y 90', () => {
+    // Caño dibujado de derecha a izquierda: sin normalizar saldría a 180°
+    const alReves: PipeSegment = {
+      id: 'v2', type: 'pipe', pipeType: 'supply',
+      points: [{ x: m(9), y: m(3) }, { x: m(2), y: m(3) }],
+      diameter: 25, material: 'PE-X', floor: 'ground',
+    };
+    const dxf = generarDXF({ ...proyecto, pipes: [alReves] });
+    const etiqueta = rotulosDelPlano(dxf).find(t => t.texto === '%%C25');
+    expect(etiqueta).toBeDefined();
+    expect(etiqueta!.rot).toBeGreaterThanOrEqual(-90);
+    expect(etiqueta!.rot).toBeLessThan(90);
+  });
+
+  it('la etiqueta no se escribe encima del símbolo de un radiador', () => {
+    // Un radiador justo al costado del par de caños: la etiqueta tiene que
+    // buscar el otro lado en vez de quedar sobre el dibujo del aparato.
+    const pegado: Radiator = {
+      ...radiador, id: 'rad9', x: m(6), y: m(4.9), width: m(1.2), height: m(0.6),
+    };
+    const dxf = generarDXF({ ...proyecto, radiators: [radiador, pegado] });
+    const etiqueta = rotulosDelPlano(dxf).find(t => t.texto === '%%C20');
+    if (!etiqueta) return; // suprimida por falta de lugar: tampoco lo pisa
+    const bloque = entidades(dxf).find(e => e.tipo === 'INSERT' && e.capa === 'CT-PB-RADIADORES');
+    expect(bloque).toBeDefined();
+    const c = caja(etiqueta);
+    const [bx, by] = [bloque!.puntos[0].x, bloque!.puntos[0].y];
+    const dentro = c.x0 < bx + 1.2 && bx < c.x1 && c.y0 < by + 0.6 && by < c.y1;
+    expect(dentro).toBe(false);
+  });
+
+  it('la etiqueta queda al costado del par, no encima del caño', () => {
+    const dxf = generarDXF(proyecto);
+    const etiqueta = rotulosDelPlano(dxf).find(t => t.texto === '%%C20')!;
+    // Contra el caño de verdad: la polilínea de la ida, que corre horizontal.
+    const canio = entidades(dxf).find(e => e.capa === 'CT-PB-PEX20-IDA')!;
+    const yCanio = canio.puntos[0].y;
+    expect(Math.abs(etiqueta.y - yCanio)).toBeGreaterThanOrEqual(etiqueta.altura * 0.4);
+  });
+});
+
+describe('dxfExporter — montantes entre plantas', () => {
+  const montanteIda: PipeSegment = {
+    id: 'm1', type: 'pipe', pipeType: 'supply',
+    points: [{ x: m(8.7), y: m(6) }, { x: m(8.7), y: m(6.8) }],
+    diameter: 25, material: 'PE-X', floor: 'vertical',
+  };
+  const montanteRet: PipeSegment = {
+    ...montanteIda, id: 'm2', pipeType: 'return',
+    points: [{ x: m(8.86), y: m(6) }, { x: m(8.86), y: m(6.8) }],
+  };
+
+  it('los dos montantes llevan UNA etiqueta, no dos encimadas', () => {
+    const dxf = generarDXF({ ...proyecto, pipes: [montanteIda, montanteRet] });
+    const rotulos = rotulosDelPlano(dxf).filter(t => t.texto.includes('MONTANTE'));
+    expect(rotulos).toHaveLength(1);
+  });
+
+  it('el rótulo del montante es corto: no cruza el plano de lado a lado', () => {
+    const dxf = generarDXF({ ...proyecto, pipes: [montanteIda, montanteRet] });
+    const rotulo = rotulosDelPlano(dxf).find(t => t.texto.includes('MONTANTE'))!;
+    const ancho = rotulo.texto.length * rotulo.altura * 0.6;
+    expect(ancho).toBeLessThan(2.5);
+    // Sigue diciendo el diámetro: sin eso no se sabe qué montante es
+    expect(rotulo.texto).toContain('%%C25');
+  });
+
+  it('cada montante conserva su capa por diámetro y rama', () => {
+    const dxf = generarDXF({ ...proyecto, pipes: [montanteIda, montanteRet] });
+    expect(capas(dxf)).toContain('CT-PEX25-VERTICAL-IDA');
+    expect(capas(dxf)).toContain('CT-PEX25-VERTICAL-RET');
+  });
+});
