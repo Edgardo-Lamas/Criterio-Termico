@@ -626,6 +626,83 @@ romper**:
 `tsconfig.node.json`), así que `--noEmit` sale en verde sin mirar un solo
 archivo. `npm run build` sí corre `tsc -b`.
 
+---
+
+### Exportador DWG — el mismo plano, en el formato nativo de AutoCAD (2026-09-10)
+
+`app/src/components/simulador/utils/dwgExporter.ts`. Botón **Exportar DWG** al
+lado del de DXF.
+
+🔑 **ACÁ NO SE DIBUJA NADA.** El plano lo arma `dxfExporter.ts` y este archivo
+sólo lo convierte: el mismo texto que baja como `.dxf` entra por el lector de
+`@node-projects/acad-ts` y sale por su escritor de DWG. **Un solo generador,
+dos formatos**: lo que se cambie del dibujo lo heredan los dos. El camino
+funciona porque nuestro DXF ya sale en **AC1015**, que está dentro del rango
+que esa librería escribe.
+
+**Por qué esa librería y no otra** (evaluado el 2026-09-10):
+- **ODA**, lo que usa la industria: hasta **USD 25.000 al año**, y si se deja de
+  pagar se pierde el derecho a distribuir lo ya desarrollado.
+- **LibreDWG**: GPL → obligaría a abrir el código de Criterio Térmico. Y escribe
+  hasta R2000 nomás. Sirve como **herramienta de verificación local**, que no se
+  distribuye y por eso no contagia la licencia.
+- **`@node-projects/acad-ts`**: MIT, sin dependencias, corre en el navegador.
+  Es el puerto a TypeScript de ACadSharp (C#, MIT, vivo desde 2021).
+
+🔴🔴 **LA TRAMPA: acad-ts NO LEE EL TAG DE LOS ATRIBUTOS.** Al leer el DXF
+descarta el código 2 de los `ATTDEF` y los `ATTRIB` —avisa
+`[AcDbAttributeDefinition] Unhandled dxf code 2`—, así que **los valores llegan
+bien y los tags llegan vacíos**. Un DWG así se ve perfecto y **no sirve para lo
+que lo entregamos**: sin tag, `ATTEXT` no extrae nada, y `ATTEXT` es lo único
+que tiene AutoCAD LT (no trae `DATAEXTRACTION`). `reponerTagsDeAtributos()` los
+devuelve **por posición**, usando `ATRIBUTOS_DE_BLOQUE` —la misma constante con
+la que el exportador los emite, así que no pueden divergir—. ⚠ Un test compara
+el orden que emite el DXF contra esa constante: si algún día cambia el orden de
+los atributos de un bloque, el DWG saldría con **los datos cruzados** y no
+habría forma de notarlo mirando el plano.
+
+🔴🔴 **Y METE EL `SEQEND` DENTRO DE LA LISTA DE ATRIBUTOS**, en vez de en el
+campo `seqend` de la colección. Dos efectos, los dos mudos: el INSERT queda
+apuntando al SEQEND como si fuera su último atributo, y la referencia al
+terminador se escribe vacía — **el DWG sale con los INSERT sin cerrar**, que es
+un archivo inválido (el invariante 8 ya lo pide para el DXF). `ordenarSeqends()`
+lo saca del array y lo pone en su campo, antes de reponer los tags.
+
+🔑 **Cómo se detectó, y cómo se vuelve a comprobar:** el DWG se convierte de
+vuelta a DXF con `dwg2dxf` de **LibreDWG** y se cuentan las entidades. Salían
+17 INSERT con 98 ATTRIB y **cero SEQEND**, y `ezdxf` rechazaba ese DXF con
+`Expected DXF entity TEXT or SEQEND`. ⚠ **Antes de culpar al archivo propio,
+correr el mismo camino con un DWG ajeno de control** —`test/test-data/example_2000.dwg`
+del propio LibreDWG—: ahí salió con sus SEQEND, y eso fue lo que probó que el
+problema era nuestro y no del conversor.
+
+🔴 **La tabla `DIMSTYLE` del DXF no puede ir vacía.** El dibujo no lleva cotas,
+pero el escritor de DWG busca el estilo de cota actual y sin `Standard` corta
+con `Entry 'Standard' not found in table`. Se agregó al DXF —no como parche del
+conversor—, que además es lo que AutoCAD da por sentado.
+
+**La librería se carga con `import()` dinámico**, no arriba del archivo: pesa
+795 KB (165 KB comprimidos) y queda en un chunk propio que **no figura en el
+`index.html`**. El que no exporta a DWG no la descarga nunca; el primero de la
+sesión tarda unos segundos y el botón lo dice.
+
+**Verificado con TRES herramientas independientes**, sobre el proyecto real:
+
+| | resultado |
+|---|---|
+| acad-ts, releyendo el DWG | 70 polilíneas **con todos sus vértices** y 196 textos **con posición, rotación y altura**: idénticos al DXF |
+| **LibreDWG** (C, sin relación con acad-ts) | `SUCCESS`; 196 TEXT, 98 ATTRIB **todos con su tag**, 17 INSERT, 17 SEQEND, 22 capas |
+| **ezdxf**, sobre el DXF que LibreDWG saca del DWG | **0 errores**, 283 entidades |
+
+⬜ **Falta abrirlo en un AutoCAD de verdad**, igual que el DXF.
+
+⚠ **El DXF sigue siendo el botón probado.** Lo abre cualquier CAD, está
+auditado con `ezdxf` y no depende de una librería joven (el puerto a TypeScript
+es de abril de 2026). El DWG es la comodidad de recibir el formato de todos los
+días.
+
+---
+
 ⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
 de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de
 la polilínea del dibujo. Si alguna vez se mide el DXF con una regla, no van a

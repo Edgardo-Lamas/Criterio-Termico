@@ -7,6 +7,7 @@ import { generateAutoPipes, generateMultiFloorPipes } from '../../utils/pipeRout
 import { dimensionPipes } from '../../utils/pipeDimensioning';
 import { calculateBoilerPower, ambientesCalefaccionados } from '../../utils/thermalCalculator';
 import { downloadDXFFile } from '../../utils/dxfExporter';
+import { downloadDWGFile } from '../../utils/dwgExporter';
 import { FloorSelector } from '../FloorSelector/FloorSelector';
 import { HelpModal } from '../HelpModal/HelpModal';
 import { BudgetCounter } from '../BudgetCounter/BudgetCounter';
@@ -68,6 +69,33 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [exportandoDWG, setExportandoDWG] = useState(false);
+
+  /**
+   * Lo que se entrega, para los dos formatos. Sale TODO lo dibujado, también
+   * una instalación que sea sólo piso radiante: ahí no hay radiadores ni
+   * cañerías, pero hay colectores, zonas y circuitos que el plano lleva.
+   * Devuelve null —y avisa— si no hay nada que exportar.
+   */
+  const datosParaExportar = () => {
+    const vacio = radiators.length === 0 && boilers.length === 0
+      && pipes.length === 0 && manifolds.length === 0
+      && floorHeatingZones.length === 0;
+    if (vacio) {
+      alert('No hay nada dibujado para exportar.');
+      return null;
+    }
+    return {
+      projectName: projectName || 'Proyecto',
+      boilers,
+      radiators,
+      pipes,
+      rooms,
+      manifolds,
+      floorHeatingZones,
+      tempImpulsionC: floorHeatingTempC,
+    };
+  };
 
   // Plano de fondo de la planta actual
   const currentFloorPlan = floorPlans[currentFloor];
@@ -390,27 +418,43 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            // El DXF sale con TODO lo dibujado, también una instalación que
-            // sea sólo piso radiante: ahí no hay radiadores ni cañerías, pero
-            // hay colectores, zonas y circuitos que el plano tiene que llevar.
-            const vacio = radiators.length === 0 && boilers.length === 0
-              && pipes.length === 0 && manifolds.length === 0
-              && floorHeatingZones.length === 0;
-            if (vacio) return alert('No hay nada dibujado para exportar.');
-            downloadDXFFile({
-              projectName: projectName || 'Proyecto',
-              boilers,
-              radiators,
-              pipes,
-              rooms,
-              manifolds,
-              floorHeatingZones,
-              tempImpulsionC: floorHeatingTempC,
-            });
+            const datos = datosParaExportar();
+            if (!datos) return;
+            downloadDXFFile(datos);
           }}
           title="Exportar el plano a DXF, para abrir en AutoCAD (LT incluido)"
         >
           <span>📐</span> <span className="toolbar-btn-label">Exportar DXF</span>
+        </button>
+
+        <button
+          type="button"
+          className="toolbar-btn primary"
+          disabled={exportandoDWG}
+          onClick={async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const datos = datosParaExportar();
+            if (!datos) return;
+            // El DWG sale del MISMO dibujo que el DXF, convertido. La librería
+            // que convierte pesa más de 1 MB y se descarga recién acá, así que
+            // el primer DWG de la sesión tarda unos segundos.
+            setExportandoDWG(true);
+            try {
+              await downloadDWGFile(datos);
+            } catch (error) {
+              console.error('[DWG]', error);
+              alert('No se pudo generar el DWG. El plano se puede bajar en DXF, que lo abre el mismo AutoCAD.');
+            } finally {
+              setExportandoDWG(false);
+            }
+          }}
+          title="Exportar el plano a DWG, el formato nativo de AutoCAD"
+        >
+          <span>📐</span>{' '}
+          <span className="toolbar-btn-label">
+            {exportandoDWG ? 'Generando DWG…' : 'Exportar DWG'}
+          </span>
         </button>
 
         <button
