@@ -164,9 +164,29 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
         );
     }, [selectedBoilerId, selectedRadiatorId, totalPowerKcal, radiators.length, options, prices, pipeQuantities]);
 
-    // 🔴 El plano técnico sale con TODAS las plantas, una hoja por planta. Antes
-    // bajaba sólo la que estabas mirando: un proyecto de dos plantas se
-    // entregaba por la mitad, y el PDF se veía completo igual.
+    // 🔴 Las plantas con plano cargado, listas para dibujar. Las usan el plano
+    // técnico Y el presupuesto: los dos salían con una sola planta, la que
+    // estabas mirando, y un proyecto de dos plantas se entregaba por la mitad
+    // sin ningún aviso.
+    const plantasParaPDF = useMemo(() => PLANTAS
+        .filter(f => floorPlans[f].image && floorPlans[f].dimensions)
+        .map(f => {
+            const zonas = floorHeatingZones.filter(z => z.floor === f);
+            const idsZona = new Set(zonas.map(z => z.id));
+            return {
+                floor: f,
+                image: floorPlans[f].image!,
+                dimensions: floorPlans[f].dimensions!,
+                offset: floorPlans[f].offset,
+                zones: zonas,
+                circuits: (floorHeatingBudget?.circuits ?? []).filter(c => idsZona.has(c.zoneId)),
+                manifolds: manifolds.filter(m => m.floor === f),
+                montantes: (floorHeatingBudget?.montantes ?? []).filter(m =>
+                    manifolds.some(mf => mf.id === m.manifoldId && mf.floor === f)
+                ),
+            };
+        }), [floorPlans, floorHeatingZones, floorHeatingBudget, manifolds]);
+
     const handleDownloadFloorPlan = () => {
         const plantasConPlano = PLANTAS.filter(f => floorPlans[f].image && floorPlans[f].dimensions);
         if (plantasConPlano.length === 0) {
@@ -195,22 +215,7 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
 
         try {
             generateFloorPlanPDF(
-                plantasConPlano.map(f => {
-                    const zonas = floorHeatingZones.filter(z => z.floor === f);
-                    const idsZona = new Set(zonas.map(z => z.id));
-                    return {
-                        floor: f,
-                        image: floorPlans[f].image!,
-                        dimensions: floorPlans[f].dimensions!,
-                        offset: floorPlans[f].offset,
-                        zones: zonas,
-                        circuits: (floorHeatingBudget?.circuits ?? []).filter(c => idsZona.has(c.zoneId)),
-                        manifolds: manifolds.filter(m => m.floor === f),
-                        montantes: (floorHeatingBudget?.montantes ?? []).filter(m =>
-                            manifolds.some(mf => mf.id === m.manifoldId && mf.floor === f)
-                        ),
-                    };
-                }),
+                plantasParaPDF,
                 radiators,
                 pipes,
                 boilers,
@@ -251,7 +256,9 @@ export const BudgetPanel: React.FC<BudgetPanelProps> = ({ isOpen, onClose }) => 
                 preloadedLogo,
                 floorHeatingBudget,
                 pipes,
-                selectedBombaMca
+                selectedBombaMca,
+                plantasParaPDF,
+                boilers
             );
         } catch {
             alert('Hubo un error al generar el PDF. Por favor intenta nuevamente.');

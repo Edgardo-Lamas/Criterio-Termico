@@ -29,6 +29,9 @@ vi.mock('jspdf', () => {
     setFillColor = registrar('setFillColor');
     setLineWidth = registrar('setLineWidth');
     setLineDashPattern = registrar('setLineDashPattern');
+    roundedRect = registrar('roundedRect');
+    setPage = registrar('setPage');
+    getNumberOfPages = () => 1;
     splitTextToSize = (t: string) => [t];
     getTextWidth = () => 10;
     output = () => ({ size: 1 });
@@ -54,7 +57,7 @@ beforeEach(() => {
   vi.stubGlobal('URL', { createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
 });
 
-const { generateFloorPlanPDF } = await import('./pdfGenerator');
+const { generateFloorPlanPDF, generateQuotePDF } = await import('./pdfGenerator');
 
 // ---------- Datos ----------
 
@@ -144,5 +147,42 @@ describe('plano técnico — las dos plantas son una obra, no dos proyectos', ()
     generateFloorPlanPDF([], [radiador('rad1', 'ground')], [], [caldera], [ambiente], empresa, cliente);
     expect(llamadas).toHaveLength(0);
     expect(descargas).toHaveLength(0);
+  });
+});
+
+describe('presupuesto — el plano que lleva adentro', () => {
+  // El canvas del simulador: sólo puede mostrar la planta que se está viendo
+  const canvasFalso = {
+    width: 800, height: 600,
+    toDataURL: () => 'data:image/png;base64,CAPTURA-DE-LA-PLANTA-VISIBLE',
+  } as unknown as HTMLCanvasElement;
+
+  it('con plano cargado dibuja una hoja por planta y NO usa la captura del canvas', () => {
+    generateQuotePDF(
+      canvasFalso, [ambiente], [radiador('rad1', 'ground'), radiador('rad2', 'first')],
+      empresa, cliente, [], null, null, null, [], undefined,
+      [plano('ground'), plano('first')], [caldera]
+    );
+    const imagenes = llamadas.filter(l => l.metodo === 'addImage').map(l => String(l.args[0]));
+    // La captura del canvas no entra: mostraría una sola planta
+    expect(imagenes).not.toContain('data:image/png;base64,CAPTURA-DE-LA-PLANTA-VISIBLE');
+    // Y sí entran las dos plantas dibujadas
+    expect(imagenes).toContain('data:image/png;base64,ground');
+    expect(imagenes).toContain('data:image/png;base64,first');
+    // Cada hoja de plano es una página apaisada agregada al final
+    const apaisadas = llamadas.filter(
+      l => l.metodo === 'addPage' && String(l.args[1]) === 'landscape'
+    );
+    expect(apaisadas).toHaveLength(2);
+  });
+
+  it('sin plano de fondo cargado sigue llevando la captura del canvas', () => {
+    generateQuotePDF(
+      canvasFalso, [ambiente], [radiador('rad1', 'ground')],
+      empresa, cliente, [], null, null, null, [], undefined, [], []
+    );
+    const imagenes = llamadas.filter(l => l.metodo === 'addImage').map(l => String(l.args[0]));
+    expect(imagenes).toContain('data:image/png;base64,CAPTURA-DE-LA-PLANTA-VISIBLE');
+    expect(llamadas.filter(l => l.metodo === 'addPage' && String(l.args[1]) === 'landscape')).toHaveLength(0);
   });
 });
