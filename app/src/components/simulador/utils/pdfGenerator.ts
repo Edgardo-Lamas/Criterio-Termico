@@ -611,363 +611,398 @@ export const generateQuotePDF = (
 // ============================================================
 // PLANO TÉCNICO A4 APAISADO
 // ============================================================
+/** Una planta lista para dibujar: su plano de fondo y lo que va encima. */
+export interface PlantaParaPlanoPDF {
+  floor: 'ground' | 'first';
+  image: string;
+  dimensions: { width: number; height: number };
+  offset: { x: number; y: number };
+  zones?: FloorHeatingZone[];
+  circuits?: FloorHeatingCircuit[];
+  manifolds?: Manifold[];
+  montantes?: Montante[];
+}
+
+/**
+ * Plano técnico del proyecto: UNA HOJA POR PLANTA, en un solo archivo.
+ *
+ * 🔴 Antes salía una sola hoja, la de la planta que estabas mirando en el
+ * canvas. Un proyecto de dos plantas se entregaba por la mitad y no había
+ * ningún aviso: el PDF se veía completo y prolijo. Las plantas son UNA obra,
+ * no dos proyectos.
+ */
 export const generateFloorPlanPDF = (
-  backgroundImage: string,
-  backgroundImageDimensions: { width: number; height: number },
-  backgroundImageOffset: { x: number; y: number },
+  plantas: PlantaParaPlanoPDF[],
   radiators: Radiator[],
   pipes: PipeSegment[],
   boilers: Boiler[],
   rooms: Room[],
   companyDetails: CompanyInfo,
-  clientDetails: ClientInfo,
-  currentFloor: 'ground' | 'first',
-  floorHeatingZones: FloorHeatingZone[] = [],
-  floorHeatingCircuits: FloorHeatingCircuit[] = [],
-  manifolds: Manifold[] = [],
-  montantes: Montante[] = []
+  clientDetails: ClientInfo
 ): void => {
+  if (plantas.length === 0) return;
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-  const pageW = 297;
-  const pageH = 210;
-  const mH = 10;          // horizontal margin
-  const mTop = 10;        // top margin
-  const titleH = 38;      // title block height at bottom
+  plantas.forEach((planta, indice) => {
+    if (indice > 0) doc.addPage();
+    // El cuerpo dibuja UNA planta: cada hoja trae su plano de fondo y sólo los
+    // elementos de esa planta.
+    const backgroundImage = planta.image;
+    const backgroundImageDimensions = planta.dimensions;
+    const backgroundImageOffset = planta.offset;
+    const currentFloor = planta.floor;
+    const floorHeatingZones = planta.zones ?? [];
+    const floorHeatingCircuits = planta.circuits ?? [];
+    const manifolds = planta.manifolds ?? [];
+    const montantes = planta.montantes ?? [];
+    const hoja = indice + 1;
+    const totalHojas = plantas.length;
 
-  const drawW = pageW - 2 * mH;          // 277mm
-  const drawH = pageH - mTop - titleH;   // 162mm
 
-  const imgW = backgroundImageDimensions.width;
-  const imgH = backgroundImageDimensions.height;
+    const pageW = 297;
+    const pageH = 210;
+    const mH = 10;          // horizontal margin
+    const mTop = 10;        // top margin
+    const titleH = 38;      // title block height at bottom
 
-  // Scale to fit maintaining aspect ratio
-  const scale = Math.min(drawW / imgW, drawH / imgH);
-  const pdfImgW = imgW * scale;
-  const pdfImgH = imgH * scale;
+    const drawW = pageW - 2 * mH;          // 277mm
+    const drawH = pageH - mTop - titleH;   // 162mm
 
-  // Center image in draw area
-  const imgX = mH + (drawW - pdfImgW) / 2;
-  const imgY = mTop + (drawH - pdfImgH) / 2;
+    const imgW = backgroundImageDimensions.width;
+    const imgH = backgroundImageDimensions.height;
 
-  // Map canvas coordinates → PDF coordinates
-  const toPdfX = (cx: number) => imgX + (cx - backgroundImageOffset.x) * scale;
-  const toPdfY = (cy: number) => imgY + (cy - backgroundImageOffset.y) * scale;
+    // Scale to fit maintaining aspect ratio
+    const scale = Math.min(drawW / imgW, drawH / imgH);
+    const pdfImgW = imgW * scale;
+    const pdfImgH = imgH * scale;
 
-  // --- 1. Background floor plan image ---
-  const imgFormat = backgroundImage.startsWith('data:image/jpeg') || backgroundImage.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
-  doc.addImage(backgroundImage, imgFormat, imgX, imgY, pdfImgW, pdfImgH);
+    // Center image in draw area
+    const imgX = mH + (drawW - pdfImgW) / 2;
+    const imgY = mTop + (drawH - pdfImgH) / 2;
 
-  // --- 2. Pipes ---
-  const currentFloorPipes = pipes.filter(p => p.floor === currentFloor || p.floor === 'vertical');
-  currentFloorPipes.forEach(pipe => {
-    if (!pipe.points || pipe.points.length < 2) return;
-    const isSupply = pipe.pipeType === 'supply';
+    // Map canvas coordinates → PDF coordinates
+    const toPdfX = (cx: number) => imgX + (cx - backgroundImageOffset.x) * scale;
+    const toPdfY = (cy: number) => imgY + (cy - backgroundImageOffset.y) * scale;
 
-    doc.setLineWidth(0.6);
-    if (isSupply) {
-      doc.setDrawColor(190, 30, 30);
-    } else {
-      doc.setDrawColor(30, 90, 200);
-    }
+    // --- 1. Background floor plan image ---
+    const imgFormat = backgroundImage.startsWith('data:image/jpeg') || backgroundImage.startsWith('data:image/jpg') ? 'JPEG' : 'PNG';
+    doc.addImage(backgroundImage, imgFormat, imgX, imgY, pdfImgW, pdfImgH);
 
-    for (let i = 0; i < pipe.points.length - 1; i++) {
-      doc.line(
-        toPdfX(pipe.points[i].x), toPdfY(pipe.points[i].y),
-        toPdfX(pipe.points[i + 1].x), toPdfY(pipe.points[i + 1].y)
-      );
-    }
+    // --- 2. Pipes ---
+    const currentFloorPipes = pipes.filter(p => p.floor === currentFloor || p.floor === 'vertical');
+    currentFloorPipes.forEach(pipe => {
+      if (!pipe.points || pipe.points.length < 2) return;
+      const isSupply = pipe.pipeType === 'supply';
 
-    // Diameter label at midpoint — only supply to avoid duplicating text
-    if (isSupply && pipe.diameter) {
-      const mid = Math.floor((pipe.points.length - 1) / 2);
-      const mx = toPdfX((pipe.points[mid].x + pipe.points[mid + 1].x) / 2);
-      const my = toPdfY((pipe.points[mid].y + pipe.points[mid + 1].y) / 2);
+      doc.setLineWidth(0.6);
+      if (isSupply) {
+        doc.setDrawColor(190, 30, 30);
+      } else {
+        doc.setDrawColor(30, 90, 200);
+      }
+
+      for (let i = 0; i < pipe.points.length - 1; i++) {
+        doc.line(
+          toPdfX(pipe.points[i].x), toPdfY(pipe.points[i].y),
+          toPdfX(pipe.points[i + 1].x), toPdfY(pipe.points[i + 1].y)
+        );
+      }
+
+      // Diameter label at midpoint — only supply to avoid duplicating text
+      if (isSupply && pipe.diameter) {
+        const mid = Math.floor((pipe.points.length - 1) / 2);
+        const mx = toPdfX((pipe.points[mid].x + pipe.points[mid + 1].x) / 2);
+        const my = toPdfY((pipe.points[mid].y + pipe.points[mid + 1].y) / 2);
+        doc.setFontSize(5.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(140, 20, 20);
+        doc.text(`Ø${pipe.diameter}`, mx, my - 1.2);
+      }
+    });
+
+    // --- 2.5 Piso radiante: montantes, zonas, serpentines y colectores ---
+    const drawCircuitPolyline = (pts: { x: number; y: number }[], r: number, g: number, b: number, w = 0.35) => {
+      if (pts.length < 2) return;
+      doc.setDrawColor(r, g, b);
+      doc.setLineWidth(w);
+      for (let i = 0; i < pts.length - 1; i++) {
+        doc.line(toPdfX(pts[i].x), toPdfY(pts[i].y), toPdfX(pts[i + 1].x), toPdfY(pts[i + 1].y));
+      }
+    };
+
+    // Montantes caldera→colector primero: capa inferior, trazo punteado grueso
+    // (van aisladas por el contrapiso, debajo de las placas y los circuitos)
+    montantes.forEach(m => {
+      doc.setLineDashPattern([2.5, 1.2], 0);
+      drawCircuitPolyline(m.ida, 139, 0, 0, 0.7);
+      drawCircuitPolyline(m.retorno, 13, 71, 161, 0.7);
+      doc.setLineDashPattern([], 0);
+
+      const texto = `Montante Ø${m.diametroMm} · ${Math.round(m.longitudTotal)} m`;
       doc.setFontSize(5.5);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(140, 20, 20);
-      doc.text(`Ø${pipe.diameter}`, mx, my - 1.2);
-    }
-  });
+      const tw = doc.getTextWidth(texto);
+      const lx = toPdfX(m.labelPos.x);
+      const ly = toPdfY(m.labelPos.y);
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(139, 0, 0);
+      doc.setLineWidth(0.2);
+      doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
+      doc.setTextColor(139, 0, 0);
+      doc.text(texto, lx, ly);
+    });
 
-  // --- 2.5 Piso radiante: montantes, zonas, serpentines y colectores ---
-  const drawCircuitPolyline = (pts: { x: number; y: number }[], r: number, g: number, b: number, w = 0.35) => {
-    if (pts.length < 2) return;
-    doc.setDrawColor(r, g, b);
-    doc.setLineWidth(w);
-    for (let i = 0; i < pts.length - 1; i++) {
-      doc.line(toPdfX(pts[i].x), toPdfY(pts[i].y), toPdfX(pts[i + 1].x), toPdfY(pts[i + 1].y));
-    }
-  };
+    floorHeatingZones.forEach(zone => {
+      doc.setDrawColor(230, 126, 34);
+      doc.setLineWidth(0.3);
+      doc.setLineDashPattern([1.5, 1], 0);
+      doc.rect(toPdfX(zone.x), toPdfY(zone.y), zone.width * scale, zone.height * scale);
+      doc.setLineDashPattern([], 0);
+    });
 
-  // Montantes caldera→colector primero: capa inferior, trazo punteado grueso
-  // (van aisladas por el contrapiso, debajo de las placas y los circuitos)
-  montantes.forEach(m => {
-    doc.setLineDashPattern([2.5, 1.2], 0);
-    drawCircuitPolyline(m.ida, 139, 0, 0, 0.7);
-    drawCircuitPolyline(m.retorno, 13, 71, 161, 0.7);
-    doc.setLineDashPattern([], 0);
+    floorHeatingCircuits.forEach(c => {
+      drawCircuitPolyline(c.acometidaIda, 190, 30, 30);
+      drawCircuitPolyline(c.acometidaRetorno, 30, 90, 200);
+      drawCircuitPolyline(c.ida, 190, 30, 30);
+      // Conexión central ida → retorno (violeta, igual que en el canvas)
+      if (c.ida.length > 0 && c.retorno.length > 0) {
+        drawCircuitPolyline([c.ida[c.ida.length - 1], c.retorno[0]], 142, 36, 170);
+      }
+      drawCircuitPolyline(c.retorno, 30, 90, 200);
 
-    const texto = `Montante Ø${m.diametroMm} · ${Math.round(m.longitudTotal)} m`;
-    doc.setFontSize(5.5);
-    doc.setFont('helvetica', 'bold');
-    const tw = doc.getTextWidth(texto);
-    const lx = toPdfX(m.labelPos.x);
-    const ly = toPdfY(m.labelPos.y);
+      // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · carga 645 kcal/h" con fondo blanco.
+      // El aporte térmico es el del AMBIENTE (Calculador de Potencia), el mismo de
+      // la ficha del ambiente; nunca la carga de diseño del piso (cuenta interna,
+      // potenciaKcalh). Sin habitación vinculada no hay carga del Calculador: se
+      // pide asignarla en vez de mostrar el número interno.
+      const cargaTxt = c.aporteAmbienteKcalh != null
+        ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')} kcal/h`
+        : 'asigná habitación';
+      const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${cargaTxt}`;
+      doc.setFontSize(5.5);
+      doc.setFont('helvetica', 'bold');
+      const tw = doc.getTextWidth(texto);
+      const lx = toPdfX(c.labelPos.x);
+      const ly = toPdfY(c.labelPos.y);
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(c.excedeLimite ? 190 : 150, c.excedeLimite ? 30 : 150, c.excedeLimite ? 30 : 150);
+      doc.setLineWidth(0.2);
+      doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
+      doc.setTextColor(c.excedeLimite ? 190 : 40, c.excedeLimite ? 30 : 40, c.excedeLimite ? 30 : 40);
+      doc.text(texto, lx, ly);
+    });
+
+    manifolds.forEach(manifold => {
+      const mx = toPdfX(manifold.x);
+      const my = toPdfY(manifold.y);
+      const mw = manifold.width * scale;
+      const mh = manifold.height * scale;
+
+      doc.setFillColor(96, 125, 139);
+      doc.setDrawColor(55, 71, 79);
+      doc.setLineWidth(0.3);
+      doc.rect(mx, my, mw, mh, 'FD');
+
+      doc.setFontSize(4.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(255, 255, 255);
+      doc.text('COLECTOR', mx + mw / 2, my + mh / 2 + 1, { align: 'center' });
+    });
+
+    // --- 3. Radiators — con su identificación de planilla ("R3"), no la
+    // potencia: los datos completos van en la planilla de radiadores ---
+    const planilla = planillaRadiadores(radiators, rooms);
+    const filaPorId = new Map(planilla.map(f => [f.radiatorId, f]));
+    const currentFloorRadiators = radiators.filter(r => r.floor === currentFloor);
+    currentFloorRadiators.forEach(rad => {
+      const rx = toPdfX(rad.x);
+      const ry = toPdfY(rad.y);
+      const rw = rad.width * scale;
+      const rh = rad.height * scale;
+
+      doc.setFillColor(215, 70, 70);
+      doc.setDrawColor(160, 25, 25);
+      doc.setLineWidth(0.3);
+      doc.rect(rx, ry, rw, rh, 'FD');
+
+      const etiqueta = filaPorId.get(rad.id)?.etiqueta ?? '';
+      if (etiqueta) {
+        doc.setFontSize(5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(255, 255, 255);
+        doc.text(etiqueta, rx + rw / 2, ry + rh / 2 + 1.5, { align: 'center' });
+      }
+    });
+
+    // --- 4. Boilers ---
+    const currentFloorBoilers = boilers.filter(b => !b.floor || b.floor === currentFloor);
+    currentFloorBoilers.forEach(boiler => {
+      const bx = toPdfX(boiler.x);
+      const by = toPdfY(boiler.y);
+      const bw = boiler.width * scale;
+      const bh = boiler.height * scale;
+
+      doc.setFillColor(255, 140, 0);
+      doc.setDrawColor(180, 90, 0);
+      doc.setLineWidth(0.3);
+      doc.rect(bx, by, bw, bh, 'FD');
+
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(80, 30, 0);
+      doc.text('CAL', bx + bw / 2, by + bh / 2 + 1.5, { align: 'center' });
+    });
+
+    // --- 5. (Sin etiquetas de ambiente sobre el plano: la imagen de fondo ya
+    // trae los nombres, y los datos de cada radiador van en la planilla) ---
+
+    // --- 6. Legend (top-right) ---
+    const legX = pageW - mH - 50;
+    const legY = mTop + 2;
     doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(139, 0, 0);
-    doc.setLineWidth(0.2);
-    doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
-    doc.setTextColor(139, 0, 0);
-    doc.text(texto, lx, ly);
-  });
-
-  floorHeatingZones.forEach(zone => {
-    doc.setDrawColor(230, 126, 34);
+    doc.setDrawColor(160, 160, 160);
     doc.setLineWidth(0.3);
-    doc.setLineDashPattern([1.5, 1], 0);
-    doc.rect(toPdfX(zone.x), toPdfY(zone.y), zone.width * scale, zone.height * scale);
-    doc.setLineDashPattern([], 0);
-  });
+    doc.rect(legX, legY, 48, 22, 'FD');
 
-  floorHeatingCircuits.forEach(c => {
-    drawCircuitPolyline(c.acometidaIda, 190, 30, 30);
-    drawCircuitPolyline(c.acometidaRetorno, 30, 90, 200);
-    drawCircuitPolyline(c.ida, 190, 30, 30);
-    // Conexión central ida → retorno (violeta, igual que en el canvas)
-    if (c.ida.length > 0 && c.retorno.length > 0) {
-      drawCircuitPolyline([c.ida[c.ida.length - 1], c.retorno[0]], 142, 36, 170);
-    }
-    drawCircuitPolyline(c.retorno, 30, 90, 200);
-
-    // Etiqueta "Zona 1 C1 · 62 m · c/c 150 mm · carga 645 kcal/h" con fondo blanco.
-    // El aporte térmico es el del AMBIENTE (Calculador de Potencia), el mismo de
-    // la ficha del ambiente; nunca la carga de diseño del piso (cuenta interna,
-    // potenciaKcalh). Sin habitación vinculada no hay carga del Calculador: se
-    // pide asignarla en vez de mostrar el número interno.
-    const cargaTxt = c.aporteAmbienteKcalh != null
-      ? `carga ${c.aporteAmbienteKcalh.toLocaleString('es-AR')} kcal/h`
-      : 'asigná habitación';
-    const texto = `${c.zoneName} ${c.etiqueta} · ${Math.round(c.longitudTotal)} m · c/c ${c.pasoCm * 10} mm · ${cargaTxt}`;
-    doc.setFontSize(5.5);
+    doc.setFontSize(6.5);
     doc.setFont('helvetica', 'bold');
-    const tw = doc.getTextWidth(texto);
-    const lx = toPdfX(c.labelPos.x);
-    const ly = toPdfY(c.labelPos.y);
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(c.excedeLimite ? 190 : 150, c.excedeLimite ? 30 : 150, c.excedeLimite ? 30 : 150);
-    doc.setLineWidth(0.2);
-    doc.rect(lx - 0.8, ly - 2.4, tw + 1.6, 3.4, 'FD');
-    doc.setTextColor(c.excedeLimite ? 190 : 40, c.excedeLimite ? 30 : 40, c.excedeLimite ? 30 : 40);
-    doc.text(texto, lx, ly);
-  });
+    doc.setTextColor(0, 0, 0);
+    doc.text('REFERENCIAS', legX + 24, legY + 4.5, { align: 'center' });
 
-  manifolds.forEach(manifold => {
-    const mx = toPdfX(manifold.x);
-    const my = toPdfY(manifold.y);
-    const mw = manifold.width * scale;
-    const mh = manifold.height * scale;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(6);
 
-    doc.setFillColor(96, 125, 139);
-    doc.setDrawColor(55, 71, 79);
-    doc.setLineWidth(0.3);
-    doc.rect(mx, my, mw, mh, 'FD');
+    doc.setDrawColor(190, 30, 30);
+    doc.setLineWidth(0.7);
+    doc.line(legX + 2, legY + 8.5, legX + 9, legY + 8.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Tubería IDA', legX + 11, legY + 9.5);
 
-    doc.setFontSize(4.5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 255, 255);
-    doc.text('COLECTOR', mx + mw / 2, my + mh / 2 + 1, { align: 'center' });
-  });
-
-  // --- 3. Radiators — con su identificación de planilla ("R3"), no la
-  // potencia: los datos completos van en la planilla de radiadores ---
-  const planilla = planillaRadiadores(radiators, rooms);
-  const filaPorId = new Map(planilla.map(f => [f.radiatorId, f]));
-  const currentFloorRadiators = radiators.filter(r => r.floor === currentFloor);
-  currentFloorRadiators.forEach(rad => {
-    const rx = toPdfX(rad.x);
-    const ry = toPdfY(rad.y);
-    const rw = rad.width * scale;
-    const rh = rad.height * scale;
+    doc.setDrawColor(30, 90, 200);
+    doc.line(legX + 2, legY + 13, legX + 9, legY + 13);
+    doc.text('Tubería Retorno', legX + 11, legY + 14);
 
     doc.setFillColor(215, 70, 70);
     doc.setDrawColor(160, 25, 25);
     doc.setLineWidth(0.3);
-    doc.rect(rx, ry, rw, rh, 'FD');
+    doc.rect(legX + 2, legY + 16.5, 7, 3.5, 'FD');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Radiador (ver planilla)', legX + 11, legY + 19);
 
-    const etiqueta = filaPorId.get(rad.id)?.etiqueta ?? '';
-    if (etiqueta) {
+    // --- 6.5 Planilla de radiadores (como en los planos de obra): el plano
+    // muestra solo "R1, R2, ..." y acá van los datos de cada uno ---
+    const filasPlanta = planilla.filter(f => f.floor === currentFloor);
+    if (filasPlanta.length > 0) {
+      const MAX_FILAS = 14;
+      const visibles = filasPlanta.slice(0, MAX_FILAS);
+      const ocultas = filasPlanta.length - visibles.length;
+      const totalPlanilla = filasPlanta.reduce((acc, f) => acc + f.potenciaKcalh, 0);
+
+      const plW = 64;
+      const plX = pageW - mH - plW;
+      const plY = legY + 26;
+      const filaH = 3.4;
+      const plH = 8.5 + (visibles.length + 1) * filaH + (ocultas > 0 ? filaH : 0);
+
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(160, 25, 25);
+      doc.setLineWidth(0.3);
+      doc.rect(plX, plY, plW, plH, 'FD');
+
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(160, 25, 25);
+      doc.text('PLANILLA DE RADIADORES', plX + plW / 2, plY + 4, { align: 'center' });
+
+      let py = plY + 8.5;
       doc.setFontSize(5);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(255, 255, 255);
-      doc.text(etiqueta, rx + rw / 2, ry + rh / 2 + 1.5, { align: 'center' });
-    }
-  });
+      doc.text('ID', plX + 2, py);
+      doc.text('Ambiente', plX + 9, py);
+      doc.text('Elem.', plX + 42, py, { align: 'right' });
+      doc.text('Kcal/h', plX + plW - 2, py, { align: 'right' });
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.15);
+      doc.line(plX + 1, py + 1, plX + plW - 1, py + 1);
+      py += filaH;
 
-  // --- 4. Boilers ---
-  const currentFloorBoilers = boilers.filter(b => !b.floor || b.floor === currentFloor);
-  currentFloorBoilers.forEach(boiler => {
-    const bx = toPdfX(boiler.x);
-    const by = toPdfY(boiler.y);
-    const bw = boiler.width * scale;
-    const bh = boiler.height * scale;
-
-    doc.setFillColor(255, 140, 0);
-    doc.setDrawColor(180, 90, 0);
-    doc.setLineWidth(0.3);
-    doc.rect(bx, by, bw, bh, 'FD');
-
-    doc.setFontSize(5);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(80, 30, 0);
-    doc.text('CAL', bx + bw / 2, by + bh / 2 + 1.5, { align: 'center' });
-  });
-
-  // --- 5. (Sin etiquetas de ambiente sobre el plano: la imagen de fondo ya
-  // trae los nombres, y los datos de cada radiador van en la planilla) ---
-
-  // --- 6. Legend (top-right) ---
-  const legX = pageW - mH - 50;
-  const legY = mTop + 2;
-  doc.setFillColor(255, 255, 255);
-  doc.setDrawColor(160, 160, 160);
-  doc.setLineWidth(0.3);
-  doc.rect(legX, legY, 48, 22, 'FD');
-
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
-  doc.text('REFERENCIAS', legX + 24, legY + 4.5, { align: 'center' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(6);
-
-  doc.setDrawColor(190, 30, 30);
-  doc.setLineWidth(0.7);
-  doc.line(legX + 2, legY + 8.5, legX + 9, legY + 8.5);
-  doc.setTextColor(0, 0, 0);
-  doc.text('Tubería IDA', legX + 11, legY + 9.5);
-
-  doc.setDrawColor(30, 90, 200);
-  doc.line(legX + 2, legY + 13, legX + 9, legY + 13);
-  doc.text('Tubería Retorno', legX + 11, legY + 14);
-
-  doc.setFillColor(215, 70, 70);
-  doc.setDrawColor(160, 25, 25);
-  doc.setLineWidth(0.3);
-  doc.rect(legX + 2, legY + 16.5, 7, 3.5, 'FD');
-  doc.setTextColor(0, 0, 0);
-  doc.text('Radiador (ver planilla)', legX + 11, legY + 19);
-
-  // --- 6.5 Planilla de radiadores (como en los planos de obra): el plano
-  // muestra solo "R1, R2, ..." y acá van los datos de cada uno ---
-  const filasPlanta = planilla.filter(f => f.floor === currentFloor);
-  if (filasPlanta.length > 0) {
-    const MAX_FILAS = 14;
-    const visibles = filasPlanta.slice(0, MAX_FILAS);
-    const ocultas = filasPlanta.length - visibles.length;
-    const totalPlanilla = filasPlanta.reduce((acc, f) => acc + f.potenciaKcalh, 0);
-
-    const plW = 64;
-    const plX = pageW - mH - plW;
-    const plY = legY + 26;
-    const filaH = 3.4;
-    const plH = 8.5 + (visibles.length + 1) * filaH + (ocultas > 0 ? filaH : 0);
-
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(160, 25, 25);
-    doc.setLineWidth(0.3);
-    doc.rect(plX, plY, plW, plH, 'FD');
-
-    doc.setFontSize(6);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(160, 25, 25);
-    doc.text('PLANILLA DE RADIADORES', plX + plW / 2, plY + 4, { align: 'center' });
-
-    let py = plY + 8.5;
-    doc.setFontSize(5);
-    doc.text('ID', plX + 2, py);
-    doc.text('Ambiente', plX + 9, py);
-    doc.text('Elem.', plX + 42, py, { align: 'right' });
-    doc.text('Kcal/h', plX + plW - 2, py, { align: 'right' });
-    doc.setDrawColor(200, 200, 200);
-    doc.setLineWidth(0.15);
-    doc.line(plX + 1, py + 1, plX + plW - 1, py + 1);
-    py += filaH;
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(40, 40, 40);
-    visibles.forEach(f => {
-      doc.setFont('helvetica', 'bold');
-      doc.text(f.etiqueta, plX + 2, py);
       doc.setFont('helvetica', 'normal');
-      const amb = f.ambiente.length > 18 ? f.ambiente.substring(0, 18) + '…' : f.ambiente;
-      doc.text(amb, plX + 9, py);
-      doc.text(f.elementos !== null ? `${f.elementos}` : '—', plX + 42, py, { align: 'right' });
-      doc.text(f.potenciaKcalh.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
-      py += filaH;
-    });
-    if (ocultas > 0) {
-      doc.setTextColor(120, 120, 120);
-      doc.text(`+${ocultas} más (ver presupuesto)`, plX + 2, py);
-      py += filaH;
       doc.setTextColor(40, 40, 40);
+      visibles.forEach(f => {
+        doc.setFont('helvetica', 'bold');
+        doc.text(f.etiqueta, plX + 2, py);
+        doc.setFont('helvetica', 'normal');
+        const amb = f.ambiente.length > 18 ? f.ambiente.substring(0, 18) + '…' : f.ambiente;
+        doc.text(amb, plX + 9, py);
+        doc.text(f.elementos !== null ? `${f.elementos}` : '—', plX + 42, py, { align: 'right' });
+        doc.text(f.potenciaKcalh.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
+        py += filaH;
+      });
+      if (ocultas > 0) {
+        doc.setTextColor(120, 120, 120);
+        doc.text(`+${ocultas} más (ver presupuesto)`, plX + 2, py);
+        py += filaH;
+        doc.setTextColor(40, 40, 40);
+      }
+      doc.setFont('helvetica', 'bold');
+      doc.line(plX + 1, py - 2.6, plX + plW - 1, py - 2.6);
+      doc.text('Total', plX + 2, py);
+      doc.text(totalPlanilla.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
     }
+
+    // --- 7. Title block ---
+    const tbY = pageH - titleH;
+    doc.setDrawColor(80, 80, 80);
+    doc.setLineWidth(0.4);
+    doc.line(mH, tbY, pageW - mH, tbY);
+
+    // Left: company + project
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.line(plX + 1, py - 2.6, plX + plW - 1, py - 2.6);
-    doc.text('Total', plX + 2, py);
-    doc.text(totalPlanilla.toLocaleString('es-AR'), plX + plW - 2, py, { align: 'right' });
-  }
+    doc.setTextColor(0, 0, 0);
+    doc.text(companyDetails.companyName || 'Instalador', mH, tbY + 7);
 
-  // --- 7. Title block ---
-  const tbY = pageH - titleH;
-  doc.setDrawColor(80, 80, 80);
-  doc.setLineWidth(0.4);
-  doc.line(mH, tbY, pageW - mH, tbY);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Proyecto: ${clientDetails.projectName || clientDetails.name || 'Sin nombre'}`, mH, tbY + 13);
+    doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, mH, tbY + 19);
 
-  // Left: company + project
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
-  doc.text(companyDetails.companyName || 'Instalador', mH, tbY + 7);
+    if (companyDetails.phone) {
+      doc.text(`Tel: ${companyDetails.phone}`, mH, tbY + 25);
+    }
 
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Proyecto: ${clientDetails.projectName || clientDetails.name || 'Sin nombre'}`, mH, tbY + 13);
-  doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, mH, tbY + 19);
+    // Center: plan title + scale
+    const floorLabel = currentFloor === 'ground' ? 'PLANTA BAJA' : 'PRIMER PISO';
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.text(
+      `PLANO TÉCNICO — ${floorLabel}${totalHojas > 1 ? `  ·  hoja ${hoja} de ${totalHojas}` : ''}`,
+      pageW / 2, tbY + 8, { align: 'center' }
+    );
 
-  if (companyDetails.phone) {
-    doc.text(`Tel: ${companyDetails.phone}`, mH, tbY + 25);
-  }
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Escala referencial 1:100 aprox. — Impreso en A4', pageW / 2, tbY + 14, { align: 'center' });
 
-  // Center: plan title + scale
-  const floorLabel = currentFloor === 'ground' ? 'PLANTA BAJA' : 'PRIMER PISO';
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`PLANO TÉCNICO — ${floorLabel}`, pageW / 2, tbY + 8, { align: 'center' });
+    // Disclaimer
+    doc.setFontSize(6.5);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(110, 110, 110);
+    const disclaimer = doc.splitTextToSize(
+      'NOTA: El recorrido de tuberías indicado es una sugerencia de diseño con fines presupuestarios. ' +
+      'El instalador determinará el recorrido definitivo en obra según las condiciones reales del inmueble.',
+      pageW / 2 - 10
+    );
+    doc.text(disclaimer, pageW / 2, tbY + 21, { align: 'center' });
 
-  doc.setFontSize(7.5);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(80, 80, 80);
-  doc.text('Escala referencial 1:100 aprox. — Impreso en A4', pageW / 2, tbY + 14, { align: 'center' });
+    // Right: generated by
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(150, 150, 150);
+    doc.text('Generado con Criterio Térmico', pageW - mH, tbY + 7, { align: 'right' });
+    doc.text('criteriotermico.com.ar', pageW - mH, tbY + 12, { align: 'right' });
 
-  // Disclaimer
-  doc.setFontSize(6.5);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(110, 110, 110);
-  const disclaimer = doc.splitTextToSize(
-    'NOTA: El recorrido de tuberías indicado es una sugerencia de diseño con fines presupuestarios. ' +
-    'El instalador determinará el recorrido definitivo en obra según las condiciones reales del inmueble.',
-    pageW / 2 - 10
-  );
-  doc.text(disclaimer, pageW / 2, tbY + 21, { align: 'center' });
-
-  // Right: generated by
-  doc.setFontSize(7);
-  doc.setFont('helvetica', 'italic');
-  doc.setTextColor(150, 150, 150);
-  doc.text('Generado con Criterio Térmico', pageW - mH, tbY + 7, { align: 'right' });
-  doc.text('criteriotermico.com.ar', pageW - mH, tbY + 12, { align: 'right' });
+  });
 
   // --- 8. Download ---
   const safeName = (clientDetails.projectName || 'Proyecto').replace(/\s+/g, '_');
