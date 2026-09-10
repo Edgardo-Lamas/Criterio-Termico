@@ -237,6 +237,22 @@ describe('dxfExporter — lo que tiene que salir sí o sí', () => {
     expect(textos).toContain('R1'); // identificación del radiador en el plano
   });
 
+  it('explica adentro del archivo cómo se usa y qué es cada capa', () => {
+    // El que lo abre no tiene a nadie al lado que se lo explique: sin esto ve
+    // líneas de colores y no se entera de que las cañerías están cortadas por
+    // diámetro ni de que el despiece ya está adentro.
+    const textos = entidades(generarDXF(proyecto))
+      .filter(e => e.tipo === 'TEXT').map(e => e.texto ?? '');
+    expect(textos).toContain('CÓMO USAR ESTE ARCHIVO');
+    expect(textos.some(t => t.includes('METROS'))).toBe(true);
+    expect(textos.some(t => t.includes('ATTEXT'))).toBe(true);
+    // Cada capa de cañería, traducida a lenguaje de obra
+    expect(textos).toContain('CT-PB-PEX20-IDA');
+    // El Ø va como %%C, igual que en el resto del archivo
+    expect(textos.some(t => t === 'planta baja · PE-X %%C20 · ida')).toBe(true);
+    expect(textos.some(t => t.includes('piso radiante'))).toBe(true);
+  });
+
   it('no crea capas vacías', () => {
     const dxf = generarDXF(proyecto);
     const usadas = new Set(entidades(dxf).map(e => e.capa));

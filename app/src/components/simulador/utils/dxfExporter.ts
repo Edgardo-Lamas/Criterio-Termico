@@ -413,6 +413,11 @@ class DXFBuilder {
    * texto agrandaba la caja— y los rótulos de las dos plantas terminaban a
    * distinta altura.
    */
+  /** Capas que realmente se usaron, en el orden en que se fueron creando. */
+  get capas(): string[] {
+    return [...this.capasUsadas.keys()];
+  }
+
   get limites(): { min: { x: number; y: number }; max: { x: number; y: number } } {
     if (!Number.isFinite(this.min.x)) return { min: { x: 0, y: 0 }, max: { x: 1, y: 1 } };
     return { min: { ...this.min }, max: { ...this.max } };
@@ -1070,6 +1075,83 @@ function dibujarDespiece(b: DXFBuilder, data: DXFExportData): void {
   );
 }
 
+/**
+ * Traduce el nombre de una capa de cañería a lenguaje de obra.
+ * `CT-PB-PEX20-PISO-IDA` → «planta baja · PE-X Ø20 · ida · piso radiante».
+ */
+function explicarCapa(nombre: string): string | null {
+  const conPlanta = /^CT-(PB|PA)-([A-Z]+)(\d+)(?:-(PISO|PRIMARIA))?-(IDA|RET)$/.exec(nombre);
+  const vertical = /^CT-([A-Z]+)(\d+)-VERTICAL-(IDA|RET)$/.exec(nombre);
+  const material = (m: string): string => (m === 'PEX' ? 'PE-X' : m.toLowerCase());
+  if (conPlanta) {
+    const [, planta, mat, diam, sistema, rama] = conPlanta;
+    const partes = [
+      planta === 'PB' ? 'planta baja' : 'planta alta',
+      `${material(mat)} Ø${diam}`,
+      rama === 'IDA' ? 'ida' : 'retorno',
+    ];
+    if (sistema === 'PISO') partes.push('piso radiante');
+    if (sistema === 'PRIMARIA') partes.push('primaria caldera-colector');
+    return partes.join(' · ');
+  }
+  if (vertical) {
+    const [, mat, diam, rama] = vertical;
+    return `montante entre plantas · ${material(mat)} Ø${diam} · ${rama === 'IDA' ? 'ida' : 'retorno'}`;
+  }
+  return null;
+}
+
+/**
+ * Leyenda «cómo usar este archivo», al costado del dibujo.
+ *
+ * 🔴 Va DENTRO del archivo porque el que lo abre no tiene a nadie al lado que
+ * se lo explique. Sin esto ve líneas de colores y no se entera de lo único que
+ * hace distinto a este plano: que las cañerías están cortadas por diámetro
+ * —seleccionás la capa y tenés el metraje— y que el despiece ya está adentro.
+ */
+function dibujarComoUsarlo(b: DXFBuilder): void {
+  const nombre = 'CT-ROTULO';
+  b.usarCapa(nombre, CAPAS_GENERALES[nombre]);
+  const { max, min } = b.limites;
+  const x0 = max.x + 2;
+  let y = max.y;
+  const salto = H_PLANILLA * 1.8;
+  const linea = (txt: string, altura = H_PLANILLA): void => {
+    b.texto(nombre, txt, x0, y, altura);
+    y -= salto;
+  };
+
+  linea('CÓMO USAR ESTE ARCHIVO', H_PLANILLA * 1.5);
+  y -= salto * 0.4;
+  linea('Medidas en METROS. AutoCAD escala solo al insertarlo en un dibujo en cm o mm.');
+  y -= salto * 0.6;
+
+  // Cañerías: la capa dice material y diámetro, y ese es el punto
+  const capasTubo = b.capas
+    .map(c => ({ nombre: c, que: explicarCapa(c) }))
+    .filter((c): c is { nombre: string; que: string } => c.que !== null);
+  if (capasTubo.length > 0) {
+    linea('CAÑERÍAS - una capa por material y diámetro:', H_PLANILLA * 1.15);
+    linea('seleccionando la capa sale el metraje de ese tubo.');
+    for (const c of capasTubo.slice(0, 10)) {
+      b.texto(nombre, c.nombre, x0 + 0.3, y, H_PLANILLA);
+      b.texto(nombre, c.que, x0 + 5.6, y, H_PLANILLA);
+      y -= salto;
+    }
+    if (capasTubo.length > 10) linea(`(y ${capasTubo.length - 10} capas más de cañería)`);
+    y -= salto * 0.6;
+  }
+
+  linea('BLOQUES CON ATRIBUTOS:', H_PLANILLA * 1.15);
+  linea('caldera, radiadores y colectores. Los datos salen con ATTEXT.');
+  y -= salto * 0.6;
+  linea('DESPIECE Y PLANILLAS:', H_PLANILLA * 1.15);
+  linea('dibujados debajo del plano, en la capa CT-PLANILLA.');
+  y -= salto * 0.6;
+  linea('El resto de las capas empieza con CT- y se puede apagar entera.');
+  void min;
+}
+
 /** Rótulo arriba del dibujo: qué es, de cuándo y en qué unidad está. */
 function dibujarRotulo(
   b: DXFBuilder,
@@ -1143,7 +1225,10 @@ export function generarDXF(data: DXFExportData): string {
 
   dibujarPlanillas(b, data, circuitos);
   dibujarDespiece(b, data);
+  // El rótulo antes que la leyenda: se ubica contra el borde de arriba y la
+  // leyenda lo correría al agrandar la caja.
   dibujarRotulo(b, data, circuitos);
+  dibujarComoUsarlo(b);
   return b.generar();
 }
 

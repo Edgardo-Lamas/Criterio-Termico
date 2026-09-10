@@ -475,6 +475,8 @@ Lo que sale, que es todo lo que el simulador calcula:
 - Primaria caldera↔colector Ø32 y montantes entre plantas
 - Planilla de radiadores, planilla de circuitos y **despiece de materiales**,
   al costado del dibujo
+- Una leyenda **«CÓMO USAR ESTE ARCHIVO»** que traduce cada capa de cañería a
+  lenguaje de obra (`CT-PB-PEX20-IDA` → «planta baja · PE-X Ø20 · ida»)
 
 Invariantes que fija `dxfExporter.test.ts` (14 casos) y que **no hay que
 romper**:
@@ -520,6 +522,12 @@ romper**:
 10. **El colector se dibuja a ESCALA REAL**: ancho = vías × 5 cm (la derivación
     del catálogo REHAU), no al tamaño que se arrastró en pantalla. El plano
     tiene que servir para ver si entra en el nicho.
+11. 🔴 **El archivo se explica solo.** La leyenda «CÓMO USAR ESTE ARCHIVO» va
+    dibujada al costado porque el que lo abre no tiene a nadie que se lo
+    explique: sin ella ve líneas de colores y no se entera de que las cañerías
+    están cortadas por diámetro ni de que el despiece ya está adentro. Las
+    capas se listan **traducidas** con `explicarCapa()`, que parsea el nombre.
+    Si cambia el formato del nombre de capa, hay que cambiar ese parser.
 
 ⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
 de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de
