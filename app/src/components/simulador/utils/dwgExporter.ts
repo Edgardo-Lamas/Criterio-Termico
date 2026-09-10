@@ -74,6 +74,35 @@ function reponerTagsDeAtributos(doc: DocumentoCad): number {
   return repuestos;
 }
 
+/**
+ * 🔴 El mismo lector mete el `SEQEND` DENTRO de la lista de atributos, en vez
+ * de en el campo `seqend` de la colección. Dos consecuencias, las dos mudas:
+ * el INSERT queda apuntando al SEQEND como si fuera su último atributo, y la
+ * referencia al terminador se escribe vacía — o sea que **el DWG sale con los
+ * INSERT sin cerrar**. Se detectó volviendo a convertir el DWG a DXF con
+ * LibreDWG: salían 17 INSERT con 98 atributos y CERO SEQEND, y un DXF así lo
+ * rechaza cualquier lector estricto.
+ *
+ * Un `INSERT` con atributos que no cierra con `SEQEND` es un archivo inválido
+ * —la regla ya está en el CLAUDE.md para el DXF— y no se puede saber de
+ * antemano si AutoCAD lo repara o pierde los atributos.
+ */
+function ordenarSeqends(doc: DocumentoCad): number {
+  let movidos = 0;
+  for (const entidad of doc.modelSpace.entities) {
+    if (entidad.constructor.name !== 'Insert') continue;
+    const atributos = entidad.attributes as ColeccionConSeqend | undefined;
+    if (!atributos || typeof atributos.splice !== 'function') continue;
+    for (let i = atributos.length - 1; i >= 0; i--) {
+      if (atributos[i]?.constructor.name !== 'Seqend') continue;
+      if (!atributos.seqend) atributos.seqend = atributos[i];
+      atributos.splice(i, 1);
+      movidos++;
+    }
+  }
+  return movidos;
+}
+
 // Lo que se usa del documento de acad-ts. La librería trae sus tipos, pero se
 // carga dinámicamente y no se puede importar el tipo sin arrastrar el módulo.
 interface EntidadCad {
@@ -81,6 +110,10 @@ interface EntidadCad {
   tag?: string;
   block?: { name?: string };
   attributes?: Iterable<EntidadCad | null>;
+}
+/** La lista de atributos de un INSERT, que además lleva su terminador. */
+interface ColeccionConSeqend extends Array<EntidadCad | null> {
+  seqend: EntidadCad | null;
 }
 interface DocumentoCad {
   blockRecords: Iterable<{ name: string; entities: Iterable<EntidadCad> }>;
@@ -96,6 +129,7 @@ interface DocumentoCad {
 export async function generarDWG(data: DXFExportData): Promise<Uint8Array<ArrayBuffer>> {
   const { DxfReader, DwgWriter, ACadVersion } = await import('@node-projects/acad-ts');
   const doc = DxfReader.readFromStream(dxfABytes(generarDXF(data)), () => {}) as unknown as DocumentoCad;
+  ordenarSeqends(doc);
   reponerTagsDeAtributos(doc);
   doc.header.version = (ACadVersion as unknown as Record<string, unknown>)[DWG_VERSION];
   const escrito = new Uint8Array(DwgWriter.writeToBuffer(doc as never));
@@ -121,4 +155,4 @@ export async function downloadDWGFile(data: DXFExportData, filename?: string): P
   URL.revokeObjectURL(url);
 }
 
-export { reponerTagsDeAtributos };
+export { reponerTagsDeAtributos, ordenarSeqends };

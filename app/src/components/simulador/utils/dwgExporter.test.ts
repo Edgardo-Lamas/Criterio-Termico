@@ -86,6 +86,27 @@ describe('dwgExporter — el DWG sale del mismo dibujo que el DXF', () => {
     expect([...atributos.keys()]).not.toContain('');
   });
 
+  it('🔴 cada INSERT con atributos cierra con su SEQEND', async () => {
+    // El lector mete el SEQEND dentro de la lista de atributos, así que el
+    // INSERT quedaba apuntándolo como si fuera su último atributo y la
+    // referencia al terminador se escribía vacía: el DWG salía con los INSERT
+    // sin cerrar. No se ve mirando el plano.
+    const bytes = await generarDWG(proyecto);
+    const { DwgReader } = await import('@node-projects/acad-ts');
+    const doc = DwgReader.readFromStream(bytes.buffer, () => {});
+
+    const inserts = [...doc.modelSpace!.entities].filter(e => e.constructor.name === 'Insert');
+    expect(inserts.length).toBe(2);
+    for (const i of inserts) {
+      const col = (i as unknown as { attributes: { seqend: unknown; length: number } }).attributes;
+      expect(col.seqend, 'el INSERT tiene que traer su SEQEND').toBeTruthy();
+      // Y el SEQEND no puede seguir contado como un atributo más
+      for (const a of col as unknown as Iterable<{ constructor: { name: string } }>) {
+        expect(a.constructor.name).not.toBe('Seqend');
+      }
+    }
+  });
+
   it('🔴 el ORDEN de los atributos del DXF es el de ATRIBUTOS_DE_BLOQUE', () => {
     // Los tags se reponen POR POSICIÓN. Si el exportador algún día emitiera
     // los ATTDEF en otro orden, el DWG saldría con los datos cruzados y no

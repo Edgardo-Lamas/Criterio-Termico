@@ -661,6 +661,21 @@ el orden que emite el DXF contra esa constante: si algún día cambia el orden d
 los atributos de un bloque, el DWG saldría con **los datos cruzados** y no
 habría forma de notarlo mirando el plano.
 
+🔴🔴 **Y METE EL `SEQEND` DENTRO DE LA LISTA DE ATRIBUTOS**, en vez de en el
+campo `seqend` de la colección. Dos efectos, los dos mudos: el INSERT queda
+apuntando al SEQEND como si fuera su último atributo, y la referencia al
+terminador se escribe vacía — **el DWG sale con los INSERT sin cerrar**, que es
+un archivo inválido (el invariante 8 ya lo pide para el DXF). `ordenarSeqends()`
+lo saca del array y lo pone en su campo, antes de reponer los tags.
+
+🔑 **Cómo se detectó, y cómo se vuelve a comprobar:** el DWG se convierte de
+vuelta a DXF con `dwg2dxf` de **LibreDWG** y se cuentan las entidades. Salían
+17 INSERT con 98 ATTRIB y **cero SEQEND**, y `ezdxf` rechazaba ese DXF con
+`Expected DXF entity TEXT or SEQEND`. ⚠ **Antes de culpar al archivo propio,
+correr el mismo camino con un DWG ajeno de control** —`test/test-data/example_2000.dwg`
+del propio LibreDWG—: ahí salió con sus SEQEND, y eso fue lo que probó que el
+problema era nuestro y no del conversor.
+
 🔴 **La tabla `DIMSTYLE` del DXF no puede ir vacía.** El dibujo no lleva cotas,
 pero el escritor de DWG busca el estilo de cota actual y sin `Standard` corta
 con `Entry 'Standard' not found in table`. Se agregó al DXF —no como parche del
@@ -671,10 +686,15 @@ conversor—, que además es lo que AutoCAD da por sentado.
 `index.html`**. El que no exporta a DWG no la descarga nunca; el primero de la
 sesión tarda unos segundos y el botón lo dice.
 
-Verificado sobre el proyecto real: **70 polilíneas, 17 bloques, 196 textos y 22
-capas, sin pérdida**, y los atributos completos (`ID = R1`, `AMBIENTE =
-Recamara 2`, `ELEMENTOS = 8`…). ⬜ **Falta abrirlo en un AutoCAD de verdad**,
-igual que el DXF.
+**Verificado con TRES herramientas independientes**, sobre el proyecto real:
+
+| | resultado |
+|---|---|
+| acad-ts, releyendo el DWG | 70 polilíneas **con todos sus vértices** y 196 textos **con posición, rotación y altura**: idénticos al DXF |
+| **LibreDWG** (C, sin relación con acad-ts) | `SUCCESS`; 196 TEXT, 98 ATTRIB **todos con su tag**, 17 INSERT, 17 SEQEND, 22 capas |
+| **ezdxf**, sobre el DXF que LibreDWG saca del DWG | **0 errores**, 283 entidades |
+
+⬜ **Falta abrirlo en un AutoCAD de verdad**, igual que el DXF.
 
 ⚠ **El DXF sigue siendo el botón probado.** Lo abre cualquier CAD, está
 auditado con `ezdxf` y no depende de una librería joven (el puerto a TypeScript
