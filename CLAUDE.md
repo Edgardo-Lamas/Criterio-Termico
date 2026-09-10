@@ -628,16 +628,26 @@ archivo. `npm run build` sí corre `tsc -b`.
 
 ---
 
-### Exportador DWG — escrito, probado y APAGADO (2026-09-10)
+### Exportador DWG — en BETA, secundario (2026-09-10)
 
-`app/src/components/simulador/utils/dwgExporter.ts`. **No hay botón de DWG en la
-barra, y no es un olvido.**
+`app/src/components/simulador/utils/dwgExporter.ts`. En la barra hay un botón
+**🧪 DWG · beta**, chico y secundario, al lado del de DXF.
 
-🔴🔴 **DECISIÓN DE EDGARDO, EL MISMO DÍA QUE SE CONSTRUYÓ: SE ENTREGA UN SOLO
-FORMATO.** Estuvieron los dos botones un rato y él los sacó: *"dos botones no se
-ve bien… deberíamos jugarnos por uno. Pero no pueden quedar iguales"*. Bajan el
-mismo plano, así que el que exporta no tiene cómo saber cuál apretar, y el
-segundo botón no agrega ninguna capacidad — sólo la comodidad de la extensión.
+🔴🔴 **NO PUEDEN QUEDAR DOS BOTONES IGUALES.** Estuvieron así un rato y Edgardo
+los sacó: *"dos botones no se ve bien… deberíamos jugarnos por uno. Pero no
+pueden quedar iguales"*. Bajan el mismo plano, así que el que exporta no tiene
+cómo elegir, y el DWG no agrega ninguna capacidad — sólo la comodidad de la
+extensión. Se apagó, y **se volvió a encender el mismo día, en beta**, cuando
+él lo pidió para poder generar un archivo y mandarlo a probar a un AutoCAD de
+verdad: *"activás DWG así envío un plano para probar cómo sale"*.
+
+🔑 **La jerarquía ES el mensaje**: el DXF es `primary` y el DWG es secundario y
+dice «beta». Así el que exporta sabe cuál es el bueno sin leer nada. **Mientras
+esté en beta NO se anuncia** en `Cuenta.tsx`, `GuiaDeUso.tsx` ni
+`plataforma.astro` del sitio: los tres nombran sólo el DXF.
+
+🔜 **Cuando la prueba en AutoCAD confirme que abre**, se decide: o reemplaza al
+DXF, o sale de beta y se anuncia en los tres carteles a la vez.
 
 **Se quedó el DXF, y estas son las razones, que valen para cualquier formato que
 se agregue en el futuro:**
@@ -652,16 +662,10 @@ se agregue en el futuro:**
   día** (abajo). Uno entregaba archivos inválidos sin que se notara mirando el
   plano.
 
-🔑 **Para encenderlo** cuando la prueba en AutoCAD confirme que abre: importar
-`downloadDWGFile` en `Toolbar.tsx` y volver a poner el botón (está en el
-historial, PR #21). **Y anunciarlo en los TRES carteles a la vez** —`Cuenta.tsx`,
-`GuiaDeUso.tsx` y `plataforma.astro` del repo del sitio—, no antes: mientras el
-botón no exista, ninguno de los tres nombra el DWG.
-
-⚠ Sin el botón, `acad-ts` **no entra al bundle** (verificado en `dist/`): el
-`import()` dinámico es la única referencia y nadie la alcanza. La dependencia
-queda en `package.json` y los tests siguen corriendo, para que el exportador no
-se pudra mientras espera.
+⚠ La librería entra al bundle sólo como **chunk aparte** que se descarga al
+apretar el botón: con el botón apagado no se descargaba nunca, y ahora se baja
+recién cuando alguien exporta en DWG. Verificable en `dist/` buscando
+`ACadSharp`.
 
 🔑 **ACÁ NO SE DIBUJA NADA.** El plano lo arma `dxfExporter.ts` y este archivo
 sólo lo convierte: el mismo texto que baja como `.dxf` entra por el lector de
