@@ -6,7 +6,7 @@ import { saveToLocalStorage } from '../../utils/projectStorage';
 import { generateAutoPipes, generateMultiFloorPipes } from '../../utils/pipeRouter';
 import { dimensionPipes } from '../../utils/pipeDimensioning';
 import { calculateBoilerPower, ambientesCalefaccionados } from '../../utils/thermalCalculator';
-import { downloadIFCFile } from '../../utils/ifcExporter';
+import { downloadDXFFile } from '../../utils/dxfExporter';
 import { FloorSelector } from '../FloorSelector/FloorSelector';
 import { HelpModal } from '../HelpModal/HelpModal';
 import { BudgetCounter } from '../BudgetCounter/BudgetCounter';
@@ -53,6 +53,7 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
     pipes,
     manifolds,
     floorHeatingZones,
+    floorHeatingTempC,
     rooms,
     projectName,
     currentFloor,
@@ -389,14 +390,27 @@ export const Toolbar = ({ onOpenPriceConfig }: ToolbarProps) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            if (radiators.length === 0 && boilers.length === 0) return alert('Sin elementos');
-            // Los radiadores van SÍ o SÍ: se los comprobaba acá arriba y
-            // después no se los pasaba, así que el archivo salía sin ellos.
-            downloadIFCFile({ boilers, pipes, radiators, projectName: projectName || 'Proyecto' }, `${projectName}.ifc`);
+            // El DXF sale con TODO lo dibujado, también una instalación que
+            // sea sólo piso radiante: ahí no hay radiadores ni cañerías, pero
+            // hay colectores, zonas y circuitos que el plano tiene que llevar.
+            const vacio = radiators.length === 0 && boilers.length === 0
+              && pipes.length === 0 && manifolds.length === 0
+              && floorHeatingZones.length === 0;
+            if (vacio) return alert('No hay nada dibujado para exportar.');
+            downloadDXFFile({
+              projectName: projectName || 'Proyecto',
+              boilers,
+              radiators,
+              pipes,
+              rooms,
+              manifolds,
+              floorHeatingZones,
+              tempImpulsionC: floorHeatingTempC,
+            });
           }}
-          title="Exportar modelo BIM (formato IFC)"
+          title="Exportar el plano a DXF, para abrir en AutoCAD (LT incluido)"
         >
-          <span>🏗️</span> <span className="toolbar-btn-label">Exportar IFC</span>
+          <span>📐</span> <span className="toolbar-btn-label">Exportar DXF</span>
         </button>
 
         <button

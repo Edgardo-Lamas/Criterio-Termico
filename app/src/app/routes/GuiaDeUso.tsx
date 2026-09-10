@@ -45,7 +45,7 @@ const CAPACIDADES = [
     {
         icon: 'monitor' as const,
         titulo: 'Simulador 2D',
-        texto: 'Subís el plano, dibujás ambientes, radiadores o piso radiante y caldera. Sale la planilla de radiadores, el metraje de tuberías y el presupuesto en PDF listo para el cliente. Exporta a BIM.',
+        texto: 'Subís el plano, dibujás ambientes, radiadores o piso radiante y caldera. Sale la planilla de radiadores, el metraje de tuberías y el presupuesto en PDF listo para el cliente. Y el plano sale en DXF, para abrirlo en AutoCAD.',
     },
     {
         icon: 'flame' as const,

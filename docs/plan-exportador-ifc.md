@@ -1,3 +1,10 @@
+> ⛔ **HISTÓRICO — el exportador IFC se eliminó del proyecto el 2026-09-10.**
+> El único formato de exportación del plano es **DXF** (`dxfExporter.ts`): el
+> IFC no lo abre AutoCAD LT, que es lo que usa el arquitecto que recibe la
+> instalación. Este documento se conserva porque explica bugs que valen para
+> cualquier exportador —la escala escrita a mano, la posición aplicada dos
+> veces—, no porque haya algo que hacer acá.
+
 # Plan: arreglar el exportador IFC del Simulador
 
 > Auditado el 2026-07-30. Reverificado el 2026-08-09.
