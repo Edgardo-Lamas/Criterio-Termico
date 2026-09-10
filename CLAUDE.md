@@ -192,7 +192,7 @@ PORT=8000
 | *(sin cuenta)* | — | prueba el asistente y nada más | 3 **y se terminan** |
 | `free` | $0 | Calculadora Potencia, 5 errores, índice manual | 15 **al mes** |
 | `pro` | $30.000 | + Diámetros, Caudal, Piso Radiante, Bombas | 80 **al mes** |
-| `premium` | $40.000 | + Simulador 2D, BIM, todo el manual | 120 **al mes** |
+| `premium` | $40.000 | + Simulador 2D, exportación DXF, todo el manual | 120 **al mes** |
 
 🔴 **EL CUPO ES MENSUAL DESDE EL 2026-09-08, y el mes arranca el día que el
 instalador se registró, no el 1°** (ancla: `profiles.created_at`). Si se
@@ -426,7 +426,8 @@ chore:    tareas de mantenimiento (deps, config)
 
 - **Simulador 2D**: Canvas API nativo, sin librerías externas. Mantener 60fps.
   El usuario sube un plano, ubica elementos y el sistema calcula y dibuja
-  tuberías automáticamente. Exporta a PDF (jsPDF) y BIM.
+  tuberías automáticamente. Exporta a PDF (jsPDF) y a **DXF**
+  (`dxfExporter.ts`), que es el entregable para el arquitecto.
 
 - **Motor de cálculo**: Corre 100% en browser. Los algoritmos de ingeniería
   son activo propio del proyecto. Siempre aplicar 15% de margen de seguridad.
@@ -448,6 +449,85 @@ chore:    tareas de mantenimiento (deps, config)
 
 - **PWA completa**: La app funciona offline. No romper el flujo offline
   al agregar nuevas features.
+
+---
+
+### Exportador DXF — el entregable para el arquitecto (desde 2026-09-10)
+
+`app/src/components/simulador/utils/dxfExporter.ts`. Botón **Exportar DXF** en
+la barra del Simulador. Es el **único** formato de exportación del plano: el
+2026-09-10 se eliminó el exportador IFC —`ifcExporter.ts`, su test y el botón—
+por decisión de Edgardo.
+
+🔴 **Por qué DXF y no IFC**: el arquitecto que recibe la instalación trabaja en
+AutoCAD, muchas veces **LT — que no abre IFC**. Lo que necesita es la planta con
+las cañerías dibujadas encima de la suya, y eso es un DXF. Sostener dos
+exportadores era sostener uno que nadie iba a poder abrir.
+
+Lo que sale, que es todo lo que el simulador calcula:
+
+- Ambientes con nombre, superficie y pérdida
+- Caldera y radiadores, con la identificación de la planilla (`R1`, `R2`…)
+- Cañerías **en una capa por material y diámetro**, ida y retorno separadas
+  (`CT-PB-PEX20-IDA`)
+- **Colectores y circuitos de piso radiante** —serpentín, acometidas y etiqueta
+  `C1.2`—, que se calculaban desde siempre y **nunca salían a ningún archivo**
+- Primaria caldera↔colector Ø32 y montantes entre plantas
+- Planilla de radiadores, planilla de circuitos y **despiece de materiales**,
+  al costado del dibujo
+
+Invariantes que fija `dxfExporter.test.ts` (14 casos) y que **no hay que
+romper**:
+
+1. 🔴 **El dibujo va en METROS, con `$INSUNITS = 6`.** No se escala a mano en
+   ningún lado: AutoCAD hace la conversión solo cuando el arquitecto lo inserta
+   en un plano en centímetros o en milímetros. Todo se mide en píxeles del
+   canvas y se convierte con `aMetros()` / `punto()`, que salen de
+   `PIXELS_PER_METER`. **Nunca escribir una escala a mano** (es el mismo error
+   que tuvo el IFC).
+2. 🔴 **El eje Y se da vuelta.** En el canvas Y crece hacia abajo; en AutoCAD,
+   hacia arriba. Sin el espejo el plano sale invertido y no se nota hasta la
+   obra.
+3. 🔴 **El archivo es ANSI_1252, no UTF-8** — lo declara el header y
+   `dxfABytes()` lo escribe byte a byte. El diámetro y el grado van con los
+   códigos de control de AutoCAD (`%%C`, `%%D`), no con el carácter: el escape
+   `\U+XXXX` sólo lo interpretan algunos visores y el plano llega diciendo
+   `\U+00D820` donde tiene que decir Ø20.
+4. **Versión AC1015 (AutoCAD 2000)**: es la más vieja que admite `$INSUNITS` y
+   `LWPOLYLINE`. La abre cualquier AutoCAD de 2000 en adelante, LT incluido,
+   más BricsCAD, DraftSight, LibreCAD y QCAD.
+5. **La planta alta va AL LADO de la baja**, separada 3 m. En el canvas las dos
+   ocupan el mismo lugar —cada una con su plano de fondo—, así que exportadas
+   tal cual quedarían superpuestas.
+6. **Sobre el plano va sólo la identificación** (`R1`, `C1.2`, `COLECTOR 1`) y
+   los datos van en las planillas, como en un plano de obra: con la longitud y
+   el diámetro encima, las etiquetas de dos circuitos vecinos se pisan.
+7. 🔴 **Una capa por material y diámetro** —`CT-PB-PEX20-IDA`,
+   `CT-PB-PEX32-PRIMARIA-RET`—, no una capa «cañerías». Es lo que le permite al
+   arquitecto sacar los metros de cada tubo seleccionando la capa. Ninguna capa
+   vacía: el que abre el archivo no tiene que ir apagando capas sin nada.
+8. 🔴 **Caldera, radiadores y colectores van como BLOQUES con atributos**
+   (`CT_CALDERA`, `CT_RADIADOR`, `CT_COLECTOR`), con la geometría definida en
+   un cuadrado de 1 × 1 que cada `INSERT` escala a la medida real. Los
+   atributos van **invisibles**: sirven para `ATTEXT` —lo único que tiene LT,
+   que no trae `DATAEXTRACTION`— y para que cada aparato se seleccione como un
+   objeto. Todo `INSERT` con atributos cierra con `SEQEND`.
+9. 🔴 **El despiece de materiales va DIBUJADO adentro del archivo**, por lo
+   mismo: si dependiera de que el arquitecto lo extraiga, la mitad no podría.
+   **Sin marcas y sin precios**: es una lista para comprar. Sale del mismo
+   `calcularPresupuestoPisoRadiante` que el presupuesto, más los metros de
+   cañería de radiadores por diámetro.
+10. **El colector se dibuja a ESCALA REAL**: ancho = vías × 5 cm (la derivación
+    del catálogo REHAU), no al tamaño que se arrastró en pantalla. El plano
+    tiene que servir para ver si entra en el nicho.
+
+⚠ **El serpentín dibujado es esquemático**, igual que en pantalla: el metraje
+de la planilla es el de obra (área real × 7 m/m² a paso 15), no la longitud de
+la polilínea del dibujo. Si alguna vez se mide el DXF con una regla, no van a
+dar lo mismo.
+
+⬜ Falta: verificarlo abriéndolo en un AutoCAD de verdad (acá se validó con
+`ezdxf`: 0 errores de auditoría).
 
 ---
 
@@ -803,7 +883,7 @@ Verificados contra el código al escribir el informe de stack (artifact
    2026-09-09, la función sigue sin existir.** `projectStorage.ts` guarda UN
    proyecto en localStorage bajo la clave `currentProject`, sin la imagen del
    plano. No hay tabla, ni sincronización, ni export del proyecto a archivo (sí
-   a IFC y PDF). Decisión de Edgardo: antes que sostener lo que no hay, se
+   a DXF y PDF). Decisión de Edgardo: antes que sostener lo que no hay, se
    eliminó el renglón de `Cuenta.tsx` y de la página de precios del sitio. 🔑 **Si
    alguna vez se implementa el guardado, hay que volver a anunciarlo en los DOS
    lados.**
@@ -811,9 +891,16 @@ Verificados contra el código al escribir el informe de stack (artifact
    En la misma pasada salió **«Herramientas de presentación»**, que no
    correspondía a ninguna función —no existía nada con ese nombre en todo el
    frontend— y repetía lo que ya dicen «Exportación PDF profesional» y
-   «Presupuestos detallados». En su lugar quedó **«Exportación a BIM (IFC)»**,
-   que es real y no estaba anunciada en la app.
-3. ✅ **Exportador IFC: arreglado el 2026-09-08** (rama `arreglo/exportador-ifc`).
+   «Presupuestos detallados». En su lugar quedó la exportación del plano, que sí
+   es real: desde el 2026-09-10 el cartel dice **«Exportación a DXF (AutoCAD)»**
+   en `Cuenta.tsx` y en `GuiaDeUso.tsx`. 🔑 **Si cambia el formato, hay que
+   cambiarlo también en la página de precios del sitio Astro** —es otro repo—.
+3. ⛔ **Exportador IFC: ELIMINADO el 2026-09-10.** Lo que sigue es historia, no
+   trabajo pendiente: el archivo, su test y el botón ya no existen, y el único
+   formato de exportación del plano es el DXF. Se conserva el relato porque los
+   bugs valen para cualquier exportador que se escriba.
+
+   ✅ **Antes se había arreglado, el 2026-09-08** (rama `arreglo/exportador-ifc`).
    Eran los 3 bugs del plan **más dos que la auditoría no había visto**:
    - 🔴 **Los radiadores no se exportaban.** El botón los comprobaba para
      habilitarse y después no se los pasaba a `downloadIFCFile`. Una
@@ -831,9 +918,10 @@ Verificados contra el código al escribir el informe de stack (artifact
 
    7 casos nuevos en `ifcExporter.test.ts` fijan cada invariante: ninguno de
    estos errores daba error, el archivo se generaba igual. Detalle completo en
-   `docs/plan-exportador-ifc.md`. ⬜ Siguen abiertos: colectores, `IfcSpace` por
-   ambiente con la carga, y qué hacer cuando el usuario sube un plano con SU
-   escala.
+   `docs/plan-exportador-ifc.md`, marcado como histórico. Los colectores y los
+   circuitos de piso radiante **sí salen, por el DXF**. ⬜ Lo único que sigue
+   abierto de aquella lista: qué hacer cuando el usuario sube un plano con SU
+   escala (hoy se asumen siempre los 50 px/m).
 4. ⬜ **`app/vercel.json` no tiene cabeceras de seguridad**: sólo define caché
    de `/assets`. El HSTS lo pone Vercel; faltan `X-Content-Type-Options`,
    `X-Frame-Options` y `Referrer-Policy`.
