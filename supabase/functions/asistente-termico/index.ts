@@ -172,8 +172,23 @@ interface FragmentoConocimiento {
     titulo: string
     seccion: string | null
     categoria: string | null
-    contenido: string
+    /** Null en los bloqueados: la base no lo devuelve, no se recorta acá. */
+    contenido: string | null
+    tier: string
+    accesible: boolean
     similarity: number
+}
+
+/**
+ * Qué tiers de contenido ve cada plan. Mismo orden que `tierHierarchy` del
+ * frontend (`useAuthStore.ts`): premium ve todo, pro ve lo suyo y lo gratuito,
+ * free ve sólo lo gratuito. Si las dos tablas se separan, el asistente y la
+ * página del caso empiezan a decir cosas distintas sobre el mismo material.
+ */
+const TIERS_VISIBLES: Record<Tier, string[]> = {
+    free: ['free'],
+    pro: ['free', 'pro'],
+    premium: ['free', 'pro', 'premium'],
 }
 
 /**
@@ -192,11 +207,25 @@ const CANDIDATOS = 40
 const FRAGMENTOS_AL_PROMPT = 6
 /** Tope por caso, para que una consulta traiga varias causas y no una repetida. */
 const MAX_POR_FUENTE = 2
+/**
+ * Cuántos casos de tier pago se le nombran al que no los tiene.
+ *
+ * Tres y no más: el aviso tiene que leerse como un dato al pie de una respuesta
+ * técnica, no como un cartel de venta en el medio de la consulta.
+ */
+const BLOQUEADOS_A_INFORMAR = 3
 
 /** `caso:presion-pasivador#3` → `caso:presion-pasivador` */
 function fuenteDe(sourceId: string): string {
     return sourceId.split('#')[0]
 }
+
+/** Como lo nombra la plataforma en el candado del caso (`ErroresFrecuentes.tsx`). */
+const NOMBRE_TIER: Record<string, string> = {
+    pro: 'PRO',
+    premium: 'Premium',
+}
+
 
 /**
  * Recorta la lista dejando como mucho `MAX_POR_FUENTE` fragmentos de un mismo
@@ -267,11 +296,24 @@ interface ResultadoRag {
     texto: string
     fuentes: string[]
     similitudMax: number | null
+    /** Casos pertinentes que el usuario no tiene pagos. Para el log y la métrica. */
+    bloqueados: string[]
 }
 
-const RAG_VACIO: ResultadoRag = { texto: '', fuentes: [], similitudMax: null }
+const RAG_VACIO: ResultadoRag = { texto: '', fuentes: [], similitudMax: null, bloqueados: [] }
 
-async function buscarConocimiento(consulta: string): Promise<ResultadoRag> {
+/**
+ * @param tier      Plan del usuario: acota qué fragmentos entran a la respuesta.
+ * @param avisaMuro Si Martín puede nombrar el material que no está incluido. Va
+ *                  en false para el visitante sin cuenta, porque el prompt del
+ *                  anónimo tiene la regla de no mencionar planes: de eso se
+ *                  encarga la aplicación, no el asistente.
+ */
+async function buscarConocimiento(
+    consulta: string,
+    tier: Tier,
+    avisaMuro: boolean,
+): Promise<ResultadoRag> {
     try {
         const embedding = await embedder.run(consulta.slice(0, 1500), {
             mean_pool: true,
@@ -292,6 +334,8 @@ async function buscarConocimiento(consulta: string): Promise<ResultadoRag> {
             query_embedding: JSON.stringify(embedding),
             match_count: CANDIDATOS,
             min_similarity: 0.35,
+            tiers_permitidos: TIERS_VISIBLES[tier],
+            bloqueados_count: avisaMuro ? BLOQUEADOS_A_INFORMAR : 0,
         })
 
         if (error || !data || data.length === 0) return RAG_VACIO
@@ -303,33 +347,62 @@ async function buscarConocimiento(consulta: string): Promise<ResultadoRag> {
             criterio: 'Criterio de oficio documentado',
         }
 
-        const candidatos = data as FragmentoConocimiento[]
+        const todos = data as FragmentoConocimiento[]
+        // `accesible` lo decide el SQL, no esta función: los bloqueados llegan
+        // con `contenido` en null y por eso no hay forma de filtrarlos mal.
+        const candidatos = todos.filter(f => f.accesible)
+        const bloqueados = todos.filter(f => !f.accesible)
         const elegidos = diversificarPorFuente(candidatos)
 
         // Qué casos entraron al contexto y con qué similitud. Sin esto, cuando el
         // asistente omite una causa documentada no hay forma de saber si el
         // fragmento no se recuperó o si el modelo decidió no usarlo — y se
-        // termina ajustando a ciegas.
+        // termina ajustando a ciegas. Desde el filtro por tier se agrega una
+        // tercera causa posible, y por eso los bloqueados también se loguean:
+        // que el material exista, se recupere, y el usuario no lo tenga pago.
         console.log(
-            `[RAG] candidatos=${candidatos.length} casos=${new Set(candidatos.map(c => fuenteDe(c.source_id))).size} ` +
+            `[RAG] tier=${tier} candidatos=${candidatos.length} casos=${new Set(candidatos.map(c => fuenteDe(c.source_id))).size} ` +
             `| top5: ${candidatos.slice(0, 5).map(c => `${c.source_id}(${c.similarity.toFixed(3)})`).join(' ')} ` +
-            `| al prompt: ${elegidos.map(c => c.source_id).join(' ')}`
+            `| al prompt: ${elegidos.map(c => c.source_id).join(' ')}` +
+            (bloqueados.length
+                ? ` | bloqueados: ${bloqueados.map(c => `${c.source_id}[${c.tier}](${c.similarity.toFixed(3)})`).join(' ')}`
+                : '')
         )
 
         const fragmentos = elegidos
             .map(f => `[${ETIQUETA_TIPO[f.tipo] ?? 'Documento'}: ${f.titulo}${f.seccion ? ` — ${f.seccion}` : ''}]\n${f.contenido}`)
             .join('\n\n')
 
-        return {
-            texto: `CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
+        const bloqueTexto = elegidos.length
+            ? `CONOCIMIENTO DOCUMENTADO EN LA PLATAFORMA, RELEVANTE A ESTA CONSULTA:
 ${fragmentos}
 
 Cuando la consulta coincida con este material, basá tu respuesta en él y citá la
 fuente tal como está etiquetada (caso de Errores Frecuentes, manual del fabricante,
 documentación técnica o criterio de oficio), nombrándola por su título. Si algún
-fragmento no aplica realmente a la consulta, ignoralo.`,
+fragmento no aplica realmente a la consulta, ignoralo.`
+            : ''
+
+        // El aviso del muro. Viene con un caso por fila (el `row_number` del SQL
+        // ya descartó los fragmentos repetidos de un mismo caso), no lleva una
+        // línea del contenido —la base no lo devuelve— y va SIEMPRE al final: primero se contesta la consulta con
+        // lo que se sabe, después se menciona qué más hay documentado. Al revés
+        // sería un cartel de venta antes de la respuesta.
+        const bloqueMuro = bloqueados.length
+            ? `MATERIAL DOCUMENTADO QUE ESTE INSTALADOR NO TIENE INCLUIDO EN SU PLAN:
+${bloqueados.map(f => `- «${f.titulo}» (incluido en ${NOMBRE_TIER[f.tier] ?? f.tier})`).join('\n')}
+
+Contestá primero la consulta con lo que sepas, como siempre. Sólo si alguno de
+estos títulos es realmente pertinente a lo que preguntó, cerrá mencionando que
+está documentado en la plataforma y en qué plan viene. Una línea al final, sin
+insistir y sin adelantar nada de lo que dice. Si no viene al caso, no lo nombres.`
+            : ''
+
+        return {
+            texto: [bloqueTexto, bloqueMuro].filter(Boolean).join('\n\n'),
             fuentes: elegidos.map(f => f.source_id),
             similitudMax: candidatos[0]?.similarity ?? null,
+            bloqueados: bloqueados.map(f => f.source_id),
         }
     } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
@@ -834,7 +907,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
         const ultimoMensajeUsuario = [...sanitizedMessages]
             .reverse()
             .find(m => m.role === 'user')?.content ?? ''
-        const rag = await buscarConocimiento(ultimoMensajeUsuario)
+        // El anónimo busca como `free` pero SIN el aviso del muro: su prompt tiene
+        // la regla de no mencionar planes (de eso se encarga la aplicación).
+        const rag = await buscarConocimiento(ultimoMensajeUsuario, esAnonimo ? 'free' : tier, !esAnonimo)
         const ragContext = rag.texto
 
         // ── 6. Llamar a Anthropic con streaming ──────────────────────────────
@@ -934,7 +1009,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
                     emitir(respuesta.slice(emitido))
                     controller.enqueue(encoder.encode('data: [DONE]\n\n'))
 
-                    if (sinDocumentar) {
+                    // 🔑 Un hueco es material QUE NO EXISTE. Si la consulta tenía
+                    // material documentado y lo que faltó fue el plan, no es un
+                    // hueco: es el muro, y anotarlo en la bandeja mandaría a
+                    // Edgardo a escribir un caso que ya está escrito.
+                    if (sinDocumentar && rag.bloqueados.length === 0) {
                         await registrarConsultaAbierta({
                             userId: user.id,
                             esAnonimo,
