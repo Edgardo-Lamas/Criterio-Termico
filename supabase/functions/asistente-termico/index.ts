@@ -446,14 +446,103 @@ CÓMO USAR ESTE CONTEXTO:
 // del instalador— es además el canal correcto: son instrucciones de la
 // plataforma, no texto escrito por el usuario, y se leen con esa autoridad.
 
+// ── La ficha del instalador ───────────────────────────────────────────────────
+// Primera etapa de la memoria de Martín: lo que el instalador cargó sobre su
+// trabajo para no tener que contárselo en cada consulta. La escribe él, Martín
+// no infiere nada (ver docs/plan-memoria-martin.md).
+//
+// ⚠ Entra por acá y NO por el system prompt: el system está cacheado y es
+// estable a propósito, y un dato que cambia por usuario rompería la caché para
+// todos.
+
+interface FichaInstalador {
+    provincia: string | null
+    instala: string | null
+    trabajos: string[] | null
+    combustible: string | null
+    marcas: string[] | null
+    marcas_otras: string | null
+    nota: string | null
+}
+
+const PROVINCIA: Record<string, string> = {
+    'buenos-aires': 'Buenos Aires', 'caba': 'la Ciudad de Buenos Aires',
+    'catamarca': 'Catamarca', 'chaco': 'Chaco', 'chubut': 'Chubut',
+    'cordoba': 'Córdoba', 'corrientes': 'Corrientes', 'entre-rios': 'Entre Ríos',
+    'formosa': 'Formosa', 'jujuy': 'Jujuy', 'la-pampa': 'La Pampa',
+    'la-rioja': 'La Rioja', 'mendoza': 'Mendoza', 'misiones': 'Misiones',
+    'neuquen': 'Neuquén', 'rio-negro': 'Río Negro', 'salta': 'Salta',
+    'san-juan': 'San Juan', 'san-luis': 'San Luis', 'santa-cruz': 'Santa Cruz',
+    'santa-fe': 'Santa Fe', 'santiago-del-estero': 'Santiago del Estero',
+    'tierra-del-fuego': 'Tierra del Fuego', 'tucuman': 'Tucumán',
+}
+const INSTALA: Record<string, string> = {
+    'radiadores': 'radiadores',
+    'piso-radiante': 'piso radiante',
+    'ambas': 'radiadores y piso radiante',
+}
+const TRABAJO: Record<string, string> = {
+    'obra-nueva': 'obra nueva', 'reforma': 'reforma', 'service': 'service y reparación',
+}
+const COMBUSTIBLE: Record<string, string> = {
+    'natural': 'gas natural', 'envasado': 'gas envasado', 'ambos': 'gas natural y envasado',
+}
+const MARCA: Record<string, string> = { peisa: 'PEISA', baxi: 'BAXI', caldaia: 'CALDAIA' }
+
+/** Traduce una lista de códigos a nombres, descartando los que no conozca. */
+function nombrar(codigos: string[] | null, tabla: Record<string, string>): string[] {
+    return (codigos ?? []).map(c => tabla[c]).filter(Boolean)
+}
+
+/**
+ * La ficha, en el castellano con el que Martín la va a leer.
+ *
+ * Devuelve '' si está vacía, que es el caso normal: la ficha es opcional y el
+ * instalador está en obra. Sin datos, Martín queda exactamente como estaba.
+ */
+function formatearFicha(ficha: FichaInstalador | null): string {
+    if (!ficha) return ''
+
+    const lineas: string[] = []
+    if (ficha.provincia && PROVINCIA[ficha.provincia]) {
+        lineas.push(`- Trabaja en ${PROVINCIA[ficha.provincia]}.`)
+    }
+    if (ficha.instala && INSTALA[ficha.instala]) {
+        lineas.push(`- Instala sobre todo ${INSTALA[ficha.instala]}.`)
+    }
+    const trabajos = nombrar(ficha.trabajos, TRABAJO)
+    if (trabajos.length) lineas.push(`- Hace ${trabajos.join(', ')}.`)
+    if (ficha.combustible && COMBUSTIBLE[ficha.combustible]) {
+        lineas.push(`- Trabaja con ${COMBUSTIBLE[ficha.combustible]}.`)
+    }
+    const marcas = [...nombrar(ficha.marcas, MARCA), ...(ficha.marcas_otras ? [ficha.marcas_otras.trim()] : [])]
+        .filter(Boolean)
+    if (marcas.length) lineas.push(`- Marcas con las que trabaja: ${marcas.join(', ')}.`)
+    if (ficha.nota?.trim()) lineas.push(`- Nos dejó dicho: «${ficha.nota.trim()}»`)
+
+    if (!lineas.length) return ''
+
+    return `LO QUE ESTE INSTALADOR CARGÓ SOBRE SU TRABAJO (lo escribió él desde Mi Cuenta y lo puede cambiar cuando quiera):
+${lineas.join('\n')}
+
+Usalo para no volver a preguntarle lo que ya te dijo y para ajustar la respuesta a cómo trabaja.
+🔴 NO se lo recites ni se lo agradezcas, y no arranques la respuesta nombrándolo. Si un dato no
+viene al caso, no lo menciones. Si lo que te pregunta contradice su ficha —pregunta por una marca
+que no figura, o por piso radiante cuando puso radiadores— contestá lo que te preguntó: la ficha
+dice a qué se dedica, no qué tiene enfrente hoy.`
+}
+
 function construirContextoConsulta(
     userName: string,
     esAnonimo: boolean,
     contextoSimulador: string,
     ragContext: string,
+    ficha: FichaInstalador | null,
 ): string {
     const partes: string[] = []
     if (!esAnonimo) partes.push(`El instalador con el que estás hablando se llama ${userName}.`)
+    const fichaTexto = formatearFicha(ficha)
+    if (fichaTexto) partes.push(fichaTexto)
     const simulador = formatearContextoSimulador(contextoSimulador)
     if (simulador) partes.push(simulador)
     if (ragContext) partes.push(ragContext)
@@ -771,6 +860,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
             .eq('id', user.id)
             .single()
 
+        // La ficha viaja con la sesión del usuario, no con service_role: la RLS
+        // es la que garantiza que nadie lea la de otro, y así queda probado en
+        // cada consulta. Si no cargó nada, `data` viene null y Martín sigue
+        // igual que antes — por eso `maybeSingle` y no `single`.
+        const { data: ficha } = await supabase
+            .from('ficha_instalador')
+            .select('provincia, instala, trabajos, combustible, marcas, marcas_otras, nota')
+            .eq('user_id', user.id)
+            .maybeSingle()
+
         // Visitante sin cuenta: la sesión anónima es una sesión real de Supabase,
         // así que todo lo demás (rate limiting, RLS, streaming) funciona igual.
         // Lo único que cambia es el cupo y que no hay nombre que usar.
@@ -923,7 +1022,11 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // venga después de un turno de usuario — el frontend siempre cierra con la
         // pregunta nueva, pero si alguna vez no fuera así se cae al camino viejo
         // (contexto dentro del system) antes que rechazar la consulta.
-        const contextoConsulta = construirContextoConsulta(userName, esAnonimo, contextoSimulador, ragContext)
+        // El anónimo no tiene ficha: no tiene dónde cargarla.
+        const contextoConsulta = construirContextoConsulta(
+            userName, esAnonimo, contextoSimulador, ragContext,
+            esAnonimo ? null : (ficha as FichaInstalador | null),
+        )
         const cierraElInstalador = sanitizedMessages[sanitizedMessages.length - 1].role === 'user'
 
         const mensajesParaModelo: MensajeModelo[] = [...sanitizedMessages]

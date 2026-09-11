@@ -4,6 +4,7 @@ import { usePageMeta } from '../../lib/usePageMeta'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
 import type { SubscriptionTier } from '../../stores/useAuthStore'
 import styles from './Cuenta.module.css'
+import { FichaInstalador } from '../../components/FichaInstalador/FichaInstalador'
 
 // 🔴 LOS PRECIOS VAN EN PESOS Y SE COBRAN EN PESOS.
 //
@@ -425,6 +426,14 @@ export function Cuenta() {
                         </span>
                     </div>
                 </div>
+            </section>
+
+            {/* Qué sabe Martín — primera etapa de la memoria del asistente.
+                Va acá arriba a propósito: si queda al final, detrás de los
+                planes, no la encuentra nadie. */}
+            <section className={styles.section}>
+                <h2>Qué sabe Martín de vos</h2>
+                <FichaInstalador />
             </section>
 
             {/* Seguridad — cambiar la contraseña ya estando adentro */}

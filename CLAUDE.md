@@ -369,6 +369,48 @@ También se dispara a mano desde la pestaña Actions. Sólo hace falta el POST
 manual a `indexar-conocimiento` (lotes de ≤5, el runtime free se queda sin CPU
 con lotes grandes) si se indexa material que no vive en esas rutas.
 
+### La ficha del instalador — memoria de Martín, etapa 1 (desde 2026-09-11)
+
+`public.ficha_instalador`, una fila por cuenta: dónde trabaja, qué instala, tipo
+de trabajo, combustible, marcas y una nota libre. **Todo opcional.** Con la ficha
+vacía Martín queda exactamente como estaba.
+
+🔑 **LA ESCRIBE EL INSTALADOR, MARTÍN NO INFIERE NADA.** El cuidado del diseño
+era que *una memoria equivocada es peor que no tener*: si se acordara solo de que
+alguien usa una marca y esa persona cambió, arrastraría el error en todas las
+respuestas siguientes y con total seguridad. Cargándola a mano, ese riesgo no
+existe. Que Martín **proponga** recordar algo es una etapa posterior.
+
+🔴 **Entra por `construirContextoConsulta()`, NO por el system prompt.** Es un
+dato que cambia por usuario: meterlo en el system rompería la caché **para
+todos**. Misma puerta por la que entra el RAG.
+
+🔑 **Casi todo es de opciones cerradas y no texto libre**, porque la ficha además
+es la base para segmentar (ofertas, temarios, qué capítulo escribir primero). Un
+campo libre se lee pero no se cuenta: «zona norte», «Vicente López» y «GBA» son
+tres respuestas del mismo instalador. Lo único libre es la nota, que es para
+Martín y no para la estadística.
+
+⚠️ **Las opciones viven en TRES lugares que tienen que decir lo mismo**: el check
+de `20260911_ficha_instalador.sql`, `components/FichaInstalador/opciones.ts` y
+las tablas de traducción de `asistente-termico/index.ts`. Si se separan el fallo
+es **mudo** de las dos maneras: una opción que la base no acepta explota con un
+error de Postgres ilegible, y una que el asistente no conoce se guarda bien y
+nunca se lee. **`opciones.test.ts` lee los tres archivos y lo comprueba** — 77
+casos. Si agregás una opción, va en los tres lados.
+
+🔴 **RLS: cada uno ve sólo lo suyo, sin excepción para el admin.** La vista
+agregada para segmentar es otra etapa y se diseña aparte, con su aviso en la
+política de privacidad. La ficha ya está declarada en `PoliticaPrivacidad.tsx`.
+
+⚠ La nota tope 400 caracteres y «otras marcas» 120: **viajan en CADA consulta**,
+así que un texto largo se paga una y otra vez.
+
+⬜ **Etapas 2 y 3 (resumen de la charla y charlas anteriores): bloqueadas**
+porque **las charlas no se guardan en ningún lado** — no hay tabla de
+conversaciones, el chat vive en el navegador. Plan completo en
+`docs/plan-memoria-martin.md`.
+
 ### Bandeja de revisión (desde 2026-08-14)
 
 Las dos entradas por las que crece la base de conocimiento. Ninguna es que el
