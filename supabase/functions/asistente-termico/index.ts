@@ -474,7 +474,7 @@ function buildSystemPrompt(tier: Tier, esAnonimo = false): string {
             '- Calculadora de Bombas (Pro): dimensionado de bomba circuladora y presurizadora',
         ] : []),
         ...(tier === 'premium' ? [
-            '- Simulador 2D (Premium): diseño completo sobre plano con presupuesto y exportación BIM',
+            '- Simulador 2D (Premium): diseño completo sobre plano —radiadores y piso radiante— con presupuesto y plano técnico en DXF, que se abre en cualquier AutoCAD',
         ] : []),
         '- Manual Técnico: 14 capítulos sobre diseño, cálculo e instalación',
         // Sin número: los casos crecen y un número escrito acá envejece mal. El
