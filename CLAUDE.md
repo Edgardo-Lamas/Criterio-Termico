@@ -337,6 +337,31 @@ asistente dijo 3 cm de separación a la pared donde el manual dice 5, porque esa
 tabla nunca entró al contexto. Las separaciones del radiador, las fórmulas y la
 potencia por elemento viven en el prompt estable por eso.
 
+🔴 **El RAG filtra por tier desde el 2026-09-11.** `match_conocimiento` recibe
+`tiers_permitidos` y devuelve DOS listas:
+
+- **lo accesible**, con su contenido — es lo único que entra al prompt;
+- **los bloqueados**, con `contenido` en `null` **desde el SQL** y un caso por
+  fila (`row_number` por fuente), sólo título y tier.
+
+La jerarquía es la misma que `tierHierarchy` de `useAuthStore.ts`: premium ve
+todo, pro ve free+pro, free ve free. **Si las dos se separan, el asistente y la
+página del caso empiezan a decir cosas distintas sobre el mismo material.**
+
+🔑 **Por qué se informan los bloqueados y no se filtra y punto:** el 46% de la
+base es de tier pago (68 PRO + 12 Premium de 174). Filtrar en silencio deja a
+Martín contestando peor sin que se entienda por qué — el instalador gratuito no
+ve un candado, ve un asistente flojo. Nombrando el caso, el muro pasa a ser un
+motivo para suscribirse. **El contenido bloqueado no sale de la base**: así no
+hay forma de que un cambio distraído en la Edge Function lo meta al prompt.
+
+⚠ **Dos cuidados que ya están resueltos y no hay que romper:**
+1. **El visitante sin cuenta busca como `free` pero NO recibe el aviso**
+   (`avisaMuro = false`): su prompt tiene la regla de no mencionar planes.
+2. **Una consulta frenada por el muro NO se anota en la bandeja.** Un hueco es
+   material que no existe; si el material existe y lo que faltó fue el plan,
+   anotarlo mandaría a escribir un caso que ya está escrito.
+
 **Reindexar es automático**: el workflow `.github/workflows/reindex-rag.yml`
 corre en cada push a `main` que toque `app/src/content/errores/**`,
 `app/src/content/manual/**`, `ManualTecnico.tsx` o los scripts de extracción.
@@ -364,6 +389,21 @@ consulta registrada recuperó con similitud 0,891 y aun así no tenía la respue
 la vista en `/panel` vía Edge Function con service_role, y el n8n que las levante.
 
 ---
+
+### Cabeceras de seguridad (desde 2026-09-11)
+
+Viven en `app/vercel.json`, y como el JSON no admite comentarios el porqué está
+acá: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` y
+`Referrer-Policy: strict-origin-when-cross-origin`. El HSTS lo pone Vercel.
+
+🔑 **`DENY` y no `SAMEORIGIN`, verificado:** no hay un solo `<iframe>` apuntando
+a `app.crtermico.com`. El sitio Astro la enlaza con `target="_blank"`
+(`plataforma.astro`) y el único iframe del proyecto es el mapa de Google, que
+vive en el otro dominio y no lo toca esta configuración. **Si algún día hay que
+embeber la plataforma, esto es lo primero que lo va a impedir.**
+
+⬜ **Lo que NO se puso: CSP.** Es otro trabajo y mal puesta rompe la app en
+silencio.
 
 ## Servidor MCP — NO existe en este repo
 
@@ -1038,9 +1078,10 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    Se sacó de toda la ruta, no sólo del login: en el celular el botón le
    quedaba encima de «Actualizar a PRO».
 
-3. ⬜ **Activar el filtro por tier del RAG.** La columna `conocimiento.tier`
-   está poblada pero el filtro no está encendido — decisión de Edgardo, se
-   enciende antes de empezar a cobrar (es pasarle el tier a `match_conocimiento`).
+3. ✅ **Filtro por tier del RAG — ENCENDIDO el 2026-09-11.** Estuvo apagado a
+   propósito mientras no había cobros; desde el 1/9 los hay. Además de filtrar,
+   informa los casos bloqueados por título para que Martín pueda nombrarlos sin
+   contarlos. Cómo funciona: «RAG del asistente», más arriba.
 4. ⬜ **SMTP real antes del lanzamiento.** Hoy `mailer_autoconfirm=true`: el
    registro no verifica el email porque no hay servidor de correo.
 5. ⬜ **Auditar los 17 casos con Edgardo**, empezando por los de tier pro. Ya
@@ -1145,9 +1186,10 @@ Verificados contra el código al escribir el informe de stack (artifact
    circuitos de piso radiante **sí salen, por el DXF**. ⬜ Lo único que sigue
    abierto de aquella lista: qué hacer cuando el usuario sube un plano con SU
    escala (hoy se asumen siempre los 50 px/m).
-4. ⬜ **`app/vercel.json` no tiene cabeceras de seguridad**: sólo define caché
-   de `/assets`. El HSTS lo pone Vercel; faltan `X-Content-Type-Options`,
-   `X-Frame-Options` y `Referrer-Policy`.
+4. ✅ **Cabeceras de seguridad en `app/vercel.json` — puestas el 2026-09-11.**
+   `nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy`. El porqué del `DENY`
+   está en «Cabeceras de seguridad», más arriba. ⬜ Falta CSP, que es otro
+   trabajo.
 5. ✅ **El default de `ALLOWED_ORIGIN` apuntaba a GitHub Pages** (dado de baja).
    Resuelto el 2026-09-05 con la mudanza a `app.crtermico.com`: los defaults
    viven en `supabase/functions/_shared/cors.ts` y son los dos dominios reales.
