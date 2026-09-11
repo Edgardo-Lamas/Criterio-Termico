@@ -33,6 +33,7 @@ export function PoliticaPrivacidad() {
                         <li><strong>Datos de suscripción:</strong> tier contratado (Gratuito, Pro, Premium) y estado del pago.</li>
                         <li><strong>Datos de facturación:</strong> gestionados directamente por MercadoPago. Criterio Térmico <strong>no almacena números de tarjeta ni datos financieros sensibles</strong> — esa información nunca toca nuestros servidores.</li>
                         <li><strong>Consultas al asistente técnico:</strong> el contenido de las preguntas realizadas al asistente de IA se procesa para generar respuestas y se registra de forma agregada para control de uso (rate limiting), no para entrenamiento de modelos de terceros.</li>
+                        <li><strong>Ficha del instalador («Qué sabe Martín de vos»):</strong> los datos sobre tu trabajo que cargues vos mismo en Mi Cuenta —provincia, tipo de instalación, tipo de trabajo, combustible, marcas y una nota libre—. Es <strong>opcional</strong>, la escribís y la modificás vos, y se usa únicamente para que el asistente técnico ajuste sus respuestas a cómo trabajás. Podés borrarla entera cuando quieras desde la misma pantalla.</li>
                         <li><strong>Datos de uso:</strong> interacción con calculadoras, proyectos guardados en el Simulador 2D y preferencias de la plataforma.</li>
                     </ul>
                 </section>
@@ -42,7 +43,7 @@ export function PoliticaPrivacidad() {
                     <ul>
                         <li>Proveer acceso a las herramientas y contenido según el plan contratado.</li>
                         <li>Procesar pagos y gestionar suscripciones.</li>
-                        <li>Responder consultas a través del asistente técnico con IA.</li>
+                        <li>Responder consultas a través del asistente técnico con IA, teniendo en cuenta la ficha del instalador si la cargaste.</li>
                         <li>Enviar comunicaciones relacionadas con la cuenta (confirmación de email, recuperación de contraseña, cambios de plan).</li>
                         <li>Mejorar la plataforma en base al uso agregado y anónimo.</li>
                     </ul>
