@@ -6,11 +6,54 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useAsistente, type Message, type UseAsistente } from '../../hooks/useAsistente'
+import { useEnviarResumen, type UseEnviarResumen } from '../../hooks/useEnviarResumen'
+import { useAuthStore } from '../../stores/useAuthStore'
 import { MarkdownAsistente } from './MarkdownAsistente'
 import { MartinCuerpo, MartinRetrato, MartinAnimado } from './Martin'
 import { useMartinAnimado } from '../../hooks/useMartinAnimado'
 import styles from './AsistenteTermico.module.css'
 import { Icon } from '../ui/Icon/Icon'
+
+// ── «Mandámelo por correo» ────────────────────────────────────────────────────
+
+interface BotonResumenProps {
+    pregunta: string
+    respuesta: string
+    resumen: UseEnviarResumen
+}
+
+/**
+ * Al pie de cada respuesta terminada. El correo lleva la consulta y la
+ * respuesta tal como salieron, para releerlas en la obra.
+ *
+ * ⚠ Sólo aparece con cuenta: el visitante anónimo no tiene dirección adonde
+ * mandarlo, y poner «creá una cuenta» abajo de cada respuesta sería un cartel
+ * de venta en el medio de una consulta técnica.
+ */
+function BotonResumen({ pregunta, respuesta, resumen }: BotonResumenProps) {
+    const estado = resumen.estadoDe(respuesta)
+    const error = resumen.errorDe(respuesta)
+
+    if (estado === 'enviado') {
+        return <p className={styles.resumenEnviado} role="status">Te lo mandé por correo</p>
+    }
+
+    return (
+        <div className={styles.resumenFila}>
+            <button
+                type="button"
+                className={styles.resumenBoton}
+                onClick={() => resumen.enviar(pregunta, respuesta)}
+                disabled={estado === 'enviando'}
+            >
+                {estado === 'enviando' ? 'Mandando…' : 'Mandámelo por correo'}
+            </button>
+            {estado === 'error' && error && (
+                <span className={styles.resumenError} role="alert">{error}</span>
+            )}
+        </div>
+    )
+}
 
 // ── Burbuja de mensaje ────────────────────────────────────────────────────────
 
@@ -18,9 +61,13 @@ interface BubbleProps {
     message: Message
     isLast: boolean
     streaming: boolean
+    /** Lo que el instalador preguntó justo antes: es la mitad del correo. */
+    preguntaPrevia: string | null
+    resumen: UseEnviarResumen
+    conCuenta: boolean
 }
 
-function Bubble({ message, isLast, streaming }: BubbleProps) {
+function Bubble({ message, isLast, streaming, preguntaPrevia, resumen, conCuenta }: BubbleProps) {
     const isUser = message.role === 'user'
     const showCursor = !isUser && isLast && streaming && message.content.length > 0
     // El modelo razona antes de escribir, así que entre el envío y la primera
@@ -57,10 +104,24 @@ function Bubble({ message, isLast, streaming }: BubbleProps) {
 
     if (isUser) return cuerpo
 
+    // Recién cuando la respuesta terminó de escribirse: mandar media respuesta
+    // por correo es peor que no mandar nada.
+    const terminada = message.content.length > 0 && !(isLast && streaming)
+    const ofrecerCorreo = terminada && conCuenta && !!preguntaPrevia
+
     return (
         <div className={styles.filaAsistente}>
             <span className={styles.caraMensaje}><MartinRetrato size={26} /></span>
-            {cuerpo}
+            <div className={styles.columnaAsistente}>
+                {cuerpo}
+                {ofrecerCorreo && (
+                    <BotonResumen
+                        pregunta={preguntaPrevia}
+                        respuesta={message.content}
+                        resumen={resumen}
+                    />
+                )}
+            </div>
         </div>
     )
 }
@@ -87,6 +148,11 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
 
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+    const resumen = useEnviarResumen()
+    // La sesión anónima del asistente NO marca isAuthenticated (ver
+    // useAuthStore): justamente por eso sirve para saber quién tiene correo.
+    const conCuenta = useAuthStore(s => s.isAuthenticated)
 
     // Auto-scroll al último mensaje
     useEffect(() => {
@@ -204,6 +270,9 @@ function ChatPanel({ asistente, onClose }: ChatPanelProps) {
                             message={msg}
                             isLast={i === messages.length - 1}
                             streaming={streaming}
+                            preguntaPrevia={i > 0 && messages[i - 1].role === 'user' ? messages[i - 1].content : null}
+                            resumen={resumen}
+                            conCuenta={conCuenta}
                         />
                     ))
                 )}

@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.indexar-conocimiento]
 verify_jwt = true
+
+[functions.enviar-resumen]
+verify_jwt = true
