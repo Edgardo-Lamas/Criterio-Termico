@@ -38,6 +38,8 @@ supabase functions serve <nombre>           # Correr Edge Function local
 supabase functions deploy <nombre>          # Deploy de Edge Function a producción
 supabase functions deploy --all             # Deploy de todas las Edge Functions
 supabase gen types typescript --local       # Regenerar tipos TypeScript desde la BD
+deno check supabase/functions/<n>/index.ts  # Tipos de una Edge Function
+deno test supabase/functions/_shared/       # Tests del código compartido de las funciones
 ```
 
 ✅ **El CLI FUNCIONA desde una shell no interactiva** (verificado el 2026-09-09
@@ -138,6 +140,17 @@ ALLOWED_ORIGIN=https://app.crtermico.com,https://criterio-termico.vercel.app
 #   La función contesta el origen que pidió, si está en la lista. Con un solo
 #   valor, el navegador descarta las respuestas del otro dominio y el asistente
 #   se queda mudo SIN que nada falle del lado del servidor.
+RESEND_API_KEY=re_...                 # el correo del resumen. La misma cuenta de
+#   Resend que usa el sitio Astro para los avisos de venta: el dominio verificado
+#   es `send.crtermico.com` (Zoho RECIBE, Resend MANDA). Sin esta clave, el botón
+#   contesta 503 con un mensaje claro y no se cae nada más.
+RESUMEN_DE=...                        # opcional. Remitente. Por defecto,
+#   «Martín de Criterio Térmico <martin@send.crtermico.com>». Tiene que ser del
+#   dominio verificado en Resend o el envío se rechaza.
+RESUMEN_REPLY_TO=...                  # opcional. A dónde va la respuesta si el
+#   instalador contesta el correo. Por defecto la casilla real del dominio:
+#   `send.crtermico.com` manda pero NO recibe.
+RESUMEN_TOPE_DIARIO=20                # opcional. Correos por usuario cada 24 h.
 ```
 
 ### MCP Server — `.env` en `/mcp-server`
@@ -286,6 +299,7 @@ red o un permiso denegado.
 | `indexar-conocimiento` | `/functions/v1/indexar-conocimiento` | Indexa fragmentos con embeddings gte-small (solo service_role) |
 | `mercadopago-webhook` | `/functions/v1/mercadopago-webhook` | Webhook de MercadoPago. **Única función sin `verify_jwt`** (ver `supabase/config.toml`): MP no manda JWT, manda firma HMAC |
 | `create-subscription` | `/functions/v1/create-subscription` | Iniciar pago MP |
+| `enviar-resumen` | `/functions/v1/enviar-resumen` | Le manda al instalador por correo la consulta y la respuesta, con el botón «Mandámelo por correo» al pie de cada respuesta. **El destinatario sale de la sesión, nunca del cuerpo del pedido** |
 
 ### Modelo de IA (desde 2026-08-14)
 
@@ -431,6 +445,43 @@ así que un texto largo se paga una y otra vez.
 porque **las charlas no se guardan en ningún lado** — no hay tabla de
 conversaciones, el chat vive en el navegador. Plan completo en
 `docs/plan-memoria-martin.md`.
+
+### El correo con la consulta (desde 2026-09-13)
+
+Idea suya del 11/9: *«podríamos enviar por correo un resumen de la consulta para
+que le quede de repaso al instalador»*. Es el botón **«Mandámelo por correo»** al
+pie de cada respuesta terminada de Martín, en `AsistenteTermico.tsx`.
+
+Tres decisiones que ordenan el resto:
+
+1. **Con botón, no automático.** El que lo pide lo quiere; uno por consulta se
+   vuelve ruido y termina marcado como spam. Y cada clic dice **qué respuestas
+   valieron la pena**, que es información que hoy no existe en ningún lado.
+2. **Va la consulta y la respuesta tal como salieron**, sin pasarlas de nuevo
+   por el modelo. Cuesta cero —ya están escritas— y un resumen puede comerse
+   justo el número o el criterio fino, que es lo que se relee en la obra.
+3. **No se guarda la charla.** `envios_resumen` registra que hubo un envío y de
+   qué tamaño, nada más. Guardar lo que se dice en el chat es la etapa 2 de la
+   memoria de Martín y arrastra una decisión de privacidad todavía no tomada:
+   ahí quedan escritos datos de clientes de terceros.
+
+🔴 **EL DESTINATARIO SALE DE LA SESIÓN, NUNCA DEL CUERPO DEL PEDIDO.** Si el
+correo de destino viniera del navegador, la función sería un relay para mandar
+correo firmado por el dominio a cualquiera. Del cliente entra sólo texto.
+
+🔴 **El HTML del correo se arma en el servidor** (`_shared/correoResumen.ts`) y
+**todo el texto se escapa**, marcado o no: lo escribió un modelo y lo copió un
+navegador. Los tests de eso están en `_shared/correoResumen.test.ts` y se corren
+con `deno test` — no entran en el CI de `app/`, que es vitest.
+
+⚠ El botón **sólo aparece con cuenta**. La sesión anónima del asistente no tiene
+dirección adonde mandar, y poner «creá una cuenta» abajo de cada respuesta sería
+un cartel de venta en el medio de una consulta técnica.
+
+⚠ Tope de 20 correos por usuario cada 24 h (`RESUMEN_TOPE_DIARIO`). El
+destinatario es siempre uno mismo, así que no es spam a terceros, pero la cuota
+de Resend es una sola y la paga el producto. Si la cuenta del tope falla, **se
+manda igual**: el tope cuida la cuota, no frena a alguien que está trabajando.
 
 ### Bandeja de revisión (desde 2026-08-14)
 
