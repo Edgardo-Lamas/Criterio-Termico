@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import * as Sentry from '@sentry/react'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { leerTierDelPerfil, esTierValido, type Incidente } from './tierDelPerfil'
 
 export type SubscriptionTier = 'free' | 'pro' | 'premium'
 
@@ -97,25 +98,67 @@ const tierHierarchy: Record<SubscriptionTier, number> = {
 
 // ── Helpers para Supabase ────────────────────────────────────────────────────
 
-async function fetchProfile(userId: string): Promise<SubscriptionTier> {
-    const { data, error } = await supabase
-        .from('profiles')
-        .select('tier')
-        .eq('id', userId)
-        .single()
+/**
+ * Lee el plan del instalador.
+ *
+ * ⚠ Un error acá NO es siempre 'free'. La política —y el porqué, que salió de
+ * un aviso de Sentry del 9/9— vive en `tierDelPerfil.ts`: si la red falló, se
+ * reintenta una vez y se conserva el tier que ya estaba en memoria, porque
+ * inventar 'free' le saca el Simulador a alguien que lo pagó.
+ */
+async function fetchProfile(userId: string, tierPrevio?: SubscriptionTier): Promise<SubscriptionTier> {
+    const { tier, incidente } = await leerTierDelPerfil(
+        async () => await supabase.from('profiles').select('tier').eq('id', userId).single(),
+        { tierPrevio },
+    )
 
-    if (error) {
-        // No dejar el error en silencio: un fallo acá degrada a 'free' de forma
-        // invisible (el usuario ve un downgrade sin explicación). Reportarlo
-        // permite distinguir "falta la fila del perfil" (bug del trigger) de un
-        // error de red/RLS transitorio.
-        Sentry.captureException(error, {
-            tags: { context: 'fetchProfile' },
-            extra: { userId },
+    reportarIncidente(incidente, userId)
+    return tier
+}
+
+/**
+ * El tier que el store ya tiene para ESTE usuario, si es que lo tiene.
+ *
+ * Se compara el id a propósito: si la pestaña cambió de cuenta, el tier de la
+ * anterior no tiene por qué sobrevivir. Y se valida, porque el user que vuelve
+ * de `persist` llega sin tier — ver `partialize` al final del archivo.
+ */
+function tierEnMemoria(user: User | null, userId: string): SubscriptionTier | undefined {
+    return user?.id === userId && esTierValido(user.tier) ? user.tier : undefined
+}
+
+/**
+ * Un corte de red no es un bug y no se arregla con código: si el usuario no
+ * perdió nada, queda como rastro y no como issue. Lo que sí hay que ver es la
+ * base contestando mal, o una cuenta que quedó degradada de verdad.
+ *
+ * ⚠ El error de PostgREST se envuelve en un Error antes de mandarlo. Pelado,
+ * Sentry titula el issue «Object captured as exception with keys: code,
+ * details, hint, message» —así llegó el del 9/9— y hay que abrir el evento para
+ * saber si fue un corte de red o un permiso denegado. Con el `code` en el
+ * título, eso se lee en el asunto del correo.
+ */
+function reportarIncidente(incidente: Incidente, userId: string): void {
+    if (incidente.tipo === 'ninguno') return
+
+    const { error } = incidente
+
+    if (incidente.tipo === 'red-sin-consecuencia') {
+        Sentry.addBreadcrumb({
+            category: 'perfil',
+            level: 'info',
+            message: 'fetchProfile: falló la red y se conservó el tier que ya estaba',
+            data: { error: error.message ?? '' },
         })
+        return
     }
 
-    return (data?.tier as SubscriptionTier) ?? 'free'
+    const code = error.code || 'sin-code'
+    Sentry.captureException(new Error(`fetchProfile ${code}: ${error.message ?? 'sin mensaje'}`), {
+        level: incidente.tipo === 'red-degradado' ? 'warning' : 'error',
+        tags: { context: 'fetchProfile', perfil_code: code },
+        extra: { userId, details: error.details, hint: error.hint },
+    })
 }
 
 function supabaseUserToStore(sbUser: { id: string; email?: string }, tier: SubscriptionTier): User {
@@ -157,7 +200,7 @@ export const useAuthStore = create<AuthState>()(
                 // registrado (sin botón "Ingresar" y sin saber por qué).
                 supabase.auth.getSession().then(async ({ data: { session } }) => {
                     if (session?.user && !session.user.is_anonymous) {
-                        const tier = await fetchProfile(session.user.id)
+                        const tier = await fetchProfile(session.user.id, tierEnMemoria(get().user, session.user.id))
                         set({
                             user: supabaseUserToStore(session.user, tier),
                             isAuthenticated: true,
@@ -189,7 +232,7 @@ export const useAuthStore = create<AuthState>()(
                             // Ver la nota de arriba: la sesión anónima del asistente
                             // no es un login y no debe tocar el estado de la app.
                             if (session?.user && !session.user.is_anonymous) {
-                                const tier = await fetchProfile(session.user.id)
+                                const tier = await fetchProfile(session.user.id, tierEnMemoria(get().user, session.user.id))
                                 set({
                                     user: supabaseUserToStore(session.user, tier),
                                     isAuthenticated: true,

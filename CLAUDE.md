@@ -254,6 +254,27 @@ El tier se guarda en la tabla `profiles.tier` y se controla con RLS en Supabase.
 **Nunca controlar acceso por tier en el frontend** — solo para mostrar UI.
 La restricción real la hace la BD.
 
+🔴 **Cuando la lectura del perfil falla, el tier NO queda automáticamente en
+'free'** (desde 2026-09-13). Un aviso de Sentry del 9/9 mostró dos consultas a
+`profiles` muertas con `TypeError: Failed to fetch`: la cuenta —premium— quedó
+tratada como gratuita hasta recargar. `fetchProfile` devolvía `'free'` ante
+cualquier error, y eso mezcla dos cosas distintas. La política vive en
+`app/src/stores/tierDelPerfil.ts`, con sus tests:
+
+| Qué pasó | Se distingue por | Qué tier queda | Qué llega a Sentry |
+|---|---|---|---|
+| La base contestó mal | `error.code` con valor (`PGRST116`, `42501`, …) | `free` | un issue, **con el code en el título** |
+| El fetch no llegó, y había tier en memoria | `error.code` **vacío** | el que ya estaba | un breadcrumb, no un issue |
+| El fetch no llegó, y no había nada que conservar | `error.code` **vacío** | `free` | un aviso, nivel warning |
+
+Un fallo de red se reintenta UNA vez (600 ms) antes de decidir nada.
+⚠ Conservar el tier **no lo persiste**: sigue en pie el `partialize` que lo deja
+afuera de localStorage, así un cambio de plan del webhook se ve en la próxima
+consulta. ⚠ El error de PostgREST se envuelve en un `Error` antes de mandarlo:
+pelado, Sentry titula el issue «Object captured as exception with keys: code,
+details, hint, message» y hay que abrir el evento para saber si fue un corte de
+red o un permiso denegado.
+
 ---
 
 ## Edge Functions disponibles
