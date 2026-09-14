@@ -13,10 +13,3 @@ export const supabase = createClient(
     supabaseUrl || 'https://placeholder.supabase.co',
     supabaseAnonKey || 'placeholder-anon-key-not-configured'
 )
-
-export type SupabaseProfile = {
-    id: string
-    email: string
-    tier: 'free' | 'pro' | 'premium'
-    created_at: string
-}

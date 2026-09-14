@@ -7,7 +7,7 @@ import { Cap5Radiadores } from './cap5-radiadores'
 
 // Registro de contenido disponible por ID de capítulo.
 // Agregar aquí cada capítulo nuevo a medida que se escribe.
-export const manualContent: Record<string, ComponentType> = {
+const manualContent: Record<string, ComponentType> = {
     relevamiento: Cap1Relevamiento,
     confort: Cap2Confort,
     perdidas: Cap3Perdidas,

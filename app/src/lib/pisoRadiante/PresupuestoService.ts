@@ -14,7 +14,7 @@ function crearItem(
 // Entrada del presupuesto de materiales. Sirve tanto para la Calculadora
 // (valores estimados) como para el Simulador 2D (longitudes/áreas reales de
 // los circuitos dibujados sobre el plano).
-export interface MaterialesPisoRadianteInput {
+interface MaterialesPisoRadianteInput {
     longitudTotal: number          // m de tubo PEX Ø20 (serpentines + acometidas)
     area: number                   // m² de superficie cubierta
     perimetro: number              // m de banda perimetral

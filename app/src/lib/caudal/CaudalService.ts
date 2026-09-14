@@ -1,4 +1,4 @@
-export interface CaudalInput {
+interface CaudalInput {
     potencia: number // kW
     deltaT: number  // °C
 }

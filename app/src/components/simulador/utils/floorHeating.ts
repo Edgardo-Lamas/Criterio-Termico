@@ -47,7 +47,7 @@ export const DENSIDAD_M_POR_M2 = 7.0;
 //
 // Aplica SOLO a los metros de tubería. NO toca la emisión ni la carga: la
 // emisión del piso se sigue calculando sobre la superficie del ambiente.
-export const DESCUENTO_MOBILIARIO_FIJO = 0.10;
+const DESCUENTO_MOBILIARIO_FIJO = 0.10;
 
 /** Metros de tubo del serpentín, ya descontado el mobiliario fijo. */
 export function metrosSerpentin(areaM2: number): number {
@@ -118,7 +118,7 @@ export function emisionKcalhM2(impulsionC: TempImpulsion): number {
 //
 // El nivel de aislación ya lo elige el usuario con thermalFactor (40/50/60),
 // así que se reusa esa entrada en vez de pedirle un dato más.
-export const CARGA_PISO_WM2: Record<40 | 50 | 60, number> = {
+const CARGA_PISO_WM2: Record<40 | 50 | 60, number> = {
   40: 60,  // bien aislada
   50: 80,  // media (default)
   60: 100, // mal aislada — la mayoría del parque argentino
@@ -361,13 +361,13 @@ function puntoEntradaZona(zone: FloorHeatingZone, interior: CanvasPoint): Canvas
 // del dibujo distorsionan la matemática. Cuando la zona tiene habitación,
 // toda la cuenta (longitud, potencia, materiales) usa el área REAL cargada en
 // el panel, y la carga térmica calculada se reparte entre los circuitos.
-export interface DatosReales {
+interface DatosReales {
   areaM2: number          // área real de la habitación (del panel)
   cargaKcalh: number | null // carga del ambiente para piso (cargaPisoKcalh) — cuenta interna
   aporteCalculadorKcalh: number | null // aporte térmico del ambiente (Calculador de Potencia) — lo que se muestra
 }
 
-export function calcularCircuitosZona(
+function calcularCircuitosZona(
   zone: FloorHeatingZone,
   manifold: Manifold | null,
   tempImpulsionC: TempImpulsion = TEMP_IMPULSION_DEFAULT,
@@ -466,7 +466,7 @@ export function calcularCircuitosZona(
 }
 
 // Colector más cercano a la zona en la misma planta (asignación automática MVP).
-export function colectorMasCercano(zone: FloorHeatingZone, manifolds: Manifold[]): Manifold | null {
+function colectorMasCercano(zone: FloorHeatingZone, manifolds: Manifold[]): Manifold | null {
   const cx = zone.x + zone.width / 2
   const cy = zone.y + zone.height / 2
   let mejor: Manifold | null = null

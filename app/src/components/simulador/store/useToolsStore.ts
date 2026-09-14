@@ -7,12 +7,12 @@ type Tool = 'select' | 'radiator' | 'boiler' | 'vertical-pipe' | 'floor-heating-
 // los datos. 'plano' es la imagen de fondo, 'circuitos' los serpentines Ø20
 // con sus acometidas, 'montantes' la primaria Ø32 caldera→colector (la capa
 // física inferior: va por el contrapiso, debajo de las placas).
-export type CanvasLayer = 'plano' | 'circuitos' | 'montantes';
+type CanvasLayer = 'plano' | 'circuitos' | 'montantes';
 
 // Los paneles de la columna superior derecha comparten el mismo lugar sobre el
 // canvas, así que solo uno puede estar abierto a la vez: abrir uno cierra el
 // otro. `null` = los dos plegados, con sus botones a la vista.
-export type SidePanel = 'config' | 'power';
+type SidePanel = 'config' | 'power';
 
 interface ToolsStore {
   tool: Tool;

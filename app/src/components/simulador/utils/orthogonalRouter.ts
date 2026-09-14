@@ -16,7 +16,7 @@ export interface RouterRect {
   height: number;
 }
 
-export interface RuteoParams {
+interface RuteoParams {
   start: RouterPoint;
   goal: RouterPoint;
   obstaculos: RouterRect[];   // prohibido atravesar
@@ -33,7 +33,7 @@ const COSTO_OCUPADA = 60;   // pisar otro tubo es caro pero no imposible
 const MAX_NODOS = 60000;    // corte de seguridad
 
 const clave = (cx: number, cy: number) => cx * 100000 + cy;
-export const claveCelda = (cx: number, cy: number): string => `${cx},${cy}`;
+const claveCelda = (cx: number, cy: number): string => `${cx},${cy}`;
 
 // dx, dy por dirección: 0=derecha 1=abajo 2=izquierda 3=arriba
 const DIRS = [

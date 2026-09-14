@@ -41,7 +41,7 @@ const PX_POR_ELEMENTO = 8;
 const ALTO_RADIADOR_PX = 12;  // fondo del radiador en vista superior
 const SEPARACION_PARED_PX = 4; // aire entre el radiador y la pared
 
-export interface RadiadorPropuesto {
+interface RadiadorPropuesto {
   x: number;
   y: number;
   width: number;

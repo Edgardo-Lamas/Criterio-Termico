@@ -1,27 +1,9 @@
 import type { Point } from '../models/PipeSegment';
 
 /**
- * Verifica si un punto está dentro de un rectángulo
- */
-export const isPointInsideRect = (
-  point: Point,
-  rectX: number,
-  rectY: number,
-  rectWidth: number,
-  rectHeight: number
-): boolean => {
-  return (
-    point.x >= rectX &&
-    point.x <= rectX + rectWidth &&
-    point.y >= rectY &&
-    point.y <= rectY + rectHeight
-  );
-};
-
-/**
  * Calcula la distancia entre dos puntos
  */
-export const distanceBetween = (p1: Point, p2: Point): number => {
+const distanceBetween = (p1: Point, p2: Point): number => {
   const dx = p2.x - p1.x;
   const dy = p2.y - p1.y;
   return Math.sqrt(dx * dx + dy * dy);
@@ -30,14 +12,14 @@ export const distanceBetween = (p1: Point, p2: Point): number => {
 /**
  * Calcula la distancia simple (alias de distanceBetween)
  */
-export const distance = (p1: Point, p2: Point): number => {
+const distance = (p1: Point, p2: Point): number => {
   return distanceBetween(p1, p2);
 };
 
 /**
  * Verifica si un punto está cerca de una línea
  */
-export const isPointNearLine = (
+const isPointNearLine = (
   point: Point,
   lineStart: Point,
   lineEnd: Point,

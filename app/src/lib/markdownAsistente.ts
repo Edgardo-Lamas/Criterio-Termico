@@ -20,7 +20,7 @@ export type Inline =
     | { tipo: 'fuerte'; texto: string }
     | { tipo: 'codigo'; texto: string }
 
-export type Bloque =
+type Bloque =
     | { tipo: 'parrafo'; contenido: Inline[] }
     | { tipo: 'titulo'; contenido: Inline[] }
     | { tipo: 'lista'; ordenada: boolean; items: Inline[][] }

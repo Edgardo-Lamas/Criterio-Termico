@@ -14,7 +14,7 @@ export interface Message {
     content: string
 }
 
-export interface AsistenteState {
+interface AsistenteState {
     messages: Message[]
     input: string
     streaming: boolean

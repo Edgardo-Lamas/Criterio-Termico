@@ -645,7 +645,7 @@ export const generateQuotePDF = (
 // PLANO TÉCNICO A4 APAISADO
 // ============================================================
 /** Una planta lista para dibujar: su plano de fondo y lo que va encima. */
-export interface PlantaParaPlanoPDF {
+interface PlantaParaPlanoPDF {
   floor: 'ground' | 'first';
   image: string;
   dimensions: { width: number; height: number };

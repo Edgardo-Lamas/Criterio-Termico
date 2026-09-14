@@ -144,6 +144,12 @@ RESEND_API_KEY=re_...                 # el correo del resumen. La misma cuenta d
 #   Resend que usa el sitio Astro para los avisos de venta: el dominio verificado
 #   es `send.crtermico.com` (Zoho RECIBE, Resend MANDA). Sin esta clave, el botón
 #   contesta 503 con un mensaje claro y no se cae nada más.
+#   🔴 ESA CUENTA NO ES LA CUENTA PERSONAL DE RESEND: la creó la integración del
+#   Marketplace de Vercel y sólo se entra por SSO —`npx vercel integration open
+#   resend` desde el proyecto del sitio— . Una clave sacada de la cuenta personal
+#   da 403 «domain is not verified» aunque el DNS esté perfecto (pasó el 14/9).
+#   🔴 El correo de retorno vive en `send.send.crtermico.com` y ESTÁ BIEN: Resend
+#   antepone su propio `send.` al dominio. No «corregir» ese prefijo duplicado.
 RESUMEN_DE=...                        # opcional. Remitente. Por defecto,
 #   «Martín de Criterio Térmico <martin@send.crtermico.com>». Tiene que ser del
 #   dominio verificado en Resend o el envío se rechaza.
