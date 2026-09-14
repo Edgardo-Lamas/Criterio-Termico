@@ -1,6 +1,6 @@
 import { DIAMETROS_CAÑERIA } from '../bombas/types'
 
-export interface DiametroInput {
+interface DiametroInput {
     caudal: number // l/h
 }
 

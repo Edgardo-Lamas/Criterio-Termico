@@ -28,7 +28,7 @@ export interface Consideracion {
 // Sirve para dimensionar el vaso de expansión cuando hay piso radiante.
 const LITROS_POR_METRO_PEX20 = 0.2;
 
-export interface ConsideracionesInput {
+interface ConsideracionesInput {
   rooms: Room[];
   radiators: Radiator[];
   floorHeating: FloorHeatingBudget | null;

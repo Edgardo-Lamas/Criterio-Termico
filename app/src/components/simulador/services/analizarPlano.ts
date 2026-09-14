@@ -5,7 +5,7 @@
 
 import { supabase } from '../../../lib/supabase';
 
-export interface AmbienteAnalizado {
+interface AmbienteAnalizado {
   nombre: string;
   areaM2: number | null;
   paredExterior: boolean;

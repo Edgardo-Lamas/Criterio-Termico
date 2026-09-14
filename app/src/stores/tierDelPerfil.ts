@@ -46,19 +46,19 @@ export type Incidente =
     /** La base contestó con un error propio (PGRST116, 42501, …). */
     | { tipo: 'base'; error: ErrorDePerfil }
 
-export interface LecturaDePerfil {
+interface LecturaDePerfil {
     tier: SubscriptionTier
     incidente: Incidente
 }
 
-export interface OpcionesDeLectura {
+interface OpcionesDeLectura {
     /** El tier que el store ya tiene para este usuario, si lo tiene. */
     tierPrevio?: SubscriptionTier
     /** Inyectable para los tests; en producción es un setTimeout. */
     esperar?: (ms: number) => Promise<void>
 }
 
-export const ESPERA_REINTENTO_MS = 600
+const ESPERA_REINTENTO_MS = 600
 
 const TIERS: readonly string[] = ['free', 'pro', 'premium']
 

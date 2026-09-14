@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { SelectedBudget } from '../services/budgetService';
 import type { ClientInfo } from './companyStore';
 
-export interface Lead {
+interface Lead {
     id: string;
     clientId: string; // email or unique ref
     clientInfo: ClientInfo;

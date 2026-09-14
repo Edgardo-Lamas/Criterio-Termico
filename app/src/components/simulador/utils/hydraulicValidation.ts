@@ -31,7 +31,7 @@ export const ALTURA_BOMBA_DEFAULT_MCA = 6.0;
 
 // Exigimos que el circuito índice consuma como máximo el 90% de lo que da la
 // bomba: 10% de margen para envejecimiento, suciedad y equilibrado real.
-export const MARGEN_BOMBA = 0.9;
+const MARGEN_BOMBA = 0.9;
 
 // Coeficiente de Hazen-Williams para PE-X / multicapa (tubo liso).
 const C_HAZEN_WILLIAMS = 150;
@@ -88,15 +88,15 @@ export function perdidaFriccionMca(
   );
 }
 
-export type VeredictoHidraulico = 'ok' | 'limite' | 'insuficiente';
+type VeredictoHidraulico = 'ok' | 'limite' | 'insuficiente';
 
-export interface CircuitoHidraulico {
+interface CircuitoHidraulico {
   etiqueta: string;
   tipo: 'radiadores' | 'piso';
   deltaPMca: number; // pérdida de carga total del circuito (ida + retorno + emisor)
 }
 
-export interface ValidacionHidraulica {
+interface ValidacionHidraulica {
   veredicto: VeredictoHidraulico;
   disponibleMca: number;    // altura útil de la bomba
   indiceMca: number;        // ΔP del circuito índice (el más exigente)
@@ -108,7 +108,7 @@ export interface ValidacionHidraulica {
 
 // ΔP del ramal de un radiador identificado (para mostrar dato por dato en la
 // planilla de radiadores).
-export interface RamalRadiadorHidraulico {
+interface RamalRadiadorHidraulico {
   radiatorId: string;
   deltaPMca: number;
 }
@@ -191,7 +191,7 @@ export function validarRamalesRadiadores(
 
 // ΔP de un circuito de piso identificado (para mostrar dato por dato en la
 // tabla de circuitos). Incluye zoneId + etiqueta para poder cruzarlo con la fila.
-export interface CircuitoPisoHidraulico {
+interface CircuitoPisoHidraulico {
   zoneId: string;
   etiqueta: string;
   deltaPMca: number;
@@ -237,7 +237,7 @@ function analizarPiso(fh: FloorHeatingBudget | null): CircuitoHidraulico[] {
 }
 
 /** Veredicto de un circuito según su ΔP y la altura útil de la bomba. */
-export function estadoCircuito(
+function estadoCircuito(
   deltaPMca: number,
   alturaBombaMca: number,
 ): VeredictoHidraulico {

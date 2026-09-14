@@ -39,7 +39,7 @@ export interface RadiatorModel {
     cost: number;
 }
 
-export interface PipeModel {
+interface PipeModel {
     id: string;
     brand: string;
     diameterMm: number;

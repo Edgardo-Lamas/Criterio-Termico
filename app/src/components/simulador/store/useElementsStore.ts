@@ -10,7 +10,7 @@ import type { TempImpulsion } from '../utils/floorHeating';
 import { TEMP_IMPULSION_DEFAULT } from '../utils/floorHeating';
 
 // Type for updateElement - allows partial updates with any valid element properties
-export type ElementUpdates = Partial<Radiator> | Partial<Boiler> | Partial<PipeSegment> | Partial<Manifold> | Partial<FloorHeatingZone>;
+type ElementUpdates = Partial<Radiator> | Partial<Boiler> | Partial<PipeSegment> | Partial<Manifold> | Partial<FloorHeatingZone>;
 
 interface ElementsStore {
   radiators: Radiator[];
