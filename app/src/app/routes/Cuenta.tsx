@@ -2,24 +2,19 @@ import { useState } from 'react'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { usePageMeta } from '../../lib/usePageMeta'
 import { supabase, isSupabaseConfigured } from '../../lib/supabase'
+import { precioMensual } from '../../lib/precios'
 import type { SubscriptionTier } from '../../stores/useAuthStore'
 import styles from './Cuenta.module.css'
 import { FichaInstalador } from '../../components/FichaInstalador/FichaInstalador'
 
-// 🔴 LOS PRECIOS VAN EN PESOS Y SE COBRAN EN PESOS.
+// 🔴 EL PRECIO NO SE ESCRIBE ACÁ: sale de `lib/precios.ts`, que es la única
+// fuente y guarda el porqué —ya se desincronizó dos veces, y las dos se vieron
+// desde afuera—. Los precios van en pesos porque el cobro es en pesos.
 //
-// Hasta el 2026-09-08 esta pantalla anunciaba USD 10 y USD 18 mientras
-// MercadoPago cobraba $12.000 y $21.000: con el dólar a $1.530 se estaba
-// cobrando un 22% menos de lo anunciado, y el desfasaje crecía solo cada vez
-// que se movía el dólar. Se cobra por MercadoPago en Argentina, así que el
-// cobro siempre es en pesos y el cartel tiene que decir lo mismo.
-//
-// ⚠ El importe que se COBRA no vive acá: vive en el plan de MercadoPago, y
-// `create-subscription` lo lee antes de cada alta. Cambiar este texto NO cambia
-// lo que se cobra. Los dos lados se mueven juntos o la pantalla vuelve a mentir.
-//
-// ⚠ El mismo precio está en `src/pages/plataforma.astro` del repo del SITIO
-// (`~/Desktop/Trabajos/Criterio Termico`), que es la puerta de entrada al SaaS.
+// ⚠ El importe que se COBRA tampoco vive en el código: vive en el plan de
+// MercadoPago, y `create-subscription` lo lee antes de cada alta. Cambiar el
+// cartel NO cambia lo que se cobra: los dos lados se mueven juntos o la
+// pantalla vuelve a mentir.
 //
 // El plan anual salió de acá el 2026-09-08: anunciaba «USD 100/año (2 meses
 // gratis)» y no existía. El botón manda `{ tier }` a `create-subscription`, que
@@ -30,7 +25,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string
     {
         id: 'free',
         name: 'Gratuito',
-        price: '$0',
+        price: precioMensual('free'),
         features: [
             'Manual técnico básico',
             '1 calculadora',
@@ -41,7 +36,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string
     {
         id: 'pro',
         name: 'PRO',
-        price: '$30.000/mes',
+        price: precioMensual('pro'),
         badge: 'Más vendido',
         features: [
             'Manual técnico completo',
@@ -54,7 +49,7 @@ const tiers: { id: SubscriptionTier; name: string; price: string; badge?: string
     {
         id: 'premium',
         name: 'PREMIUM',
-        price: '$40.000/mes',
+        price: precioMensual('premium'),
         badge: 'Cierre de obra',
         features: [
             'Todo lo incluido en PRO',
