@@ -26,6 +26,9 @@ git push origin main          # Vercel deploya automáticamente (integración Gi
 vercel deploy --prod --yes    # Deploy manual desde app/ (solo si hace falta)
 ```
 GitHub Actions corre CI (typecheck + lint + tests) en cada push y PR.
+🔴 **El CI y el deploy son circuitos separados: Vercel NO espera los checks.** Un
+push a `main` con los tests rotos se publica igual. Que espere se configura en el
+panel de Vercel, no en el repo.
 GitHub Pages fue dado de baja el 2026-07-08 — el hosting es Vercel.
 
 ### Supabase
@@ -785,6 +788,11 @@ romper**:
 `tsconfig.json` de `app/` es sólo referencias (`tsconfig.app.json` +
 `tsconfig.node.json`), así que `--noEmit` sale en verde sin mirar un solo
 archivo. `npm run build` sí corre `tsc -b`.
+🔴 **Y el CI lo tuvo mal hasta el 2026-09-16**: `deploy.yml` corría
+`npx tsc --noEmit`, o sea que el paso «Typecheck» pasaba siempre, hubiera lo que
+hubiera. Medido antes de cambiarlo: con un `const x: number = "texto"` metido a
+propósito, `tsc --noEmit` salió **0** y `tsc -b --noEmit` salió **2**. Ahora el
+CI corre `npm run typecheck`.
 
 ---
 
@@ -984,6 +992,8 @@ pares pisados antes, 0 después**, con 50,9 cm de separación mínima.
 - [x] **[A-5] CI/CD sin lint antes del deploy**
   - Archivo: `.github/workflows/deploy.yml`
   - Agregar steps `npx tsc --noEmit` y `npm run lint` antes del build.
+  - 🔴 **Ese `npx tsc --noEmit` fue un error y sobrevivió hasta el 16/9**: no
+    chequea nada en este repo. El paso quedó con `npm run typecheck`.
 
 - [x] **[B-1] Sin error tracking en producción**
   - No hay Sentry ni equivalente. Los errores son invisibles.
