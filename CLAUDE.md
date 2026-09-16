@@ -1202,8 +1202,17 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    propósito mientras no había cobros; desde el 1/9 los hay. Además de filtrar,
    informa los casos bloqueados por título para que Martín pueda nombrarlos sin
    contarlos. Cómo funciona: «RAG del asistente», más arriba.
-4. ⬜ **SMTP real antes del lanzamiento.** Hoy `mailer_autoconfirm=true`: el
-   registro no verifica el email porque no hay servidor de correo.
+4. ✅ **Verificación de correo en el registro — ENCENDIDA el 2026-09-16.**
+   `mailer_autoconfirm=false`: quien se registra no entra hasta tocar el enlace
+   del correo. Sale por Resend (`smtp.resend.com`), asunto «Confirmá tu correo»,
+   en castellano y con el naranja del sitio. **Probado de punta a punta en
+   producción: 51 segundos entre el envío y la confirmación.** La pantalla ya
+   estaba escrita para esto desde antes (`Cuenta.tsx`, «Revisá tu email para
+   confirmar la cuenta»): prometía un paso que no ocurría.
+   🔑 **La configuración de Auth no vive en el repo ni en una migración**: se lee
+   y se escribe por la Management API (`GET`/`PATCH` a
+   `/v1/projects/<ref>/config/auth` con el token de `~/.supabase/access-token`).
+   El panel de Supabase es la otra vía, pero desde acá la API es la única.
 5. ⬜ **Auditar los 17 casos con Edgardo**, empezando por los de tier pro. Ya
    apareció contenido técnico mal en tier pago más de una vez.
 6. ⬜ **Cap. 14 y las 5 fotos del manual** — los dos esperan material de él.
