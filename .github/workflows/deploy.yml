@@ -29,9 +29,14 @@ jobs:
         working-directory: ./app
         run: npm ci
 
+      # ⚠ NO cambiar por `tsc --noEmit` a secas: `app/tsconfig.json` es un
+      # archivo de referencias con `"files": []`, así que ese comando no mira un
+      # solo archivo del proyecto y sale 0 SIEMPRE. Estuvo así hasta el 16/9:
+      # el CI decía «Typecheck ✓» sin haber compilado nada. `tsc -b` es el que
+      # recorre las referencias de verdad.
       - name: Typecheck
         working-directory: ./app
-        run: npx tsc --noEmit
+        run: npm run typecheck
 
       - name: Lint
         working-directory: ./app
