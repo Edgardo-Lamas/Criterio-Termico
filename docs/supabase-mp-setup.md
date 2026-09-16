@@ -37,7 +37,9 @@ cp .env.example .env
 ### 1.4 Deshabilitar confirmación de email (opcional para desarrollo)
 
 **Authentication → Providers → Email** → desactivar "Confirm email".
-En producción conviene dejarlo activado.
+**En producción está ACTIVADO desde el 2026-09-16** (`mailer_autoconfirm=false`):
+el registro manda un correo de confirmación por Resend y la cuenta no entra hasta
+tocar el enlace. Desactivalo sólo en tu entorno local.
 
 ---
 
