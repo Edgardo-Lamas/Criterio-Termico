@@ -1111,9 +1111,24 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
    1. **Lo que se COBRA**: el plan de MP (`PUT /preapproval_plan/{id}` con
       `auto_recurring`). `create-subscription` lo lee antes de cada alta, así
       que cambiarlo NO obliga a redesplegar.
-   2. **Lo que se MUESTRA**: `app/src/app/routes/Cuenta.tsx` **y**
-      `src/pages/plataforma.astro` del repo del SITIO, que es la puerta de
-      entrada al SaaS. Los tres desalineados es como estaba antes.
+   2. **Lo que se MUESTRA**: **`app/src/lib/precios.ts`, que es la única fuente
+      dentro de la app** (desde el 2026-09-16), **y** `src/pages/plataforma.astro`
+      del repo del SITIO, que es la puerta de entrada al SaaS. Los tres
+      desalineados es como estaba antes.
+
+   🔴 **Y estuvo desalineado ADENTRO de la app hasta el 2026-09-16.** El muro de
+   pago (`SubscriptionBanner`) tenía los precios escritos a mano y quedó dos
+   cambios atrás: decía **«ARS 9.999/mes»** en el Simulador y **«ARS 2.999/mes»**
+   en los errores mientras la pantalla de planes pedía $40.000 y $30.000 — un
+   precio diez veces menor, en tres pantallas, en producción. Se encontró de
+   casualidad probando la CSP con un navegador; leyendo el código no saltaba,
+   porque el componente era coherente consigo mismo.
+   🔑 **Por eso el arreglo no fue cambiar el número**: el número salió a
+   `lib/precios.ts` y las pantallas lo piden con `precioMensual(tier)`.
+   **`precios.test.ts` recorre todos los `.ts`/`.tsx` con `import.meta.glob` y
+   falla si aparece un precio mensual escrito a mano fuera de ese archivo** (los
+   comentarios se ignoran: ahí está la historia). Probado a propósito con un
+   precio suelto: el test lo señala con archivo y línea.
 
    ⚠ **El plan anual salió del cartel.** Anunciaba «USD 100/año (2 meses
    gratis)» y no existía: el botón manda `{ tier }` y cada tier mapea a UN plan

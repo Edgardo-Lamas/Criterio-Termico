@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import type { SubscriptionTier } from '../../../stores/useAuthStore'
 import { Icon } from '../Icon/Icon'
+import { precioMensual } from '../../../lib/precios'
 import styles from './SubscriptionBanner.module.css'
 
 interface SubscriptionBannerProps {
@@ -10,7 +11,10 @@ interface SubscriptionBannerProps {
 
 export function SubscriptionBanner({ requiredTier, feature }: SubscriptionBannerProps) {
     const tierName = requiredTier === 'pro' ? 'Pro' : 'Premium'
-    const tierPrice = requiredTier === 'pro' ? 'ARS 2.999/mes' : 'ARS 9.999/mes'
+    // 🔴 Acá estuvo el precio escrito a mano hasta el 2026-09-16, y quedó dos
+    // cambios de precio atrás: el muro decía «ARS 9.999/mes» mientras la
+    // pantalla de planes pedía $40.000. Ahora sale de `lib/precios.ts`.
+    const tierPrice = precioMensual(requiredTier)
 
     return (
         <div className={styles.banner}>
