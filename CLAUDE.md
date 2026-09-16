@@ -525,8 +525,37 @@ a `app.crtermico.com`. El sitio Astro la enlaza con `target="_blank"`
 vive en el otro dominio y no lo toca esta configuración. **Si algún día hay que
 embeber la plataforma, esto es lo primero que lo va a impedir.**
 
-⬜ **Lo que NO se puso: CSP.** Es otro trabajo y mal puesta rompe la app en
-silencio.
+### CSP — puesta el 2026-09-16, y cómo se probó
+
+Vive en el mismo bloque de `app/vercel.json`. Cada directiva salió de un
+inventario del código, no de una plantilla:
+
+| directiva | por qué |
+|---|---|
+| `script-src 'self'` | el `index.html` desplegado no tiene un solo script inline, y en el bundle no hay `eval(`, `new Function(` ni WebAssembly instanciada (las dos menciones de `WebAssembly` son de Sentry detectando excepciones). **Sin `'unsafe-inline'` ni `'unsafe-eval'`.** |
+| `style-src` con `'unsafe-inline'` | React aplica `style={{…}}` como atributo, y eso lo cubre `style-src-attr`, que hereda de acá. Sacarlo despinta la app entera. |
+| `fonts.googleapis.com` / `fonts.gstatic.com` | la Inter que carga el `index.html`. |
+| `img-src data: blob:` | el canvas del simulador exporta con `toBlob`/`toDataURL`. |
+| `connect-src` | los dos únicos destinos reales, sacados del bundle de producción: el proyecto de Supabase (API, Auth y Edge Functions) y el ingest de Sentry. |
+| `worker-src blob:` | el service worker de la PWA y los workers que crean los exportadores. |
+| `frame-ancestors 'none'` | la pareja moderna del `X-Frame-Options: DENY` que ya estaba. |
+
+🔑 **Cómo se probó antes de mergearla, que es lo que evita romper en silencio.**
+El preview de Vercel está protegido con SSO, así que se navegó **la app de
+producción con la CSP inyectada por el navegador** (Playwright interceptando las
+respuestas HTML): 11 rutas, cero violaciones. Después pruebas dirigidas a las
+directivas que no se ejercitan leyendo páginas —Supabase, Edge Functions, Sentry,
+un worker desde `blob:`, imágenes `data:` y `blob:`, un `style` inline— y dos
+controles negativos que **tienen** que fallar: un `fetch` a un dominio ajeno y un
+`<script>` inline. Los dos quedaron bloqueados.
+🔑 **Y el simulador con una sesión premium**: como el modo demo (build sin claves
+de Supabase) da premium, se sirvió el `dist` local con la misma cabecera, se
+dibujó un radiador y una caldera y se exportó **DXF y DWG de verdad** — las dos
+descargas salieron, sin una sola violación. El DWG era el sospechoso, porque
+arrastra la librería de AutoCAD.
+⬜ **Lo único que no se ejercitó con una consulta real es el asistente**: se
+verificó que la CSP deja salir el pedido a la Edge Function (un `OPTIONS` pasó),
+que es la directiva en juego; lo que conteste el modelo no depende de la CSP.
 
 ## Servidor MCP — NO existe en este repo
 
@@ -1327,8 +1356,8 @@ Verificados contra el código al escribir el informe de stack (artifact
    escala (hoy se asumen siempre los 50 px/m).
 4. ✅ **Cabeceras de seguridad en `app/vercel.json` — puestas el 2026-09-11.**
    `nosniff`, `X-Frame-Options: DENY` y `Referrer-Policy`. El porqué del `DENY`
-   está en «Cabeceras de seguridad», más arriba. ⬜ Falta CSP, que es otro
-   trabajo.
+   está en «Cabeceras de seguridad», más arriba. ✅ **La CSP se sumó el
+   2026-09-16**, con su inventario y cómo se probó en «CSP», más arriba.
 5. ✅ **El default de `ALLOWED_ORIGIN` apuntaba a GitHub Pages** (dado de baja).
    Resuelto el 2026-09-05 con la mudanza a `app.crtermico.com`: los defaults
    viven en `supabase/functions/_shared/cors.ts` y son los dos dominios reales.
