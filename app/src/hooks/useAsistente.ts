@@ -6,6 +6,14 @@ import { useLocation } from 'react-router-dom'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { ensureSesionParaAsistente } from '../stores/useAuthStore'
 import { useAsistenteUI } from '../stores/useAsistenteUI'
+import {
+    AVISO_SILENCIO,
+    AVISO_SIN_CONEXION,
+    ESPERA_CONEXION_MS,
+    ESPERA_SILENCIO_MS,
+    crearVigia,
+    interpretarLineaSSE,
+} from './esperaDelAsistente'
 
 // ── Tipos exportados ──────────────────────────────────────────────────────────
 
@@ -121,15 +129,23 @@ export function useAsistente(): UseAsistente {
         setInput('')
         setStreaming(true)
 
-        abortRef.current = new AbortController()
+        const controller = new AbortController()
+        abortRef.current = controller
+
+        // Si el servidor no contesta, el vigía corta y se avisa. Sin esto la
+        // consulta queda «pensando» para siempre (ver `esperaDelAsistente.ts`).
+        const vigia = crearVigia(controller)
+        vigia.vigilar(ESPERA_CONEXION_MS, AVISO_SIN_CONEXION)
+
+        let assistantText = ''
 
         try {
             // El visitante sin cuenta también pregunta: si no hay sesión, se abre
             // una anónima acá mismo. No es un login —el header sigue mostrando
             // "Ingresar"— es el token que la Edge Function necesita para contar
             // el uso y responder.
-            const listo = await ensureSesionParaAsistente()
-            const { data: { session } } = await supabase.auth.getSession()
+            const listo = await vigia.esperar(ensureSesionParaAsistente())
+            const { data: { session } } = await vigia.esperar(supabase.auth.getSession())
 
             if (!listo || !session?.access_token) {
                 throw new Error('No se pudo abrir la conversación. Probá de nuevo en un momento.')
@@ -161,7 +177,7 @@ export function useAsistente(): UseAsistente {
                         messages: updatedMessages,
                         ...(contextoSimulador ? { contextoSimulador } : {}),
                     }),
-                    signal: abortRef.current.signal,
+                    signal: controller.signal,
                 }
             )
 
@@ -174,6 +190,10 @@ export function useAsistente(): UseAsistente {
                     throw new Error(msg)
                 } else if (response.status === 401) {
                     throw new Error('Tu sesión expiró. Iniciá sesión nuevamente.')
+                } else if (response.status >= 500) {
+                    // El detalle técnico queda en los logs de la función: al
+                    // instalador no le sirve leer «Error interno del servidor».
+                    throw new Error(AVISO_SIN_CONEXION)
                 } else {
                     throw new Error(msg)
                 }
@@ -193,15 +213,18 @@ export function useAsistente(): UseAsistente {
                 throw new Error('No se recibió respuesta del servidor.')
             }
 
-            // Leer stream SSE
+            // Leer stream SSE. Desde acá el reloj mide silencio, no el total:
+            // se rearma con cada pedazo que llega.
+            vigia.vigilar(ESPERA_SILENCIO_MS, AVISO_SILENCIO)
             const reader = response.body.getReader()
             const decoder = new TextDecoder()
-            let assistantText = ''
             let buffer = ''
+            let terminado = false
 
-            while (true) {
+            while (!terminado) {
                 const { done, value } = await reader.read()
                 if (done) break
+                vigia.vigilar(ESPERA_SILENCIO_MS, AVISO_SILENCIO)
 
                 buffer += decoder.decode(value, { stream: true })
                 const lines = buffer.split('\n')
@@ -209,23 +232,19 @@ export function useAsistente(): UseAsistente {
                 buffer = lines.pop() ?? ''
 
                 for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue
-                    const payload = line.slice(6).trim()
-                    if (payload === '[DONE]') break
-
-                    try {
-                        const parsed = JSON.parse(payload) as { text?: string; error?: string }
-                        if (parsed.error) throw new Error(parsed.error)
-                        if (parsed.text) {
-                            assistantText += parsed.text
-                            setMessages(prev => [
-                                ...prev.slice(0, -1),
-                                { role: 'assistant', content: assistantText },
-                            ])
-                        }
-                    } catch {
-                        // Línea malformada — ignorar y continuar
+                    const linea = interpretarLineaSSE(line)
+                    if (!linea) continue
+                    if (linea.tipo === 'fin') {
+                        terminado = true
+                        break
                     }
+                    if (linea.tipo === 'error') throw new Error(AVISO_SILENCIO)
+
+                    assistantText += linea.texto
+                    setMessages(prev => [
+                        ...prev.slice(0, -1),
+                        { role: 'assistant', content: assistantText },
+                    ])
                 }
             }
 
@@ -238,20 +257,28 @@ export function useAsistente(): UseAsistente {
             }
 
         } catch (err) {
-            if (err instanceof Error && err.name === 'AbortError') {
+            const esCorte = err instanceof Error && err.name === 'AbortError'
+
+            if (esCorte && !vigia.aviso) {
                 // Cancelación por el usuario — quitar el placeholder
                 setMessages(prev => prev.slice(0, -1))
                 return
             }
 
-            const message = err instanceof Error ? err.message : 'Ocurrió un error. Intentá de nuevo.'
+            const message = vigia.aviso
+                ?? (err instanceof Error ? err.message : 'Ocurrió un error. Intentá de nuevo.')
             setError(message)
-            // Mostrar el error como mensaje del asistente
+            // Mostrar el error como mensaje del asistente. Si ya había escrito
+            // algo, se conserva: el instalador puede haber leído justo eso.
             setMessages(prev => [
                 ...prev.slice(0, -1),
-                { role: 'assistant', content: `⚠️ ${message}` },
+                {
+                    role: 'assistant',
+                    content: assistantText ? `${assistantText}\n\n⚠️ ${message}` : `⚠️ ${message}`,
+                },
             ])
         } finally {
+            vigia.apagar()
             setStreaming(false)
         }
     }, [input, messages, streaming, isOnline, enSimulador])

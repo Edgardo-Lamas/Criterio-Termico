@@ -80,7 +80,7 @@ error 1010). El mismo endpoint sirve para consultar la base sin abrir el panel.
 
 ### Tests
 ```bash
-npm run test          # Tests unitarios (Vitest) — 196 en 15 archivos
+npm run test          # Tests unitarios (Vitest) — 511 en 22 archivos (2026-10-23)
 npm run test:ui       # Tests con interfaz visual
 npm run test:coverage # Coverage report
 ```
@@ -102,7 +102,7 @@ criterio-termico/
 │   │   ├── hooks/
 │   │   ├── styles/        # tokens.css + global.css — el resto es CSS Modules
 │   │   └── content/       # Manual y casos de errores (TSX nativo)
-│   ├── api/               # Serverless de Vercel (Node): search-console.ts
+│   ├── api/               # Serverless de Vercel (Node): search-console.ts, mantener-base.ts
 │   ├── vercel.json
 │   └── package.json
 ├── supabase/
@@ -325,7 +325,7 @@ Si se sube el esfuerzo, subir también estos topes.
 El asistente no es un botón: es un tipo de obra proyectado en la esquina de la
 pantalla. Ilustración de Edgardo, generada en Gemini; el original vive fuera del
 repo (`~/Desktop/Martin-criterio.jpeg`) y los clips en
-`~/Desktop/Trabajos de edicion/doc Criterio Termico/img y videos/`.
+`~/Desktop/Trabajos/Criterio Termico/4 Reels y audiovisual/img y videos/`.
 
 | Pieza | Dónde | Peso |
 |---|---|---|
@@ -492,6 +492,32 @@ destinatario es siempre uno mismo, así que no es spam a terceros, pero la cuota
 de Resend es una sola y la paga el producto. Si la cuenta del tope falla, **se
 manda igual**: el tope cuida la cuota, no frena a alguien que está trabajando.
 
+### Cuando Martín no contesta (desde 2026-10-23)
+
+🔴 **El 2026-10-23 Martín quedó «pensando» para siempre**: Supabase había
+PAUSADO el proyecto (plan gratuito, 7 días sin actividad) y el chat esperaba
+sin tiempo límite. Ningún log registró nada, porque ningún pedido llegaba. Se
+reactivó desde el panel: el botón hoy se llama **«Resume project»**. Dos
+arreglos:
+
+1. **El chat corta y avisa** (`hooks/esperaDelAsistente.ts`, con sus tests).
+   30 s para abrir la sesión y recibir las cabeceras, y 90 s de **silencio**
+   una vez abierto el stream — holgado porque el modelo piensa antes de
+   escribir y mientras piensa no viaja nada. Si ya había escrito algo, se
+   conserva y se le suma el aviso. Un 5xx muestra un aviso de servidor, no el
+   «Error interno» crudo.
+   🔴 **El error que el servidor manda dentro del stream se perdía**: se tiraba
+   adentro del mismo `try` que ignora las líneas malformadas, y el `catch` se
+   lo tragaba. `interpretarLineaSSE` lo devuelve en vez de tirarlo.
+2. **La base no se vuelve a dormir**: `api/mantener-base.ts` hace una lectura
+   con la clave pública y el cron de `vercel.json` la llama **lunes y jueves**
+   a las 12 UTC. Dos veces por semana y no una porque una vez por semana es
+   justo el límite de la pausa.
+   🔑 **En Vercel y no en GitHub Actions: el repo es PÚBLICO**, y GitHub apaga
+   los workflows programados después de 60 días sin commits — justo cuando la
+   plataforma está quieta. Los crons de Vercel sólo corren en producción.
+   ⚠ Si algún día se pasa a Supabase Pro, la pausa no existe y esto sobra.
+
 ### Bandeja de revisión (desde 2026-08-14)
 
 Las dos entradas por las que crece la base de conocimiento. Ninguna es que el
@@ -624,7 +650,10 @@ chore:    tareas de mantenimiento (deps, config)
 - **Motor de cálculo**: Corre 100% en browser. Los algoritmos de ingeniería
   son activo propio del proyecto. Siempre aplicar 15% de margen de seguridad.
 
-- **Contenido como código**: El manual (14 capítulos) y los casos de errores
+- **Contenido como código**: El manual (14 capítulos, de los que hay **6
+  publicados**: el 1 al 5 y el 13, que lleva a `/errores`; el 14 es el lugar
+  reservado a los aportes de los instaladores, no un capítulo pendiente) y los
+  casos de errores
   (17 casos al 2026-08-14, con 151 anclas y 114 entradas en el índice temático —
   contados contra el código, no de memoria) están implementados como
   componentes TSX nativos, sin CMS externo. **No usar cifras redondeadas hacia
@@ -1243,7 +1272,7 @@ abierto sin cuenta, índice temático de errores, bandeja de consultas abiertas.
      La comparación pasó a ser en tiempo constante.
 
    🔑 **La referencia del mismo circuito está en el otro repo**, el sitio Astro:
-   `api/mp-webhook.js` de `~/Desktop/Trabajos/Criterio Termico`, con su
+   `api/mp-webhook.js` de `~/Desktop/Trabajos/Criterio Termico/1 Sitio web (repo)`, con su
    `docs/mercadopago.md`.
 
 2bis. ✅ **El asistente ya no aparece en `/cuenta`** (6/9). Lo había visto
