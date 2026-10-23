@@ -21,7 +21,7 @@
  * pantalla vuelve a mentir.
  *
  * ⚠ El mismo precio aparece en `src/pages/plataforma.astro` del repo del SITIO
- * (`~/Desktop/Trabajos/Criterio Termico`), que es la puerta de entrada al SaaS.
+ * (`~/Desktop/Trabajos/Criterio Termico/1 Sitio web (repo)`), que es la puerta de entrada al SaaS.
  * Ese es otro repositorio: hay que tocarlo a mano.
  */
 import type { SubscriptionTier } from '../stores/useAuthStore'
