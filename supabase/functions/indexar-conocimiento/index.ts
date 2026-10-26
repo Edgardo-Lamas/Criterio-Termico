@@ -4,6 +4,7 @@
 // public.conocimiento. Solo invocable con la service_role key (uso administrativo).
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { calcularHuerfanos } from '../_shared/huerfanos.ts'
 
 // Global del Edge Runtime de Supabase (no viene tipado en el SDK)
 declare const Supabase: {
@@ -55,7 +56,38 @@ Deno.serve(async (req: Request): Promise<Response> => {
     }
 
     try {
-        const { documents } = await req.json() as { documents: Documento[] }
+        const body = await req.json() as {
+            documents?: Documento[]
+            purgar?: { prefijos: string[]; vigentes: string[] }
+        }
+
+        // Purga de huérfanos: lo que quedó en la tabla y ya no sale del contenido.
+        // La decisión vive en _shared/huerfanos.ts, con sus tests.
+        if (body.purgar) {
+            const supabase = createClient(Deno.env.get('SUPABASE_URL')!, serviceKey)
+            const { data, error } = await supabase.from('conocimiento').select('source_id')
+            if (error) throw new Error(error.message)
+
+            const { huerfanos, frenada } = calcularHuerfanos(
+                (data ?? []).map((f: { source_id: string }) => f.source_id),
+                body.purgar.vigentes ?? [],
+                body.purgar.prefijos ?? [],
+            )
+            if (frenada) {
+                return new Response(JSON.stringify({ error: 'Purga frenada', detail: frenada, huerfanos }), {
+                    status: 409, headers: { 'Content-Type': 'application/json' },
+                })
+            }
+            if (huerfanos.length) {
+                const { error: errBorrado } = await supabase.from('conocimiento').delete().in('source_id', huerfanos)
+                if (errBorrado) throw new Error(errBorrado.message)
+            }
+            return new Response(JSON.stringify({ borrados: huerfanos }), {
+                headers: { 'Content-Type': 'application/json' },
+            })
+        }
+
+        const documents = body.documents
         if (!Array.isArray(documents) || documents.length === 0) {
             return new Response(JSON.stringify({ error: 'Se requiere documents[]' }), {
                 status: 400, headers: { 'Content-Type': 'application/json' },

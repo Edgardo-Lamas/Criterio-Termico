@@ -127,6 +127,33 @@ const documents = extraerTodo()
 console.log(`\nPosteando ${documents.length} fragmentos en lotes de ${BATCH_SIZE}...\n`)
 const { indexadosTotal, erroresTotal } = await indexar(documents, serviceKey)
 console.log(`\n✅ Indexados: ${indexadosTotal}/${documents.length}`)
+
+// 4) Purgar huérfanos: el upsert pisa lo que sigue existiendo pero nunca borra.
+// Si un capítulo o un caso queda con menos secciones, la vieja sobrevive y el
+// asistente la sigue leyendo (pasó con el cap. 5 el 2026-10-26). Sólo si la
+// indexación salió entera: con lotes fallidos la lista de vigentes es la misma,
+// pero no hay apuro en borrar mientras algo está roto.
+if (!erroresTotal.length) {
+    const res = await fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${serviceKey}` },
+        body: JSON.stringify({
+            purgar: {
+                prefijos: ['caso:', 'manual:cap-'],
+                vigentes: documents.map((d) => d.source_id),
+            },
+        }),
+    })
+    const json = await res.json().catch(() => ({}))
+    if (!res.ok) {
+        erroresTotal.push(`purga: HTTP ${res.status} — ${json.error ?? ''} ${json.detail ?? ''}`)
+    } else if (json.borrados?.length) {
+        console.log(`🧹 Huérfanos borrados (${json.borrados.length}): ${json.borrados.join(', ')}`)
+    } else {
+        console.log('🧹 Sin huérfanos.')
+    }
+}
+
 if (erroresTotal.length) {
     console.log(`⚠ Errores (${erroresTotal.length}):`)
     erroresTotal.forEach((e) => console.log(`  - ${e}`))

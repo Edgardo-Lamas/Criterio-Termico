@@ -413,6 +413,19 @@ También se dispara a mano desde la pestaña Actions. Sólo hace falta el POST
 manual a `indexar-conocimiento` (lotes de ≤5, el runtime free se queda sin CPU
 con lotes grandes) si se indexa material que no vive en esas rutas.
 
+🔴 **El upsert pisa pero no borra: desde el 2026-10-26 hay purga de huérfanos.**
+Si un capítulo o un caso queda con menos secciones, la vieja (`manual:cap-x#N`)
+sobrevivía y Martín la seguía leyendo: pasó con el cap. 5, que siguió diciendo
+150 kcal/h y nombrando marcas después de corregido. Al final de cada reindexación
+entera, `reindexar-rag.mjs` le pide a `indexar-conocimiento` que borre lo que ya no
+sale de la extracción. La regla vive en `_shared/huerfanos.ts`, con sus tests:
+**sólo toca `caso:` y `manual:cap-`** (las fallas por marca y las fichas sueltas del
+manual se cargan por otro camino y no salen de la extracción) y **se frena si
+borraría más del 20 %** (es más probable una extracción rota que medio manual
+borrado a propósito).
+⚠ **La función se despliega ANTES de mergear** un cambio que toque el script: el
+merge dispara la reindexación, y con la función vieja la purga contesta 400.
+
 ### La ficha del instalador — memoria de Martín, etapa 1 (desde 2026-09-11)
 
 `public.ficha_instalador`, una fila por cuenta: dónde trabaja, qué instala, tipo
