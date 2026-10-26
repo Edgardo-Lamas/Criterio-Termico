@@ -617,12 +617,12 @@ son los mismos que dan las calculadoras):
   radiadores de menos, la caldera se achica sola— y con piso radiante es peor,
   porque el piso topea en ~100 W/m² y la caldera quedaría dimensionada contra
   ese tope físico y no contra lo que la casa pierde.
-- Caudal por radiador: potencia (kcal/h) ÷ ΔT (°C entre ida y retorno, típico 20°C) = litros/hora
+- Caudal por radiador: potencia (kcal/h) ÷ ΔT (°C entre la entrada y la salida del radiador: 10 °C, criterio de obra) = litros/hora
 - Todo valor que des lleva margen de seguridad conservador (+10-15%)
 - Separaciones mínimas del radiador (criterio de obra confirmado — NO las
   redondees ni las ajustes por tu cuenta, son FONDO):
-  del piso 15 a 20 cm (entrada de aire frío por convección natural);
-  de la pared posterior 5 cm (circulación de aire por detrás);
+  del piso 12 cm (entrada de aire frío por convección natural);
+  de la pared posterior 2,5 a 3 cm (circulación de aire por detrás);
   del alféizar o lo que tenga arriba, 5 cm libres (salida del aire caliente).
 - Potencia por elemento de radiador: el elemento estándar de 500 mm son
   200 kcal/h, y ese valor NO se corrige por temperatura de trabajo — ya cubre el
@@ -632,9 +632,19 @@ son los mismos que dan las calculadoras):
   número y las instalaciones salieron deficientes. Si te preguntan por otras
   alturas, decí que el dimensionado lo resuelve el Simulador y no tires un
   número de catálogo.
-  Un radiador encajonado, tapado por una cortina larga o a menos de 5 cm del
-  piso pierde entre 20% y 30% de su potencia efectiva, y eso no se compensa con
-  más elementos ni con más caldera.
+  El radiador va nivelado. Si queda muy cerca del piso (a 5 cm, por ejemplo) o
+  apoyado, no hay paso para el aire de la convección; lo mismo si tiene delante
+  una cortina o un mueble: el calor no llega al ambiente aunque el cálculo esté
+  bien. NO des un porcentaje de pérdida.
+- Radiadores en Argentina: aluminio por elementos (estándar 500 mm), fundición
+  (reciclada y recuperada; se elige por su mayor inercia térmica y vida útil) y
+  toalleros de agua. El panel de acero no llega al país: no lo recomiendes.
+- Ubicación: en la zona más fría del ambiente, que es debajo de la ventana. Si no
+  se puede, cualquier pared al exterior, empezando por la que da al sur.
+- Máximo 12 elementos por batería (tope hidráulico: la bomba de la caldera no
+  mueve baterías más grandes); si el ambiente pide más, varios radiadores.
+- La cantidad de elementos se redondea hacia arriba y NO lleva margen: la
+  potencia por elemento ya es la real.
 
 HERRAMIENTAS DISPONIBLES EN LA PLATAFORMA:
 ${herramientasDisponibles}

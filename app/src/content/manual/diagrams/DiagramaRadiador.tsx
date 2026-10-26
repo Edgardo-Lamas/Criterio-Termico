@@ -2,7 +2,7 @@ import styles from './Diagrams.module.css'
 
 /**
  * Diagrama de transferencia de calor de un radiador:
- * muestra radiación (~40%) y convección (~60%) simultáneas.
+ * muestra radiación y convección simultáneas; la convección es la vía principal.
  */
 export function DiagramaRadiador() {
     return (
@@ -26,7 +26,7 @@ export function DiagramaRadiador() {
                 {/* Fondo */}
                 <rect width="520" height="310" fill="var(--ct-ext-bg, #1a2332)" rx="8" />
 
-                {/* ── Radiador (panel) ── */}
+                {/* ── Radiador ── */}
                 {/* Cuerpo principal */}
                 <rect x="160" y="110" width="200" height="110" rx="4"
                     fill="var(--ct-wall-ext, #374151)" stroke="var(--ct-wall-stroke, #4b5563)" strokeWidth="1.5" />
@@ -78,22 +78,18 @@ export function DiagramaRadiador() {
                 <text x="260" y="70" fontSize="11" fill="var(--ct-window, #60a5fa)" fontFamily="sans-serif"
                     textAnchor="middle" fontWeight="600">Convección</text>
                 <text x="260" y="83" fontSize="10" fill="var(--ct-window, #60a5fa)" fontFamily="sans-serif"
-                    textAnchor="middle" opacity="0.8">aire caliente sube · 55–65% del calor</text>
+                    textAnchor="middle" opacity="0.8">aire caliente sube · la vía principal</text>
 
                 {/* ── Etiquetas RADIACIÓN ── */}
                 <text x="50" y="148" fontSize="11" fill="var(--ct-sun, #fbbf24)" fontFamily="sans-serif"
                     textAnchor="middle" fontWeight="600">Radiación</text>
                 <text x="50" y="162" fontSize="9.5" fill="var(--ct-sun, #fbbf24)" fontFamily="sans-serif"
                     textAnchor="middle" opacity="0.8">infraroja</text>
-                <text x="50" y="175" fontSize="9.5" fill="var(--ct-sun-dim, #d97706)" fontFamily="sans-serif"
-                    textAnchor="middle" opacity="0.8">35–45% del calor</text>
 
                 <text x="472" y="148" fontSize="11" fill="var(--ct-sun, #fbbf24)" fontFamily="sans-serif"
                     textAnchor="middle" fontWeight="600">Radiación</text>
                 <text x="472" y="162" fontSize="9.5" fill="var(--ct-sun, #fbbf24)" fontFamily="sans-serif"
                     textAnchor="middle" opacity="0.8">infraroja</text>
-                <text x="472" y="175" fontSize="9.5" fill="var(--ct-sun-dim, #d97706)" fontFamily="sans-serif"
-                    textAnchor="middle" opacity="0.8">35–45% del calor</text>
 
                 {/* ── Destino de la radiación ── */}
                 {/* Pared izquierda */}
