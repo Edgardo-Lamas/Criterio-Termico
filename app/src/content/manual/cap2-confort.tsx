@@ -50,7 +50,7 @@ export function Cap2Confort() {
                 Un radiador de agua caliente transfiere calor por <strong>dos vías simultáneas</strong>:
             </p>
 
-            <h3>Radiación (35–45% del total)</h3>
+            <h3>Radiación</h3>
             <p>
                 El radiador emite calor por radiación infrarroja directamente a las superficies
                 opacas del local: paredes, piso, objetos, el propio cuerpo de las personas.
@@ -59,7 +59,7 @@ export function Cap2Confort() {
                 y producen el "confort envolvente" que distingue al sistema.
             </p>
 
-            <h3>Convección (55–65% del total)</h3>
+            <h3>Convección: la vía principal</h3>
             <p>
                 El aire en contacto con la superficie del radiador se calienta, sube por
                 diferencia de densidad y genera una circulación natural que distribuye
@@ -79,8 +79,8 @@ export function Cap2Confort() {
             </div>
 
             <FotoManual
-                alt="Radiador de panel de acero instalado bajo ventana"
-                caption="Radiador de panel instalado en su posición ideal: bajo la ventana, para contrarrestar el frío que ingresa por el vidrio y crear una cortina de aire caliente."
+                alt="Radiador de aluminio por elementos instalado bajo la ventana"
+                caption="Radiador de aluminio por elementos instalado bajo la ventana, la zona más fría del ambiente."
             />
 
             <h2>Inercia térmica: calor que dura</h2>

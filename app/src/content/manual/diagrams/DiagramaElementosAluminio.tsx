@@ -1,7 +1,7 @@
 import styles from './Diagrams.module.css'
 
 /**
- * Diagrama frontal de radiador de columna de aluminio:
+ * Diagrama frontal de radiador de aluminio por elementos:
  * muestra anatomía básica, dimensiones y tabla de potencia por elemento.
  */
 export function DiagramaElementosAluminio() {
@@ -19,7 +19,7 @@ export function DiagramaElementosAluminio() {
                 xmlns="http://www.w3.org/2000/svg"
                 className={styles.svg}
                 role="img"
-                aria-label="Radiador de columna de aluminio: vista frontal y datos de potencia por elemento"
+                aria-label="Radiador de aluminio por elementos: vista frontal y datos de potencia por elemento"
             >
                 {/* Fondo */}
                 <rect width="520" height="295" fill="var(--ct-ext-bg,#1a2332)" rx="8" />
@@ -27,11 +27,11 @@ export function DiagramaElementosAluminio() {
                 {/* ── Título ── */}
                 <text x="178" y="26" fontSize="12" fill="currentColor" fontFamily="sans-serif"
                     fontWeight="700" opacity="0.85" textAnchor="middle">
-                    Radiador de columna de aluminio
+                    Radiador de aluminio por elementos
                 </text>
                 <text x="178" y="41" fontSize="9.5" fill="currentColor" fontFamily="sans-serif"
                     opacity="0.5" textAnchor="middle">
-                    vista frontal · 5 elementos · altura nominal 600 mm
+                    vista frontal · 5 elementos · altura nominal 500 mm
                 </text>
 
                 {/* ── Elementos de aluminio ── */}
@@ -80,9 +80,9 @@ export function DiagramaElementosAluminio() {
 
                 {/* Etiquetas de temperatura */}
                 <text x={53} y={startY + 23} fontSize="9" fill="var(--ct-window,#60a5fa)"
-                    fontFamily="sans-serif" textAnchor="end" fontWeight="600">75°C ▶</text>
+                    fontFamily="sans-serif" textAnchor="end" fontWeight="600">Ida ▶</text>
                 <text x={53} y={startY + eH - 16} fontSize="9" fill="var(--ct-cold,#93c5fd)"
-                    fontFamily="sans-serif" textAnchor="end">◀ 65°C</text>
+                    fontFamily="sans-serif" textAnchor="end">◀ Retorno</text>
 
                 {/* ── Dimensión altura ── */}
                 <line x1={22} y1={startY} x2={22} y2={startY + eH}
@@ -94,7 +94,7 @@ export function DiagramaElementosAluminio() {
                 <text x={12} y={startY + eH / 2} fontSize="10" fill="currentColor"
                     fontFamily="sans-serif" textAnchor="middle" opacity="0.6" fontWeight="600"
                     transform={`rotate(-90 12 ${startY + eH / 2})`}>
-                    600 mm
+                    500 mm
                 </text>
 
                 {/* ── Dimensión por elemento ── */}
@@ -126,17 +126,16 @@ export function DiagramaElementosAluminio() {
                 </text>
                 <text x="407" y="86" fontSize="9" fill="currentColor" fontFamily="sans-serif"
                     textAnchor="middle" opacity="0.45">
-                    catálogo a ΔT50 (norma EN 442)
+                    la misma del Simulador
                 </text>
 
                 <line x1="316" y1="92" x2="498" y2="92"
                     stroke="var(--ct-wall-stroke,#4b5563)" strokeWidth="0.8" opacity="0.5" />
 
                 {[
-                    { h: '500 mm', k: '120' },
-                    { h: '600 mm', k: '150', highlight: true },
-                    { h: '700 mm', k: '173' },
-                    { h: '800 mm', k: '193' },
+                    { h: '500 mm', k: '200', highlight: true },
+                    { h: '600 mm', k: '240' },
+                    { h: '700 mm', k: '280' },
                 ].map((row, i) => {
                     const ry = 109 + i * 25
                     return (
@@ -165,9 +164,7 @@ export function DiagramaElementosAluminio() {
                     stroke="var(--ct-wall-stroke,#4b5563)" strokeWidth="0.8" opacity="0.4" />
 
                 <text x="407" y="218" fontSize="9" fill="currentColor" fontFamily="sans-serif"
-                    textAnchor="middle" opacity="0.45">★ La más usada en Argentina</text>
-                <text x="407" y="231" fontSize="9" fill="currentColor" fontFamily="sans-serif"
-                    textAnchor="middle" opacity="0.45">Varía ±5% según fabricante</text>
+                    textAnchor="middle" opacity="0.45">★ El estándar</text>
 
                 {/* ── Nota inferior ── */}
                 <text x="178" y="279" fontSize="9.5" fill="currentColor" fontFamily="sans-serif"
@@ -176,10 +173,9 @@ export function DiagramaElementosAluminio() {
                 </text>
             </svg>
             <figcaption className={styles.caption}>
-                Vista frontal de un radiador de columna de aluminio de 600 mm de altura. Se compone de
-                elementos individuales conectados por niples de bronce (que unen las cámaras superiores
-                e inferiores de cada par de elementos). La potencia declarada en catálogo es por elemento
-                a ΔT50 según norma EN 442.
+                Vista frontal de un radiador de aluminio por elementos de 500 mm de altura, el estándar. Se compone de
+                elementos individuales conectados por niples de acero, con una junta en el medio (unen las
+                cámaras superiores e inferiores de cada par de elementos). La potencia del radiador se cuenta por elemento.
             </figcaption>
         </figure>
     )
