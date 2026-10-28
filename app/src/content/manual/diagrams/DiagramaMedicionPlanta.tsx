@@ -96,7 +96,7 @@ export function DiagramaMedicionPlanta() {
             </svg>
             <figcaption className={styles.caption}>
                 Planta esquemática: medí largo y ancho de cada ambiente. Marcá la posición
-                de ventanas y puertas, e indicá cuál es la pared que da al exterior.
+                de ventanas y puertas, e indicá cuál es la pared al exterior.
             </figcaption>
         </figure>
     )
