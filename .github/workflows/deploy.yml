@@ -46,5 +46,10 @@ jobs:
         working-directory: ./app
         run: npm run test -- --run
 
+      # Los scripts del RAG (raíz del repo) no son parte de `app/`: sus pruebas
+      # van con el runner de Node, sin dependencias.
+      - name: Tests de los scripts del RAG
+        run: node --test scripts/*.test.mjs
+
 # El deploy ahora lo hace Vercel automáticamente en cada push a main
 # (integración Git de Vercel, root directory: app).

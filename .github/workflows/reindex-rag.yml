@@ -16,6 +16,7 @@ on:
       - 'scripts/reindexar-rag.mjs'
       - 'scripts/extraer-casos.mjs'
       - 'scripts/extraer-manual.mjs'
+      - 'scripts/fragmentos.mjs'
   workflow_dispatch: # permite dispararlo a mano desde la pestaña Actions
 
 permissions:

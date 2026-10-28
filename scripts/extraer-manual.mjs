@@ -12,6 +12,7 @@
 
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { partirSeccion } from './fragmentos.mjs'
 
 const DIR = process.argv[2]        // app/src/content/manual
 const TEMARIO = process.argv[3]    // app/src/app/routes/ManualTecnico.tsx
@@ -83,6 +84,11 @@ for (const file of readdirSync(DIR)) {
     const parts = body.split(/<h2[^>]*>([^<]*)<\/h2>/)
 
     const sections = []
+    // parts[0] es lo que va antes del primer <h2>: la entrada del capítulo. Hasta
+    // el 2026-10-28 se descartaba, y Martín nunca leyó esos párrafos (en el cap. 1,
+    // el del plano y los casos en que hay que ir a la obra).
+    const entrada = stripJsx(parts[0].slice(parts[0].indexOf('return (') + 'return ('.length))
+    if (entrada.length > 40) sections.push({ seccion: 'Introducción', texto: entrada })
     for (let i = 1; i < parts.length; i += 2) {
         const seccion = parts[i].trim()
         const texto = stripJsx(parts[i + 1] ?? '')
@@ -103,20 +109,23 @@ for (const file of readdirSync(DIR)) {
         contenido: `Manual técnico de Criterio Térmico — ${titulo}\n${meta.descripcion}`,
     })
 
-    sections.forEach((s, i) => {
-        chunks.push({
-            source_id: `manual:cap-${id}#${i + 1}`,
-            tipo: 'manual',
-            tier: meta.tier,
-            titulo,
-            seccion: s.seccion,
-            categoria: 'Manual técnico',
-            contenido: `Manual técnico — ${titulo} — ${s.seccion}\n${s.texto}`.slice(0, 2800),
-        })
-    })
+    let n = 0
+    for (const s of sections) {
+        for (const contenido of partirSeccion(`Manual técnico — ${titulo} — ${s.seccion}`, s.texto)) {
+            chunks.push({
+                source_id: `manual:cap-${id}#${++n}`,
+                tipo: 'manual',
+                tier: meta.tier,
+                titulo,
+                seccion: s.seccion,
+                categoria: 'Manual técnico',
+                contenido,
+            })
+        }
+    }
 
-    console.log(`${id} (${meta.tier}): ${sections.length + 1} fragmentos`)
-    if (sections.length === 0) sinSecciones.push(id)
+    console.log(`${id} (${meta.tier}): ${n + 1} fragmentos`)
+    if (parts.length < 3) sinSecciones.push(id) // ningún <h2>: la entrada sola no cuenta
 }
 
 writeFileSync(OUT, JSON.stringify({ documents: chunks }, null, 1))

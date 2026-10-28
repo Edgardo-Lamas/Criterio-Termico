@@ -426,6 +426,18 @@ borrado a propósito).
 ⚠ **La función se despliega ANTES de mergear** un cambio que toque el script: el
 merge dispara la reindexación, y con la función vieja la purga contesta 400.
 
+🔴 **Cómo se arman los fragmentos (desde el 2026-10-28).** Hasta ese día se perdía
+texto en silencio por dos lados: **lo que va antes del primer `<h2>` de cada
+capítulo se descartaba** (en el cap. 1, el párrafo del plano y la visita a la
+obra) y **cada sección se cortaba en 2.800 caracteres** (`.slice`), lo que dejaba
+sin final a 4 secciones (3 casos y una del cap. 3). Ahora la entrada del capítulo
+es la sección «Introducción» y una sección larga se parte en tramos con el mismo
+encabezado más «(continuación)»: `scripts/fragmentos.mjs`, con sus pruebas en
+`fragmentos.test.mjs` (corren en el CI con `node --test`).
+⚠ **Los lotes van por caracteres además de por cantidad**: hasta 3 fragmentos y
+4.500 caracteres. Un lote de 3 fragmentos largos (6.181 caracteres) daba HTTP 546
+en todos los reintentos.
+
 ### La ficha del instalador — memoria de Martín, etapa 1 (desde 2026-09-11)
 
 `public.ficha_instalador`, una fila por cuenta: dónde trabaja, qué instala, tipo
