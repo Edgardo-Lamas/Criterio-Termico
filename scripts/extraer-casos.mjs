@@ -2,6 +2,7 @@
 // dividido en fragmentos por sección <h2>, listo para indexar en la base RAG.
 import { readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { partirSeccion } from './fragmentos.mjs'
 
 const DIR = process.argv[2]
 const OUT = process.argv[3]
@@ -64,18 +65,21 @@ for (const file of readdirSync(DIR)) {
         contenido: `Caso: ${titulo}\nCategoría: ${categoria}\n${resumen ?? ''}`,
     })
 
-    sections.forEach((s, i) => {
-        chunks.push({
-            source_id: `caso:${id}#${i + 1}`,
-            tipo: 'caso',
-            tier,
-            titulo,
-            seccion: s.seccion,
-            categoria,
-            contenido: `Caso: ${titulo} — ${s.seccion}\n${s.texto}`.slice(0, 2800),
-        })
-    })
-    console.log(`${id}: ${sections.length + 1} fragmentos`)
+    let n = 0
+    for (const s of sections) {
+        for (const contenido of partirSeccion(`Caso: ${titulo} — ${s.seccion}`, s.texto)) {
+            chunks.push({
+                source_id: `caso:${id}#${++n}`,
+                tipo: 'caso',
+                tier,
+                titulo,
+                seccion: s.seccion,
+                categoria,
+                contenido,
+            })
+        }
+    }
+    console.log(`${id}: ${n + 1} fragmentos`)
     if (sections.length === 0) sinSecciones.push(id)
 }
 

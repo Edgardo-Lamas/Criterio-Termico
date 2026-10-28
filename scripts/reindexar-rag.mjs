@@ -20,6 +20,11 @@ const PROJECT_REF = 'ntxkjtirkgqkjlzphvtd'
 const FUNCTIONS_URL = `https://${PROJECT_REF}.supabase.co/functions/v1`
 const ENDPOINT = `${FUNCTIONS_URL}/indexar-conocimiento`
 const BATCH_SIZE = 3          // gte-small es CPU-intensivo; lotes chicos evitan el límite (HTTP 546)
+// Y además un tope de caracteres por lote: contar fragmentos no alcanza. El
+// 2026-10-28 el lote 19 (los tres primeros fragmentos de `presion-pasivador`,
+// 6.181 caracteres juntos) dio 546 en todos los reintentos, dos corridas
+// seguidas, mientras los demás lotes de 3 pasaban.
+const MAX_CARACTERES_LOTE = 4500
 const MAX_RETRIES = 4         // 546/5xx son transitorios (cold start / CPU); el upsert es idempotente
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -85,13 +90,33 @@ function extraerTodo() {
 }
 
 // 3) Postear en lotes
+// Hasta BATCH_SIZE fragmentos y MAX_CARACTERES_LOTE de contenido; un fragmento
+// que solo ya pasa el tope va en un lote propio.
+function armarLotes(documents) {
+    const lotes = []
+    let actual = []
+    let caracteres = 0
+    for (const d of documents) {
+        const largo = d.contenido.length
+        if (actual.length && (actual.length === BATCH_SIZE || caracteres + largo > MAX_CARACTERES_LOTE)) {
+            lotes.push(actual)
+            actual = []
+            caracteres = 0
+        }
+        actual.push(d)
+        caracteres += largo
+    }
+    if (actual.length) lotes.push(actual)
+    return lotes
+}
+
 async function indexar(documents, serviceKey) {
     let indexadosTotal = 0
     const erroresTotal = []
-    for (let i = 0; i < documents.length; i += BATCH_SIZE) {
-        const lote = documents.slice(i, i + BATCH_SIZE)
-        const n = Math.floor(i / BATCH_SIZE) + 1
-        const total = Math.ceil(documents.length / BATCH_SIZE)
+    const lotes = armarLotes(documents)
+    for (const [i, lote] of lotes.entries()) {
+        const n = i + 1
+        const total = lotes.length
 
         let json = {}
         let ok = false
@@ -124,7 +149,7 @@ async function indexar(documents, serviceKey) {
 
 const serviceKey = getServiceKey()
 const documents = extraerTodo()
-console.log(`\nPosteando ${documents.length} fragmentos en lotes de ${BATCH_SIZE}...\n`)
+console.log(`\nPosteando ${documents.length} fragmentos en lotes de hasta ${BATCH_SIZE} y ${MAX_CARACTERES_LOTE} caracteres...\n`)
 const { indexadosTotal, erroresTotal } = await indexar(documents, serviceKey)
 console.log(`\n✅ Indexados: ${indexadosTotal}/${documents.length}`)
 
